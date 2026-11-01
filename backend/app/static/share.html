@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Conversation | Iveri Customer Support</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        :root {
+            --bg-page: #F8FAFC;
+            --bg-card: #FFFFFF;
+            --border-color: #E2E8F0;
+            --text-primary: #0F172A;
+            --text-secondary: #475569;
+            --text-muted: #94A3B8;
+            --primary: #4F46E5;
+            --primary-light: #EEF2FF;
+            --success: #16A34A;
+            --success-light: #F0FDF4;
+            --danger: #DC2626;
+            --danger-light: #FEF2F2;
+            --warning: #D97706;
+            --warning-light: #FFFBEB;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-page);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 32px 16px;
+        }
+
+        .share-container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            box-shadow: var(--shadow-md);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .share-header {
+            padding: 20px 24px;
+            background: #FFFFFF;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .biz-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .biz-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 700;
+            overflow: hidden;
+        }
+
+        .biz-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .biz-info h1 {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .biz-info p {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .share-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+        }
+
+        .pill-positive { background: var(--success-light); color: var(--success); }
+        .pill-negative { background: var(--danger-light); color: var(--danger); }
+        .pill-neutral { background: #F1F5F9; color: var(--text-secondary); }
+        .pill-topic { background: var(--primary-light); color: var(--primary); }
+
+        .btn-copy {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-copy:hover {
+            background: #F1F5F9;
+            border-color: #CBD5E1;
+        }
+
+        .chat-body {
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .msg-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 80%;
+        }
+
+        .msg-row.customer {
+            align-self: flex-end;
+            align-items: flex-end;
+        }
+
+        .msg-row.assistant {
+            align-self: flex-start;
+            align-items: flex-start;
+        }
+
+        .bubble {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+
+        .customer .bubble {
+            background: var(--primary);
+            color: #FFFFFF;
+            border-bottom-right-radius: 4px;
+        }
+
+        .assistant .bubble {
+            background: #F1F5F9;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: 4px;
+        }
+
+        .msg-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .citations-box {
+            margin-top: 8px;
+            padding: 8px 12px;
+            background: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+            width: 100%;
+        }
+
+        .citation-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 4px;
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .share-footer {
+            padding: 14px 24px;
+            background: #F8FAFC;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .loading-state {
+            padding: 48px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="share-container" id="shareContainer">
+        <div class="loading-state" id="loadingState">
+            <span class="material-symbols-outlined" style="font-size: 32px; animation: spin 1s linear infinite;">sync</span>
+            <p style="margin-top: 12px;">Loading verified conversation permalink...</p>
+        </div>
+
+        <div id="contentBlock" style="display: none; flex-direction: column;">
+            <div class="share-header">
+                <div class="biz-brand">
+                    <div class="biz-avatar" id="bizAvatar">B</div>
+                    <div class="biz-info">
+                        <h1 id="bizTitle">Support Conversation</h1>
+                        <p id="bizSubtitle">Verified Store Support Session</p>
+                    </div>
+                </div>
+                <div class="share-actions">
+                    <span class="pill pill-topic" id="topicPill">General</span>
+                    <span class="pill pill-neutral" id="sentimentPill">Neutral</span>
+                    <button class="btn-copy" onclick="copyPermalink()">
+                        <span class="material-symbols-outlined" style="font-size: 16px;">content_copy</span>
+                        Copy Link
+                    </button>
+                </div>
+            </div>
+
+            <div class="chat-body" id="chatBody"></div>
+
+            <div class="share-footer">
+                Powered by <strong>Iveri</strong> • Grounded Deterministic Customer Support AI
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadSharedData() {
+            const pathParts = window.location.pathname.split('/').filter(Boolean);
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            let id = urlParams.get('id');
+            let isUnanswered = urlParams.get('type') === 'unanswered' || pathParts.includes('unanswered');
+
+            if (!id) {
+                const last = pathParts[pathParts.length - 1];
+                if (last && last !== 'share' && last !== 'share.html') {
+                    id = last;
+                }
+            }
+
+            if (!id) {
+                document.getElementById('loadingState').innerHTML = `
+                    <p style="color: var(--danger);">No conversation ID specified in URL.</p>
+                `;
+                return;
+            }
+
+            try {
+                const endpoint = isUnanswered ? `/api/public/share/unanswered/${id}` : `/api/public/share/session/${id}`;
+                const res = await fetch(endpoint);
+                if (!res.ok) throw new Error("Conversation not found or link has expired.");
+
+                const data = await res.json();
+                renderView(data);
+            } catch (err) {
+                document.getElementById('loadingState').innerHTML = `
+                    <p style="color: var(--danger);">${err.message}</p>
+                `;
+            }
+        }
+
+        function renderView(data) {
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('contentBlock').style.display = 'flex';
+
+            document.getElementById('bizTitle').innerText = data.business_name || "Customer Support";
+            
+            const avatar = document.getElementById('bizAvatar');
+            if (data.avatar_url) {
+                avatar.innerHTML = `<img src="${data.avatar_url}" alt="Avatar">`;
+            } else {
+                avatar.innerText = (data.business_name || "I").charAt(0).toUpperCase();
+            }
+
+            const topicPill = document.getElementById('topicPill');
+            topicPill.innerText = data.primary_topic || "General";
+
+            const sentPill = document.getElementById('sentimentPill');
+            const sent = data.sentiment || "neutral";
+            sentPill.className = `pill pill-${sent}`;
+            sentPill.innerText = sent;
+
+            const chatBody = document.getElementById('chatBody');
+            chatBody.innerHTML = '';
+
+            if (data.type === 'unanswered') {
+                document.getElementById('bizSubtitle').innerText = "Unanswered Customer Inquiry";
+                chatBody.innerHTML = `
+                    <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
+                        <span class="pill pill-negative" style="margin-bottom: 12px;">Unresolved Query</span>
+                        <h2 style="font-size: 16px; margin-top: 8px; color: var(--text-primary);">${data.question_text}</h2>
+                        ${data.customer_email ? `<p style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">Customer: <strong>${data.customer_email}</strong></p>` : ''}
+                        ${data.is_resolved ? `
+                            <div style="margin-top: 16px; padding: 12px; background: var(--success-light); border-left: 4px solid var(--success); border-radius: 4px;">
+                                <strong style="color: var(--success); font-size: 13px;">Verified Ground Truth Answer:</strong>
+                                <p style="font-size: 14px; margin-top: 4px; color: var(--text-primary);">${data.resolved_answer}</p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                return;
+            }
+
+            // Render Messages
+            (data.messages || []).forEach(msg => {
+                const row = document.createElement('div');
+                row.className = `msg-row ${msg.sender}`;
+
+                let citationsHtml = '';
+                if (msg.citations && msg.citations.length > 0) {
+                    citationsHtml = `
+                        <div class="citations-box">
+                            <span style="font-weight: 600;">Verified Knowledge Sources:</span>
+                            ${msg.citations.map(c => `
+                                <div class="citation-item">
+                                    <span class="material-symbols-outlined" style="font-size: 14px;">description</span>
+                                    <span>${c.document_name} (p.${c.page_number})</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                row.innerHTML = `
+                    <div class="bubble">
+                        ${msg.content.replace(/\\n/g, '<br>')}
+                        ${citationsHtml}
+                    </div>
+                    <div class="msg-meta">
+                        <span>${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        ${msg.latency_ms ? `<span>• ${msg.latency_ms}ms</span>` : ''}
+                        ${msg.llm_provider ? `<span>• ${msg.llm_provider}</span>` : ''}
+                    </div>
+                `;
+                chatBody.appendChild(row);
+            });
+        }
+
+        function copyPermalink() {
+            navigator.clipboard.writeText(window.location.href);
+            const btn = document.querySelector('.btn-copy');
+            const original = btn.innerHTML;
+            btn.innerHTML = `<span class="material-symbols-outlined" style="font-size: 16px; color: var(--success);">check</span> Copied!`;
+            setTimeout(() => { btn.innerHTML = original; }, 2000);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadSharedData);
+    </script>
+</body>
+</html>

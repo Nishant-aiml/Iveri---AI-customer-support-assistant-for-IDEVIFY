@@ -101,6 +101,10 @@
       </div>
       
       <div class="flex items-center space-x-2">
+        <button onclick="shareCurrentChat()" title="Share this conversation" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-xs transition">
+          <span class="material-symbols-outlined text-[14px] text-primary">share</span>
+          <span>Share</span>
+        </button>
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-mono font-medium shadow-xs">
           <span class="material-symbols-outlined text-[13px] text-emerald-600">verified</span>
           Zero Hallucination
@@ -440,6 +444,16 @@
 
     function closeCitationModal() {
       document.getElementById('citation-modal').classList.add('hidden');
+    }
+
+    function shareCurrentChat() {
+      if (!sessionId) {
+        alert("Please send a message before sharing the session.");
+        return;
+      }
+      const shareUrl = `${window.location.origin}/share/${sessionId}`;
+      navigator.clipboard.writeText(shareUrl);
+      alert(`Conversation permalink copied to clipboard!\n${shareUrl}`);
     }
 
     function escapeHtml(text) {

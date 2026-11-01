@@ -11,7 +11,8 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, business, documents, chat, dashboard
+from app.middleware import SecurityHeadersMiddleware, SlidingWindowRateLimiter, AuditLoggerMiddleware
+from app.routers import auth, business, documents, chat, dashboard, public_share
 from app.services.ingestion_queue import ingestion_queue
 from app.services.bm25_store import bm25_store_service
 
@@ -25,6 +26,12 @@ logger = logging.getLogger("idevify-rag")
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting up Iveri AI Customer Support Assistant backend...")
+    
+    # Secret Entropy Guard
+    if settings.ENVIRONMENT == "production":
+        if settings.JWT_SECRET == "super-secret-jwt-key-change-in-production-123456" or len(settings.JWT_SECRET) < 32:
+            logger.warning("SECURITY ALERT: Production environment is using default or weak JWT_SECRET! Generate a 32+ character secret.")
+
     await init_db()
     await bm25_store_service.warmup_from_db()
     ingestion_queue.start()
@@ -49,12 +56,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# HTTP Security Headers Middleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Request ID & Audit Logging Middleware
+app.add_middleware(AuditLoggerMiddleware)
+
+# In-Memory Rate Limiting (Anti-DoS & Brute Force Defense)
+app.add_middleware(SlidingWindowRateLimiter)
+
 # Mount Routers
 app.include_router(auth.router)
 app.include_router(business.router)
 app.include_router(documents.router)
 app.include_router(chat.router)
 app.include_router(dashboard.router)
+app.include_router(public_share.router)
 
 @app.get("/api/health", tags=["Health"])
 async def health_check():
@@ -87,3 +104,10 @@ async def serve_customer_chat_ui(slug: str):
     """Serves the Customer Support Chat Web Application."""
     chat_path = os.path.join(os.path.dirname(__file__), "static", "chat.html")
     return FileResponse(chat_path, media_type="text/html")
+
+@app.get("/share/{session_id}", tags=["UI"])
+@app.get("/share/unanswered/{unanswered_id}", tags=["UI"])
+async def serve_shared_chat_ui(session_id: str = None, unanswered_id: str = None):
+    """Serves the Public Read-Only Share Permalink Page."""
+    share_path = os.path.join(os.path.dirname(__file__), "static", "share.html")
+    return FileResponse(share_path, media_type="text/html")

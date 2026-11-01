@@ -29,6 +29,9 @@ async def get_business_settings(owner: User = Depends(get_current_owner), db: As
         share_token=business.share_token,
         tone=business.tone,
         brand_color=business.brand_color,
+        avatar_url=business.avatar_url or "",
+        widget_position=business.widget_position or "bottom-right",
+        welcome_message=business.welcome_message or "Hello! How can I help you today?",
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
         shareable_link=shareable_link,
@@ -41,7 +44,7 @@ async def update_business_settings(
     owner: User = Depends(get_current_owner),
     db: AsyncSession = Depends(get_db)
 ):
-    """Owner endpoint: Updates assistant customization, branding colors, tone, and starter questions."""
+    """Owner endpoint: Updates assistant customization, branding colors, avatar, position, tone, and starter questions."""
     biz_query = select(Business).where(Business.id == owner.business_id)
     business = (await db.execute(biz_query)).scalar_one_or_none()
     if not business:
@@ -53,6 +56,12 @@ async def update_business_settings(
         business.tone = req.tone
     if req.brand_color is not None:
         business.brand_color = req.brand_color
+    if req.avatar_url is not None:
+        business.avatar_url = req.avatar_url
+    if req.widget_position is not None:
+        business.widget_position = req.widget_position
+    if req.welcome_message is not None:
+        business.welcome_message = req.welcome_message
     if req.fallback_message is not None:
         business.fallback_message = req.fallback_message
     if req.starter_questions is not None:
@@ -71,6 +80,9 @@ async def update_business_settings(
         share_token=business.share_token,
         tone=business.tone,
         brand_color=business.brand_color,
+        avatar_url=business.avatar_url or "",
+        widget_position=business.widget_position or "bottom-right",
+        welcome_message=business.welcome_message or "Hello! How can I help you today?",
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
         shareable_link=shareable_link,
@@ -103,6 +115,9 @@ async def get_public_business_info(slug_or_token: str, db: AsyncSession = Depend
         slug=business.slug,
         tone=business.tone,
         brand_color=business.brand_color,
+        avatar_url=business.avatar_url or "",
+        widget_position=business.widget_position or "bottom-right",
+        welcome_message=business.welcome_message or "Hello! How can I help you today?",
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
         document_count=doc_count

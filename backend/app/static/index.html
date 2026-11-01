@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iveri - Verified AI Customer Support Assistant Console</title>
+  <title>Iveri - AI Customer Support Assistant Console</title>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
   <script>
     tailwind.config = {
@@ -18,8 +19,6 @@
             "surface": "#FFFFFF",
             "surface-container": "#F1F5F9",
             "surface-container-high": "#E2E8F0",
-            "surface-bright": "#FFFFFF",
-            "outline-variant": "#E2E8F0",
             "primary": "#4F46E5",
             "primary-hover": "#4338CA",
             "secondary": "#6366F1",
@@ -29,7 +28,7 @@
             "card-border": "#E2E8F0"
           },
           fontFamily: {
-            sans: ["Geist", "sans-serif"],
+            sans: ["Plus Jakarta Sans", "sans-serif"],
             mono: ["JetBrains Mono", "monospace"]
           }
         }
@@ -40,34 +39,48 @@
     body {
       background-color: #F8FAFC;
       color: #0F172A;
-      font-family: 'Geist', sans-serif;
+      font-family: 'Plus Jakarta Sans', sans-serif;
     }
     .lumina-card {
-      background-color: #FFFFFF;
+      background: #FFFFFF;
       border: 1px solid #E2E8F0;
-      box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+      box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .lumina-card:hover {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
     }
     .tab-active {
-      border-color: #4F46E5 !important;
       color: #4F46E5 !important;
-      font-weight: 600;
+      border-bottom: 2px solid #4F46E5 !important;
+      font-weight: 700;
     }
-    .badge-success {
-      background-color: #ECFDF5;
-      color: #047857;
-      border: 1px solid #A7F3D0;
+    .pill-positive { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
+    .pill-negative { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+    .pill-neutral { background: #F1F5F9; color: #475569; border: 1px solid #E2E8F0; }
+    .pill-topic { background: #EEF2FF; color: #4F46E5; border: 1px solid #C7D2FE; }
+
+    .chat-session-item {
+      cursor: pointer;
+      border: 1px solid #E2E8F0;
+      background: #FFFFFF;
+      transition: all 0.15s ease;
     }
-    .badge-warning {
-      background-color: #FFFBEB;
-      color: #B45309;
-      border: 1px solid #FDE68A;
+    .chat-session-item:hover {
+      border-color: #CBD5E1;
+      background: #F8FAFC;
     }
-    .badge-danger {
-      background-color: #FEF2F2;
-      color: #B91C1C;
-      border: 1px solid #FECACA;
+    .chat-session-item.active {
+      border-color: #4F46E5;
+      background: #EEF2FF/30;
+      box-shadow: 0 0 0 1px #4F46E5;
     }
-    /* Scrollbar */
+
+    /* Copilot styles */
+    #copilot-window {
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
     ::-webkit-scrollbar {
       width: 6px;
       height: 6px;
@@ -84,28 +97,28 @@
     }
   </style>
 </head>
-<body class="bg-background min-h-screen text-on-surface antialiased selection:bg-primary/20 selection:text-primary">
+<body class="bg-background min-h-screen text-on-surface antialiased">
 
   <!-- Top Navigation Bar -->
-  <header class="bg-white/95 border-b border-slate-200 sticky top-0 z-40 backdrop-blur-md">
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       
-      <!-- Logo and Brand -->
+      <!-- Brand -->
       <div class="flex items-center space-x-3">
         <div class="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-lg shadow-sm">
-          <span class="material-symbols-outlined text-[20px]">support_agent</span>
+          <span class="material-symbols-outlined text-[20px]">smart_toy</span>
         </div>
         <div>
           <div class="flex items-center gap-2">
             <span class="text-base font-bold text-slate-900 tracking-tight">Iveri Console</span>
             <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-mono font-medium">Owner Portal</span>
           </div>
-          <span class="text-[11px] text-slate-500 font-mono">Verified Multi-Tenant Support</span>
+          <span class="text-[11px] text-slate-500 font-mono">Grounded Support Engine</span>
         </div>
       </div>
 
-      <!-- Center Status / Tenant Pill -->
-      <div id="biz-header-badge" class="hidden sm:flex items-center space-x-2 text-xs font-mono text-slate-600 bg-slate-100 px-3.5 py-1.5 rounded-full border border-slate-200">
+      <!-- Business Status Pill -->
+      <div id="biz-header-badge" class="hidden sm:flex items-center space-x-2 text-xs font-mono text-slate-600 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-200">
         <span class="relative flex h-2 w-2">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -113,14 +126,14 @@
         <span class="text-slate-400">BUSINESS:</span>
         <span id="biz-header-name" class="text-slate-900 font-semibold">Loading...</span>
         <span class="text-slate-300">•</span>
-        <span class="text-emerald-600 font-medium">Grounded RRF Top-K</span>
+        <span class="text-emerald-600 font-medium">Verified RAG</span>
       </div>
 
       <!-- Action Buttons -->
       <div class="flex items-center space-x-3">
         <button onclick="openPublicChat()" class="px-3.5 py-1.5 text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-lg transition-all flex items-center gap-1.5 shadow-xs">
           <span class="material-symbols-outlined text-[15px] text-primary">open_in_new</span>
-          <span>View Public Chat</span>
+          <span>Public Chat</span>
         </button>
         <button id="auth-action-btn" onclick="toggleAuthModal()" class="px-4 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-hover text-white rounded-lg transition-all shadow-xs">
           Sign In
@@ -131,12 +144,12 @@
     <!-- Navigation Tabs -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 overflow-x-auto text-xs border-t border-slate-200/80 font-mono">
       <button onclick="switchTab('overview')" id="tab-overview" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition tab-active flex items-center gap-1.5">
-        <span class="material-symbols-outlined text-[16px]">dashboard</span>
-        <span>Overview</span>
+        <span class="material-symbols-outlined text-[16px]">monitoring</span>
+        <span>Overview & Analytics</span>
       </button>
       <button onclick="switchTab('documents')" id="tab-documents" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
         <span class="material-symbols-outlined text-[16px]">folder</span>
-        <span>Documents</span>
+        <span>Documents & Scale</span>
       </button>
       <button onclick="switchTab('unanswered')" id="tab-unanswered" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
         <span class="material-symbols-outlined text-[16px]">help_outline</span>
@@ -145,15 +158,15 @@
       </button>
       <button onclick="switchTab('chats')" id="tab-chats" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
         <span class="material-symbols-outlined text-[16px]">chat</span>
-        <span>Chat History</span>
+        <span>Chat History (2-Pane)</span>
+      </button>
+      <button onclick="switchTab('settings')" id="tab-settings" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[16px]">tune</span>
+        <span>Widget Studio</span>
       </button>
       <button onclick="switchTab('playground')" id="tab-playground" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
         <span class="material-symbols-outlined text-[16px]">science</span>
         <span>RAG Playground</span>
-      </button>
-      <button onclick="switchTab('settings')" id="tab-settings" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
-        <span class="material-symbols-outlined text-[16px]">settings</span>
-        <span>Widget & Settings</span>
       </button>
     </div>
   </header>
@@ -161,23 +174,29 @@
   <!-- Main Content Container -->
   <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-    <!-- 1. OVERVIEW TAB -->
+    <!-- 1. OVERVIEW & ANALYTICS TAB -->
     <section id="view-overview" class="space-y-6">
+      
+      <!-- Top Overview Header -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Performance Analytics & Grounding Telemetry</h2>
-          <p class="text-xs text-slate-500 mt-0.5 font-mono">Live operational metrics for your multi-tenant AI customer support agent.</p>
+          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Executive Intelligence & Support Telemetry</h2>
+          <p class="text-xs text-slate-500 mt-0.5 font-mono">Live customer sentiment, topic trends, and high-concurrency performance.</p>
         </div>
-        <button onclick="loadDashboardData()" class="self-start sm:self-auto px-3.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-xs font-mono font-semibold rounded-lg text-slate-700 transition flex items-center gap-1.5 shadow-xs">
-          <span class="material-symbols-outlined text-[15px] text-primary">sync</span>
-          <span>Refresh Data</span>
-        </button>
+        <div class="flex items-center gap-2">
+          <button onclick="downloadPowerBiExport()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-semibold rounded-lg transition flex items-center gap-1.5 shadow-xs">
+            <span class="material-symbols-outlined text-[16px]">table_chart</span>
+            <span>Export to Power BI / Excel</span>
+          </button>
+          <button onclick="loadDashboardData()" class="px-3.5 py-2 bg-white border border-slate-200 hover:border-slate-300 text-xs font-mono font-semibold rounded-lg text-slate-700 transition flex items-center gap-1.5 shadow-xs">
+            <span class="material-symbols-outlined text-[15px] text-primary">sync</span>
+            <span>Refresh</span>
+          </button>
+        </div>
       </div>
 
       <!-- Metric Cards Grid -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        
-        <!-- Total Customer Chats -->
         <div class="lumina-card p-5 rounded-2xl space-y-2">
           <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
             <span>Customer Chats</span>
@@ -190,7 +209,6 @@
           <p class="text-[10px] text-slate-400 font-mono">Live customer sessions</p>
         </div>
 
-        <!-- Total Questions Asked -->
         <div class="lumina-card p-5 rounded-2xl space-y-2">
           <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
             <span>Total Questions</span>
@@ -203,7 +221,6 @@
           <p class="text-[10px] text-slate-400 font-mono">Customer inquiries</p>
         </div>
 
-        <!-- Resolution Rate -->
         <div class="lumina-card p-5 rounded-2xl space-y-2">
           <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
             <span>Resolution Rate</span>
@@ -213,26 +230,24 @@
             <span id="stat-resolution-rate" class="text-2xl font-bold font-mono text-emerald-600">100%</span>
             <span id="stat-answered-ratio" class="text-[10px] font-mono text-slate-500">0 answered</span>
           </div>
-          <p class="text-[10px] text-slate-400 font-mono">Grounded resolution</p>
+          <p class="text-[10px] text-slate-400 font-mono">Zero hallucination rate</p>
         </div>
 
-        <!-- Unanswered Questions -->
         <div class="lumina-card p-5 rounded-2xl space-y-2">
           <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
-            <span>Unanswered</span>
+            <span>Unanswered Gaps</span>
             <span class="material-symbols-outlined text-[18px] text-amber-600">warning</span>
           </div>
           <div class="flex items-baseline justify-between">
             <span id="stat-unanswered" class="text-2xl font-bold font-mono text-amber-600">0</span>
-            <span class="text-[10px] font-mono px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded font-medium">Gaps</span>
+            <span class="text-[10px] font-mono px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded font-medium">Pending</span>
           </div>
-          <p class="text-[10px] text-slate-400 font-mono">Requires knowledge update</p>
+          <p class="text-[10px] text-slate-400 font-mono">Requires store training</p>
         </div>
 
-        <!-- Latency & Index Chunks -->
         <div class="lumina-card p-5 rounded-2xl space-y-2">
           <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
-            <span>RAG Telemetry</span>
+            <span>Avg Latency & RAM</span>
             <span class="material-symbols-outlined text-[18px] text-primary">speed</span>
           </div>
           <div class="flex items-baseline justify-between">
@@ -244,69 +259,64 @@
             <span class="text-slate-600">Feedback: <span id="stat-thumbs-up" class="text-emerald-600 font-semibold">0</span>👍 <span id="stat-thumbs-down" class="text-rose-500 font-semibold">0</span>👎</span>
           </div>
         </div>
-
       </div>
 
-      <!-- Real-Life Onboarding Guide (Shown when 0 documents) -->
-      <div id="onboarding-guide-card" class="hidden lumina-card p-6 rounded-2xl border-l-4 border-l-primary space-y-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold">
-              <span class="material-symbols-outlined text-[22px]">rocket_launch</span>
-            </div>
-            <div>
-              <h3 class="font-bold text-slate-900 text-sm">Welcome to your AI Support Assistant!</h3>
-              <p class="text-xs text-slate-500 font-mono">Launch your grounded customer assistant in 3 simple steps:</p>
-            </div>
+      <!-- Executive Analytics Charts Section -->
+      <div class="lumina-card p-6 rounded-2xl space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 gap-2">
+          <div>
+            <h3 class="font-bold text-slate-900 text-base">Customer Intelligence & Topic Analysis</h3>
+            <p class="text-xs text-slate-500 font-mono">Visual breakdown of sentiment, recurring inquiry themes, and volume trends.</p>
           </div>
-          <span class="px-2.5 py-1 text-[11px] font-mono rounded-full bg-primary/10 text-primary border border-primary/20 font-semibold">Getting Started</span>
+          <span class="text-[11px] font-mono text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">Last 7 Days Rolling Window</span>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-full bg-primary text-white text-xs font-mono font-bold flex items-center justify-center">1</span>
-              <span class="font-bold text-slate-900 text-xs">Upload Documents</span>
+          <!-- Chart 1: Volume Trend -->
+          <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-900">Inquiry Volume & Answers</span>
+              <span class="material-symbols-outlined text-[16px] text-primary">show_chart</span>
             </div>
-            <p class="text-[11px] text-slate-600 font-mono">Upload your real PDF, DOCX, or TXT policies, pricing, and FAQs.</p>
-            <button onclick="switchTab('documents')" class="mt-1 w-full py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-primary rounded-lg text-xs font-mono font-semibold transition">
-              Upload Files →
-            </button>
+            <div class="h-52 relative flex items-center justify-center">
+              <canvas id="chart-volume"></canvas>
+            </div>
           </div>
 
-          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-full bg-purple-600 text-white text-xs font-mono font-bold flex items-center justify-center">2</span>
-              <span class="font-bold text-slate-900 text-xs">Test Playground</span>
+          <!-- Chart 2: Sentiment Breakdown -->
+          <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-900">Customer Sentiment</span>
+              <span class="material-symbols-outlined text-[16px] text-emerald-600">sentiment_satisfied</span>
             </div>
-            <p class="text-[11px] text-slate-600 font-mono">Ask test questions to verify zero hallucination circuit breaker & citations.</p>
-            <button onclick="switchTab('playground')" class="mt-1 w-full py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-purple-600 rounded-lg text-xs font-mono font-semibold transition">
-              Open Playground →
-            </button>
+            <div class="h-52 relative flex items-center justify-center">
+              <canvas id="chart-sentiment"></canvas>
+            </div>
           </div>
 
-          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-            <div class="flex items-center gap-2">
-              <span class="w-6 h-6 rounded-full bg-emerald-600 text-white text-xs font-mono font-bold flex items-center justify-center">3</span>
-              <span class="font-bold text-slate-900 text-xs">Deploy Widget</span>
+          <!-- Chart 3: Top Topics -->
+          <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-900">Top Inquiry Topics</span>
+              <span class="material-symbols-outlined text-[16px] text-purple-600">category</span>
             </div>
-            <p class="text-[11px] text-slate-600 font-mono">Embed the 1-line script tag on your website or share your public link.</p>
-            <button onclick="switchTab('settings')" class="mt-1 w-full py-1.5 bg-white hover:bg-slate-100 border border-slate-200 text-emerald-600 rounded-lg text-xs font-mono font-semibold transition">
-              View Embed Code →
-            </button>
+            <div class="h-52 relative flex items-center justify-center">
+              <canvas id="chart-topics"></canvas>
+            </div>
           </div>
 
         </div>
       </div>
+
     </section>
 
-    <!-- 2. DOCUMENTS & KNOWLEDGE BASE TAB -->
+    <!-- 2. DOCUMENTS & SCALE TAB -->
     <section id="view-documents" class="hidden space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Knowledge Base & Ingestion Pipeline</h2>
-          <p class="text-xs text-slate-500 font-mono">Dual-Engine Ingestion (Sarvam Doc AI + PyMuPDF) with dynamic hybrid indexing (ChromaDB + BM25).</p>
+          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Streamed Document Ingestion & Scale</h2>
+          <p class="text-xs text-slate-500 font-mono">Streamed chunking supporting 1,000+ page PDFs with zero-memory bloat.</p>
         </div>
         <span id="doc-table-count" class="text-xs font-mono px-3 py-1 bg-white border border-slate-200 rounded-full text-slate-600 self-start sm:self-auto font-medium">0 documents</span>
       </div>
@@ -319,16 +329,15 @@
           </div>
           <div>
             <h3 class="text-sm font-bold text-slate-900">Upload Knowledge Source</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Supports PDF, DOCX, TXT files up to 25MB.</p>
+            <p class="text-xs text-slate-500 mt-0.5">Supports PDF (up to 1,000 pages), DOCX, TXT files up to 25MB.</p>
           </div>
           <div class="pt-2">
             <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-xl transition shadow-xs">
               <span class="material-symbols-outlined text-[16px]">upload_file</span>
-              <span>Select File to Index</span>
+              <span>Select File to Stream & Index</span>
               <input type="file" id="doc-file-input" class="hidden" accept=".pdf,.docx,.txt" onchange="uploadDocumentFile(event)" />
             </label>
           </div>
-          <p class="text-[11px] font-mono text-slate-400">Chunks are automatically extracted, normalized, vectorized, and registered in BM25 + ChromaDB.</p>
         </div>
       </div>
 
@@ -340,15 +349,15 @@
               <tr>
                 <th class="px-6 py-3.5">Filename</th>
                 <th class="px-6 py-3.5">Type</th>
-                <th class="px-6 py-3.5">Status</th>
+                <th class="px-6 py-3.5">Status & Progress</th>
                 <th class="px-6 py-3.5">Indexed Chunks</th>
-                <th class="px-6 py-3.5">Date Uploaded</th>
+                <th class="px-6 py-3.5">Date</th>
                 <th class="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="documents-tbody" class="divide-y divide-slate-100 font-mono">
               <tr>
-                <td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">Loading knowledge documents...</td>
+                <td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">Loading documents...</td>
               </tr>
             </tbody>
           </table>
@@ -361,7 +370,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 class="text-xl font-bold text-slate-900 tracking-tight">Unanswered Questions & Closed-Loop Resolution</h2>
-          <p class="text-xs text-slate-500 font-mono">Identify information gaps detected by RAG confidence filters and train new answers in one click.</p>
+          <p class="text-xs text-slate-500 font-mono">Inquiries that tripped the confidence circuit breaker. Train them into knowledge in one click.</p>
         </div>
         <div class="flex items-center space-x-2">
           <select id="unanswered-filter-select" onchange="loadUnansweredQuestions()" class="text-xs font-mono border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-800 focus:outline-none focus:border-primary">
@@ -372,7 +381,6 @@
         </div>
       </div>
 
-      <!-- Unanswered Table -->
       <div class="lumina-card rounded-2xl overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
@@ -380,10 +388,10 @@
               <tr>
                 <th class="px-6 py-3.5">Customer Inquiry</th>
                 <th class="px-6 py-3.5">Captured Lead</th>
-                <th class="px-6 py-3.5">RRF Score</th>
+                <th class="px-6 py-3.5">Confidence</th>
                 <th class="px-6 py-3.5">Status</th>
                 <th class="px-6 py-3.5">Asked At</th>
-                <th class="px-6 py-3.5 text-right">Action</th>
+                <th class="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody id="unanswered-tbody" class="divide-y divide-slate-100 font-mono">
@@ -396,30 +404,249 @@
       </div>
     </section>
 
-    <!-- 4. CHAT HISTORY TAB -->
+    <!-- 4. CHAT HISTORY (MASTER-DETAIL 2-PANE) TAB -->
     <section id="view-chats" class="hidden space-y-6">
+      
+      <!-- Top Filters -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Conversation Transcripts & Quality Audits</h2>
-          <p class="text-xs text-slate-500 font-mono">Inspect verified customer conversations, citations used, and filter for downvoted answers.</p>
+          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Master-Detail Customer Conversations</h2>
+          <p class="text-xs text-slate-500 font-mono">Scalable 2-pane audit view: filter sessions on left, inspect full transcripts on right.</p>
         </div>
-        <div class="flex items-center space-x-2 font-mono">
-          <button id="filter-all-chats" onclick="loadChatHistory()" class="px-3 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-hover text-white rounded-lg transition shadow-xs">All Chats</button>
-          <button id="filter-down-chats" onclick="loadChatHistory('down')" class="px-3 py-1.5 text-xs font-semibold bg-white border border-rose-200 hover:border-rose-300 text-rose-600 rounded-lg transition flex items-center gap-1.5 shadow-xs">
-            <span>👎 Downvoted Only</span>
+        <div class="flex flex-wrap items-center gap-2">
+          <input 
+            type="text" 
+            id="chat-search-input" 
+            placeholder="Search email or keyword..." 
+            oninput="debouncedChatSearch()"
+            class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary"
+          />
+          <select id="chat-sentiment-filter" onchange="loadChatHistory()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700">
+            <option value="">All Sentiments</option>
+            <option value="positive">Positive</option>
+            <option value="neutral">Neutral</option>
+            <option value="negative">Frustrated / Negative</option>
+          </select>
+          <select id="chat-topic-filter" onchange="loadChatHistory()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700">
+            <option value="">All Topics</option>
+            <option value="pricing">Pricing</option>
+            <option value="shipping">Shipping</option>
+            <option value="returns">Returns</option>
+            <option value="products">Products</option>
+            <option value="support">Support</option>
+          </select>
+          <button id="filter-down-chats" onclick="toggleDownvoteFilter()" class="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 text-slate-700 rounded-lg transition hover:bg-slate-50">
+            👎 Downvoted
           </button>
         </div>
       </div>
 
-      <!-- Chats Accordion Container -->
-      <div id="chats-container" class="space-y-4">
-        <div class="lumina-card p-8 text-center text-xs font-mono text-slate-400 rounded-2xl">
-          Loading conversation history...
+      <!-- 2-Pane Container -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[620px]">
+        
+        <!-- Left Pane: Master Session List -->
+        <div class="lg:col-span-5 lumina-card rounded-2xl p-4 flex flex-col space-y-3">
+          <div class="flex items-center justify-between pb-2 border-b border-slate-100 text-xs font-mono">
+            <span class="font-bold text-slate-700">Conversations</span>
+            <span id="sessions-count-badge" class="text-slate-400">0 found</span>
+          </div>
+          <div id="chat-sessions-list" class="space-y-2.5 overflow-y-auto max-h-[560px] pr-1">
+            <div class="text-center py-12 text-xs text-slate-400 font-mono">Loading sessions...</div>
+          </div>
         </div>
+
+        <!-- Right Pane: Transcript Detail -->
+        <div class="lg:col-span-7 lumina-card rounded-2xl p-5 flex flex-col justify-between">
+          <div id="session-detail-container" class="space-y-4">
+            <div class="text-center py-20 text-slate-400 font-mono text-xs">
+              <span class="material-symbols-outlined text-3xl mb-2 text-slate-300">chat_bubble_outline</span>
+              <p>Select any customer conversation from the left to audit grounded transcript.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- 5. VOICEFLOW-STYLE WIDGET STUDIO TAB -->
+    <section id="view-settings" class="hidden space-y-6">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Voiceflow-Style Widget Studio & Integrations</h2>
+        <p class="text-xs text-slate-500 font-mono">Customize avatar profile picture, welcome greeting, brand colors, launcher placement, and preview in real-time.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Left: Studio Customizer Controls (7 cols) -->
+        <div class="lg:col-span-7 space-y-6">
+          <div class="lumina-card p-6 rounded-2xl space-y-5">
+            <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-3 flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-base">palette</span>
+              <span>Assistant Identity & Appearance</span>
+            </h3>
+
+            <!-- Bot Name -->
+            <div>
+              <label class="block text-xs font-mono text-slate-600 mb-1 font-semibold">Assistant Display Name</label>
+              <input type="text" id="setting-name" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" oninput="updateWidgetPreview()" />
+            </div>
+
+            <!-- Welcome Message -->
+            <div>
+              <label class="block text-xs font-mono text-slate-600 mb-1 font-semibold">Welcome Greeting Message</label>
+              <input type="text" id="setting-welcome" placeholder="Hello! How can I assist you with products or store policies today?" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" oninput="updateWidgetPreview()" />
+            </div>
+
+            <!-- Avatar DP Selector -->
+            <div>
+              <label class="block text-xs font-mono text-slate-600 mb-2 font-semibold">Chatbot Avatar Profile Picture (DP)</label>
+              <div class="grid grid-cols-4 gap-3 mb-3">
+                <button type="button" onclick="selectPresetAvatar('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=faces')" class="avatar-preset-btn p-2 border border-slate-200 rounded-xl text-center hover:border-primary transition flex flex-col items-center gap-1.5">
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&h=120&fit=crop&crop=faces" class="w-10 h-10 rounded-full object-cover" alt="Agent">
+                  <span class="text-[10px] font-mono text-slate-600">Support</span>
+                </button>
+                <button type="button" onclick="selectPresetAvatar('https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&crop=faces')" class="avatar-preset-btn p-2 border border-slate-200 rounded-xl text-center hover:border-primary transition flex flex-col items-center gap-1.5">
+                  <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&crop=faces" class="w-10 h-10 rounded-full object-cover" alt="Specialist">
+                  <span class="text-[10px] font-mono text-slate-600">Specialist</span>
+                </button>
+                <button type="button" onclick="selectPresetAvatar('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=120&h=120&fit=crop')" class="avatar-preset-btn p-2 border border-slate-200 rounded-xl text-center hover:border-primary transition flex flex-col items-center gap-1.5">
+                  <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=120&h=120&fit=crop" class="w-10 h-10 rounded-full object-cover" alt="Modern AI">
+                  <span class="text-[10px] font-mono text-slate-600">Modern AI</span>
+                </button>
+                <button type="button" onclick="selectPresetAvatar('')" class="avatar-preset-btn p-2 border border-slate-200 rounded-xl text-center hover:border-primary transition flex flex-col items-center gap-1.5">
+                  <div class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center font-bold text-xs">Bot</div>
+                  <span class="text-[10px] font-mono text-slate-600">Minimal</span>
+                </button>
+              </div>
+              <input type="text" id="setting-avatar-url" placeholder="Or paste custom image URL (https://...)" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" oninput="updateWidgetPreview()" />
+            </div>
+
+            <!-- Brand Color & Position -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-mono text-slate-600 mb-1 font-semibold">Primary Brand Color</label>
+                <div class="flex items-center gap-2">
+                  <input type="color" id="setting-color-picker" value="#4F46E5" class="w-8 h-8 rounded border border-slate-200 cursor-pointer" onchange="syncColorInput(this.value)" />
+                  <input type="text" id="setting-color" value="#4F46E5" class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-primary" oninput="syncColorPicker(this.value)" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-xs font-mono text-slate-600 mb-1 font-semibold">Launcher Position</label>
+                <select id="setting-position" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-primary" onchange="updateWidgetPreview()">
+                  <option value="bottom-right">Bottom Right</option>
+                  <option value="bottom-left">Bottom Left</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Starter Prompt Suggestions -->
+            <div>
+              <label class="block text-xs font-mono text-slate-600 mb-1 font-semibold">Starter Question Chips (1 per line)</label>
+              <textarea id="setting-starters" rows="3" placeholder="What are your product prices?&#10;What are your shipping rates?&#10;What is your return policy?" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" oninput="updateWidgetPreview()"></textarea>
+            </div>
+
+            <!-- Fallback Message -->
+            <div>
+              <label class="block text-xs font-mono text-slate-600 mb-1 font-semibold">Circuit Breaker Fallback Message</label>
+              <textarea id="setting-fallback" rows="2" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary"></textarea>
+            </div>
+
+            <button onclick="saveAssistantSettings()" class="w-full py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-mono font-semibold transition shadow-xs flex items-center justify-center gap-1.5">
+              <span class="material-symbols-outlined text-[16px]">save</span>
+              <span>Save & Publish Live Studio Changes</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Right: Real-time Live Interactive Preview (5 cols) -->
+        <div class="lg:col-span-5 space-y-6">
+          <div class="lumina-card p-6 rounded-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div class="flex items-center gap-2">
+                <span class="material-symbols-outlined text-emerald-600 text-base">visibility</span>
+                <h3 class="font-bold text-slate-900 text-sm">Real-Time Widget Preview</h3>
+              </div>
+              <span class="text-[10px] font-mono text-slate-400">Live Simulation</span>
+            </div>
+
+            <!-- Preview Simulated Frame -->
+            <div class="relative w-full h-[460px] bg-slate-100 rounded-2xl border border-slate-200 overflow-hidden flex flex-col justify-between p-4">
+              
+              <!-- Mock Web Page Header -->
+              <div class="w-full h-8 bg-white/90 rounded-lg border border-slate-200 flex items-center px-3 justify-between text-[10px] text-slate-400 font-mono">
+                <div class="flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-rose-400"></span>
+                  <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+                  <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                </div>
+                <span>yourstore.com</span>
+                <span class="material-symbols-outlined text-xs">shopping_bag</span>
+              </div>
+
+              <!-- Mock Simulated Store Content -->
+              <div class="space-y-2 opacity-50 px-2">
+                <div class="h-3 w-32 bg-slate-300 rounded"></div>
+                <div class="h-2 w-48 bg-slate-200 rounded"></div>
+                <div class="grid grid-cols-2 gap-2 pt-2">
+                  <div class="h-16 bg-white rounded-lg border border-slate-200"></div>
+                  <div class="h-16 bg-white rounded-lg border border-slate-200"></div>
+                </div>
+              </div>
+
+              <!-- Simulated Open Chat Window -->
+              <div id="preview-chat-window" class="absolute bottom-16 right-4 w-[280px] bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden flex flex-col text-xs font-sans transition-all">
+                <div id="preview-header" class="p-3 bg-primary text-white flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <div id="preview-avatar-box" class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-[10px] overflow-hidden">
+                      <span id="preview-avatar-initial">B</span>
+                    </div>
+                    <span id="preview-name" class="font-bold text-xs">Support Assistant</span>
+                  </div>
+                  <span class="material-symbols-outlined text-sm">close</span>
+                </div>
+                <div class="p-3 bg-slate-50 space-y-2 max-h-48 overflow-y-auto">
+                  <div class="p-2.5 rounded-lg bg-white border border-slate-200 text-[11px] leading-relaxed text-slate-800">
+                    <span id="preview-welcome-msg">Hello! How can I assist you today?</span>
+                  </div>
+                  <div id="preview-chips-container" class="flex flex-wrap gap-1 pt-1"></div>
+                </div>
+              </div>
+
+              <!-- Simulated Floating Bubble -->
+              <div id="preview-bubble" class="absolute bottom-4 right-4 w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center shadow-lg cursor-pointer">
+                <span id="preview-bubble-avatar" class="material-symbols-outlined text-[20px]">chat</span>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- 1-Click Platform Install Tabs -->
+          <div class="lumina-card p-6 rounded-2xl space-y-4">
+            <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-3 flex items-center gap-2">
+              <span class="material-symbols-outlined text-secondary text-base">integration_instructions</span>
+              <span>1-Click Embed Snippets</span>
+            </h3>
+
+            <div class="flex space-x-2 border-b border-slate-100 pb-2 text-[11px] font-mono">
+              <button onclick="setEmbedTab('html')" id="embed-tab-html" class="px-2.5 py-1 rounded bg-slate-100 font-semibold text-slate-800">HTML</button>
+              <button onclick="setEmbedTab('shopify')" id="embed-tab-shopify" class="px-2.5 py-1 rounded text-slate-500 hover:text-slate-800">Shopify</button>
+              <button onclick="setEmbedTab('wordpress')" id="embed-tab-wordpress" class="px-2.5 py-1 rounded text-slate-500 hover:text-slate-800">WordPress</button>
+              <button onclick="setEmbedTab('react')" id="embed-tab-react" class="px-2.5 py-1 rounded text-slate-500 hover:text-slate-800">React / Next</button>
+            </div>
+
+            <div class="relative">
+              <textarea id="embed-code-area" readonly rows="4" class="w-full p-3 bg-slate-900 text-emerald-400 border border-slate-700 rounded-xl text-xs font-mono focus:outline-none"></textarea>
+              <button onclick="copyEmbedCode()" class="absolute top-2 right-2 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-[10px] font-mono rounded">Copy</button>
+            </div>
+          </div>
+
+        </div>
+
       </div>
     </section>
 
-    <!-- 5. RAG PLAYGROUND TAB -->
+    <!-- 6. RAG PLAYGROUND TAB -->
     <section id="view-playground" class="hidden space-y-6">
       <div>
         <h2 class="text-xl font-bold text-slate-900 tracking-tight">RAG Retrieval Playground & Diagnostics</h2>
@@ -441,7 +668,6 @@
           </button>
         </div>
 
-        <!-- Playground Output Area -->
         <div id="playground-results" class="hidden space-y-4 pt-4 border-t border-slate-200">
           <div class="flex items-center justify-between font-mono text-xs">
             <span class="text-slate-500 uppercase tracking-wider font-medium">Circuit Breaker Status</span>
@@ -449,89 +675,60 @@
           </div>
 
           <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-            <span class="text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">Assistant Answer Preview</span>
-            <p id="pg-answer-text" class="text-sm text-slate-900 leading-relaxed font-sans"></p>
-            <div class="text-[11px] font-mono text-slate-500 flex items-center justify-between pt-2 border-t border-slate-200">
-              <span>Engine: <strong id="pg-provider" class="text-primary font-medium">Extractive Synthesizer</strong></span>
-              <span>Round-trip Latency: <strong id="pg-latency" class="text-emerald-600 font-semibold">0ms</strong></span>
+            <div class="flex justify-between items-center text-xs font-mono text-slate-500">
+              <span>Synthesized Grounded Response:</span>
+              <span>Provider: <strong id="pg-provider" class="text-primary font-mono">greeting_rule</strong> • Latency: <strong id="pg-latency" class="text-slate-700">0ms</strong></span>
             </div>
+            <p id="pg-answer-text" class="text-sm text-slate-900 leading-relaxed font-sans whitespace-pre-wrap font-medium"></p>
           </div>
 
-          <!-- Retrieved Chunks Breakdown -->
-          <div>
-            <span class="text-xs font-mono uppercase tracking-wider text-slate-500 font-semibold">Retrieved Grounding Chunks & Score Fusion</span>
-            <div id="pg-chunks-list" class="mt-2 space-y-2"></div>
+          <div class="space-y-2">
+            <span class="text-xs font-mono text-slate-500 font-semibold uppercase">Retrieved Multi-Hybrid Chunks:</span>
+            <div id="pg-chunks-list" class="space-y-2"></div>
           </div>
         </div>
-      </div>
-    </section>
-
-    <!-- 6. SETTINGS & WIDGET TAB -->
-    <section id="view-settings" class="hidden space-y-6">
-      <div>
-        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Widget & Assistant Configuration</h2>
-        <p class="text-xs text-slate-500 font-mono">Customize persona tone, fallback message, and embed the floating widget on external client storefronts.</p>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        <!-- Settings Form -->
-        <div class="lumina-card p-6 rounded-2xl space-y-4">
-          <h3 class="font-bold text-slate-900 text-sm">Assistant Customization</h3>
-          <div>
-            <label class="block text-xs font-mono text-slate-600 mb-1">Business Name</label>
-            <input type="text" id="setting-name" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-primary" />
-          </div>
-          <div>
-            <label class="block text-xs font-mono text-slate-600 mb-1">Tone of Voice</label>
-            <select id="setting-tone" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-primary">
-              <option value="friendly">Warm & Friendly</option>
-              <option value="formal">Professional & Formal</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-xs font-mono text-slate-600 mb-1">Suggested Quick Questions (One per line)</label>
-            <textarea id="setting-starters" rows="3" placeholder="What are your service hours?&#10;Where are you located?&#10;What is your shipping policy?" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary"></textarea>
-            <p class="text-[10px] text-slate-400 font-mono mt-1">Displayed as quick clickable starter buttons on your public customer chat page and widget.</p>
-          </div>
-          <div>
-            <label class="block text-xs font-mono text-slate-600 mb-1">Deterministic Fallback Message (Missing Information)</label>
-            <textarea id="setting-fallback" rows="3" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:outline-none focus:bg-white focus:border-primary"></textarea>
-          </div>
-          <div>
-            <label class="block text-xs font-mono text-slate-600 mb-1">Brand Accent Color</label>
-            <input type="color" id="setting-color" class="h-9 w-20 border border-slate-200 rounded-lg cursor-pointer bg-white" />
-          </div>
-          <button onclick="saveAssistantSettings()" class="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-mono font-semibold transition shadow-xs">
-            Save Assistant Settings
-          </button>
-        </div>
-
-        <!-- Shareable Link & Embed Snippet -->
-        <div class="lumina-card p-6 rounded-2xl space-y-5">
-          <div>
-            <h3 class="font-bold text-slate-900 text-sm">Public Shareable Chat Link</h3>
-            <p class="text-xs text-slate-500 font-mono mt-0.5">Direct chat URL for customers and support links.</p>
-            <div class="flex items-center gap-2 mt-2">
-              <input type="text" id="share-link-input" readonly class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-primary font-medium" />
-              <button onclick="copyToClipboard('share-link-input')" class="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-mono font-semibold rounded-xl transition shadow-xs">Copy</button>
-            </div>
-          </div>
-
-          <div class="border-t border-slate-200 pt-4">
-            <h3 class="font-bold text-slate-900 text-sm">Embeddable Website Widget</h3>
-            <p class="text-xs text-slate-500 font-mono mt-0.5">Embed the floating AI customer assistant into your website.</p>
-            <div class="mt-2 relative">
-              <textarea id="widget-snippet" readonly rows="5" class="w-full p-3 bg-slate-900 text-emerald-400 border border-slate-700 rounded-xl text-xs font-mono focus:outline-none"></textarea>
-              <button onclick="copyToClipboard('widget-snippet')" class="absolute top-2 right-2 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-[10px] font-mono rounded">Copy</button>
-            </div>
-          </div>
-        </div>
-
       </div>
     </section>
 
   </main>
+
+  <!-- In-Console Business Owner Navigation Copilot -->
+  <div class="fixed bottom-6 right-6 z-50">
+    <button id="copilot-btn" onclick="toggleCopilot()" class="px-4 py-3 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white rounded-full shadow-lg flex items-center gap-2 font-semibold text-xs font-mono transition transform hover:scale-105">
+      <span class="material-symbols-outlined text-[18px]">assistant</span>
+      <span>Console Copilot</span>
+    </button>
+
+    <!-- Copilot Window -->
+    <div id="copilot-window" class="hidden absolute bottom-14 right-0 w-80 sm:w-96 bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col text-xs font-sans">
+      <div class="p-3.5 bg-slate-900 text-white flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-primary text-base">explore</span>
+          <span class="font-bold">Business Console Copilot</span>
+        </div>
+        <button onclick="toggleCopilot()" class="text-slate-400 hover:text-white text-base">×</button>
+      </div>
+
+      <div id="copilot-messages" class="p-4 bg-slate-50 space-y-3 max-h-72 overflow-y-auto font-mono text-[11px]">
+        <div class="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-800 leading-relaxed">
+          Hello! I'm your Iveri Business Copilot. What would you like to do?
+          <div class="grid grid-cols-2 gap-1.5 mt-2">
+            <button onclick="copilotNavigate('documents')" class="p-1.5 bg-slate-100 hover:bg-primary hover:text-white rounded text-left transition">📁 Documents</button>
+            <button onclick="copilotNavigate('unanswered')" class="p-1.5 bg-slate-100 hover:bg-primary hover:text-white rounded text-left transition">❓ Unanswered</button>
+            <button onclick="copilotNavigate('chats')" class="p-1.5 bg-slate-100 hover:bg-primary hover:text-white rounded text-left transition">💬 Chat History</button>
+            <button onclick="copilotNavigate('settings')" class="p-1.5 bg-slate-100 hover:bg-primary hover:text-white rounded text-left transition">🎨 Widget Studio</button>
+            <button onclick="copilotNavigate('overview')" class="p-1.5 bg-slate-100 hover:bg-primary hover:text-white rounded text-left transition">📊 Analytics</button>
+            <button onclick="downloadPowerBiExport()" class="p-1.5 bg-slate-100 hover:bg-emerald-600 hover:text-white rounded text-left transition">📥 Export Power BI</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-2.5 bg-white border-t border-slate-200 flex gap-1.5">
+        <input type="text" id="copilot-input" placeholder="Ask navigation question..." class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:outline-none focus:border-primary" onkeydown="if(event.key==='Enter') sendCopilotQuery()" />
+        <button onclick="sendCopilotQuery()" class="px-3 py-1.5 bg-primary text-white rounded-lg font-mono text-xs font-semibold">Ask</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Resolve Question Modal -->
   <div id="resolve-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
@@ -539,7 +736,7 @@
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-emerald-600 text-lg">school</span>
-          <h3 class="font-bold text-slate-900 text-sm">Resolve Inquiry & Add to Knowledge Base</h3>
+          <h3 class="font-bold text-slate-900 text-sm">Resolve Inquiry & Train Knowledge Base</h3>
         </div>
         <button onclick="closeResolveModal()" class="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition">
           <span class="material-symbols-outlined text-base">close</span>
@@ -550,8 +747,8 @@
         <p id="resolve-modal-question" class="mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs font-mono text-slate-900"></p>
       </div>
       <div>
-        <label class="block text-[11px] font-mono text-slate-600 mb-1 font-semibold">Authoritative Business Answer</label>
-        <textarea id="resolve-modal-answer" rows="4" placeholder="Enter the exact answer or policy rule. This will be converted into a vectorized Q&A chunk and indexed immediately into ChromaDB + BM25..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-primary"></textarea>
+        <label class="block text-[11px] font-mono text-slate-600 mb-1 font-semibold">Authoritative Answer</label>
+        <textarea id="resolve-modal-answer" rows="4" placeholder="Enter the exact answer or policy rule. Immediately indexed into ChromaDB + BM25..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-primary"></textarea>
       </div>
       <div class="flex justify-end space-x-2 pt-2 border-t border-slate-100">
         <button onclick="closeResolveModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 border border-slate-200 text-slate-700 text-xs font-mono rounded-xl transition">Cancel</button>
@@ -560,11 +757,9 @@
     </div>
   </div>
 
-  <!-- Auth Modal (Sign In & Real Business Registration) -->
+  <!-- Auth Modal -->
   <div id="auth-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5">
-      
-      <!-- Modal Header -->
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-base">
@@ -580,17 +775,15 @@
         </button>
       </div>
 
-      <!-- Auth Switcher Tabs -->
       <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-mono">
         <button id="auth-tab-login" onclick="switchAuthMode('login')" class="py-2 rounded-lg font-semibold text-white bg-primary transition shadow-xs">
           Sign In
         </button>
         <button id="auth-tab-register" onclick="switchAuthMode('register')" class="py-2 rounded-lg font-semibold text-slate-600 hover:text-slate-900 transition">
-          Register New Business
+          Register Business
         </button>
       </div>
 
-      <!-- Sign In Form -->
       <div id="auth-form-login" class="space-y-3.5">
         <div>
           <label class="block text-[11px] font-mono text-slate-600 mb-1">Owner Email</label>
@@ -605,7 +798,6 @@
         </button>
       </div>
 
-      <!-- Register Form -->
       <div id="auth-form-register" class="space-y-3.5 hidden">
         <div>
           <label class="block text-[11px] font-mono text-slate-600 mb-1">Official Business Name</label>
@@ -616,17 +808,13 @@
           <input type="email" id="auth-reg-email" placeholder="founder@company.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" />
         </div>
         <div>
-          <label class="block text-[11px] font-mono text-slate-600 mb-1">Password (minimum 6 characters)</label>
+          <label class="block text-[11px] font-mono text-slate-600 mb-1">Password (min 6 chars)</label>
           <input type="password" id="auth-reg-password" placeholder="••••••••" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" />
         </div>
-        <p class="text-[11px] text-slate-500 font-mono leading-relaxed">
-          Creating an account sets up an isolated tenant workspace with Chroma vector storage, dedicated public chat link, and customizable embed widget.
-        </p>
         <button onclick="performRegister()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-mono font-semibold transition shadow-xs">
           Create Business Workspace
         </button>
       </div>
-
     </div>
   </div>
 
@@ -634,6 +822,10 @@
     let authToken = localStorage.getItem('iveri_token') || '';
     let currentBusiness = null;
     let activeResolvingId = null;
+    let selectedSessionId = null;
+    let searchDebounceTimer = null;
+    let currentFeedbackFilter = '';
+    let charts = {};
 
     async function init() {
       if (!authToken) {
@@ -641,6 +833,7 @@
       } else {
         await loadBusinessProfile();
         loadDashboardData();
+        loadAnalyticsCharts();
       }
     }
 
@@ -656,21 +849,18 @@
           document.getElementById('auth-action-btn').innerText = 'Sign Out';
           document.getElementById('auth-action-btn').onclick = logout;
 
-          // Populate settings
-          document.getElementById('setting-name').value = currentBusiness.name;
-          document.getElementById('setting-tone').value = currentBusiness.tone || 'friendly';
+          // Populate Studio Settings
+          document.getElementById('setting-name').value = currentBusiness.name || '';
+          document.getElementById('setting-welcome').value = currentBusiness.welcome_message || '';
+          document.getElementById('setting-avatar-url').value = currentBusiness.avatar_url || '';
           document.getElementById('setting-fallback').value = currentBusiness.fallback_message || '';
           document.getElementById('setting-color').value = currentBusiness.brand_color || '#4F46E5';
+          document.getElementById('setting-color-picker').value = currentBusiness.brand_color || '#4F46E5';
+          document.getElementById('setting-position').value = currentBusiness.widget_position || 'bottom-right';
           document.getElementById('setting-starters').value = (currentBusiness.starter_questions || []).join('\n');
 
-          const shareUrl = `${window.location.origin}/chat/${currentBusiness.slug}`;
-          document.getElementById('share-link-input').value = shareUrl;
-
-          document.getElementById('widget-snippet').value = 
-`<script 
-  src="${window.location.origin}/widget.js" 
-  data-business="${currentBusiness.slug}">
-<\/script>`;
+          updateWidgetPreview();
+          updateEmbedCode('html');
         } else {
           logout();
         }
@@ -703,19 +893,99 @@
             badge.innerText = stats.unanswered_count;
             badge.classList.remove('hidden');
           }
-
-          const guideCard = document.getElementById('onboarding-guide-card');
-          if (guideCard) {
-            if (stats.total_documents === 0) {
-              guideCard.classList.remove('hidden');
-            } else {
-              guideCard.classList.add('hidden');
-            }
-          }
         }
       } catch (e) {
         console.error("Stats load failed:", e);
       }
+    }
+
+    async function loadAnalyticsCharts() {
+      if (!authToken) return;
+      try {
+        const res = await fetch('/api/dashboard/analytics?days=7', {
+          headers: {'Authorization': `Bearer ${authToken}`}
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+
+        // 1. Volume Chart
+        const ctxVol = document.getElementById('chart-volume');
+        if (ctxVol) {
+          if (charts.vol) charts.vol.destroy();
+          charts.vol = new Chart(ctxVol, {
+            type: 'bar',
+            data: {
+              labels: (data.daily_trend || []).map(d => d.date.slice(5)),
+              datasets: [
+                { label: 'Queries Asked', data: data.daily_trend.map(d => d.total_queries), backgroundColor: '#4F46E5', borderRadius: 4 },
+                { label: 'AI Answered', data: data.daily_trend.map(d => d.answered), backgroundColor: '#10B981', borderRadius: 4 }
+              ]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
+              scales: { y: { beginAtZero: true, grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } }
+            }
+          });
+        }
+
+        // 2. Sentiment Doughnut
+        const ctxSent = document.getElementById('chart-sentiment');
+        if (ctxSent) {
+          if (charts.sent) charts.sent.destroy();
+          const sb = data.sentiment_breakdown || {};
+          charts.sent = new Chart(ctxSent, {
+            type: 'doughnut',
+            data: {
+              labels: ['Positive', 'Neutral', 'Frustrated/Negative'],
+              datasets: [{
+                data: [sb.positive || 0, sb.neutral || 0, sb.negative || 0],
+                backgroundColor: ['#16A34A', '#94A3B8', '#DC2626'],
+                borderWidth: 2,
+                borderColor: '#FFFFFF'
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
+            }
+          });
+        }
+
+        // 3. Topics Horizontal Bar
+        const ctxTop = document.getElementById('chart-topics');
+        if (ctxTop) {
+          if (charts.top) charts.top.destroy();
+          const topics = (data.top_topics || []).slice(0, 5);
+          charts.top = new Chart(ctxTop, {
+            type: 'bar',
+            data: {
+              labels: topics.map(t => t.topic.toUpperCase()),
+              datasets: [{
+                data: topics.map(t => t.count),
+                backgroundColor: '#8B5CF6',
+                borderRadius: 4
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: { x: { beginAtZero: true, grid: { color: '#F1F5F9' } }, y: { grid: { display: false } } }
+            }
+          });
+        }
+      } catch (err) {
+        console.error("Analytics chart render error:", err);
+      }
+    }
+
+    function downloadPowerBiExport() {
+      if (!authToken) { alert("Please sign in first."); return; }
+      window.open(`/api/dashboard/export/powerbi?format=csv`, '_blank');
     }
 
     async function loadDocuments() {
@@ -734,12 +1004,21 @@
           }
           tbody.innerHTML = docs.map(d => `
             <tr class="hover:bg-slate-50/80 transition">
-              <td class="px-6 py-3.5 font-medium text-slate-900">${escapeHtml(d.filename)}</td>
+              <td class="px-6 py-3.5 font-medium text-slate-900">${escapeHtml(d.file_name)}</td>
               <td class="px-6 py-3.5 uppercase text-xs font-mono text-slate-500">${escapeHtml(d.file_type)}</td>
               <td class="px-6 py-3.5">
-                <span class="px-2 py-0.5 text-[10px] rounded-full font-bold ${d.status==='indexed'?'badge-success':(d.status==='processing'?'badge-warning':'badge-danger')}">
-                  ${d.status}
-                </span>
+                ${d.status === 'PROCESSING' ? `
+                  <div class="space-y-1">
+                    <span class="px-2 py-0.5 text-[10px] rounded-full font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                      STREAMING (${d.processing_progress}%)
+                    </span>
+                    <div class="text-[10px] text-slate-500 font-mono">${d.processed_pages || 0} / ${d.total_pages || '?'} pages</div>
+                  </div>
+                ` : `
+                  <span class="px-2 py-0.5 text-[10px] rounded-full font-bold ${d.status==='INDEXED'?'bg-emerald-50 text-emerald-700 border border-emerald-200':'bg-rose-50 text-rose-700 border border-rose-200'}">
+                    ${d.status}
+                  </span>
+                `}
               </td>
               <td class="px-6 py-3.5 font-mono text-xs text-slate-700">${d.chunk_count}</td>
               <td class="px-6 py-3.5 text-xs text-slate-500">${new Date(d.created_at).toLocaleDateString()}</td>
@@ -768,7 +1047,7 @@
           body: formData
         });
         if (res.ok) {
-          alert("Document uploaded successfully! Queued for background parsing & hybrid indexing.");
+          alert("Document uploaded! Streamed ingestion pipeline has started in the background.");
           loadDocuments();
           loadDashboardData();
         } else {
@@ -807,28 +1086,29 @@
           const items = await res.json();
           const tbody = document.getElementById('unanswered-tbody');
           if (items.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">No unanswered questions in this category.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">No unanswered questions.</td></tr>';
             return;
           }
           tbody.innerHTML = items.map(u => `
             <tr class="hover:bg-slate-50/80 transition">
               <td class="px-6 py-3.5 font-medium text-slate-900 max-w-xs break-words">${escapeHtml(u.question_text)}</td>
               <td class="px-6 py-3.5 text-xs text-slate-600">${u.customer_email ? `<span class="text-primary font-semibold">${escapeHtml(u.customer_email)}</span>` : '<span class="text-slate-400">None</span>'}</td>
-              <td class="px-6 py-3.5 font-mono text-xs text-slate-700">${u.top_retrieval_score.toFixed(3)}</td>
+              <td class="px-6 py-3.5 font-mono text-xs text-slate-700">${(u.top_retrieval_score || 0).toFixed(3)}</td>
               <td class="px-6 py-3.5">
-                <span class="px-2 py-0.5 text-[10px] rounded-full font-bold ${u.is_resolved ? 'badge-success' : 'badge-warning'}">
+                <span class="px-2 py-0.5 text-[10px] rounded-full font-bold ${u.is_resolved ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}">
                   ${u.is_resolved ? 'Resolved' : 'Pending'}
                 </span>
               </td>
               <td class="px-6 py-3.5 text-xs text-slate-500">${new Date(u.created_at).toLocaleDateString()}</td>
-              <td class="px-6 py-3.5 text-right">
+              <td class="px-6 py-3.5 text-right space-x-2">
+                <button onclick="copyUnansweredShare('${u.id}')" title="Copy shareable permalink" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-mono transition">
+                  Share
+                </button>
                 ${!u.is_resolved ? `
                   <button onclick="openResolveModal('${u.id}', '${escapeHtml(u.question_text).replace(/'/g, "\\'")}')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-mono font-medium transition cursor-pointer">
-                    Resolve & Train
+                    Resolve
                   </button>
-                ` : `
-                  <span class="text-xs font-mono text-emerald-600 font-semibold">Learned ✓</span>
-                `}
+                ` : '<span class="text-xs font-mono text-emerald-600 font-semibold">Trained ✓</span>'}
               </td>
             </tr>
           `).join('');
@@ -836,6 +1116,12 @@
       } catch (e) {
         console.error("Unanswered fetch error:", e);
       }
+    }
+
+    function copyUnansweredShare(unansweredId) {
+      const shareUrl = `${window.location.origin}/share/unanswered/${unansweredId}`;
+      navigator.clipboard.writeText(shareUrl);
+      alert(`Shareable inquiry link copied:\n${shareUrl}`);
     }
 
     function openResolveModal(id, questionText) {
@@ -865,7 +1151,7 @@
         });
         if (res.ok) {
           closeResolveModal();
-          alert("Answer indexed into knowledge base! The assistant will now answer future inquiries with this resolution.");
+          alert("Answer indexed into knowledge base!");
           loadUnansweredQuestions();
           loadDashboardData();
         } else {
@@ -876,53 +1162,325 @@
       }
     }
 
-    async function loadChatHistory(feedback = null) {
+    // Master-Detail 2-Pane Chat History
+    function debouncedChatSearch() {
+      clearTimeout(searchDebounceTimer);
+      searchDebounceTimer = setTimeout(loadChatHistory, 300);
+    }
+
+    function toggleDownvoteFilter() {
+      currentFeedbackFilter = currentFeedbackFilter === 'down' ? '' : 'down';
+      const btn = document.getElementById('filter-down-chats');
+      if (currentFeedbackFilter === 'down') {
+        btn.className = 'px-3 py-1.5 text-xs font-semibold bg-rose-50 border border-rose-300 text-rose-700 rounded-lg shadow-xs';
+      } else {
+        btn.className = 'px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 text-slate-700 rounded-lg transition hover:bg-slate-50';
+      }
+      loadChatHistory();
+    }
+
+    async function loadChatHistory() {
       if (!authToken) return;
-      const url = feedback ? `/api/dashboard/chats?feedback=${feedback}` : '/api/dashboard/chats';
+      const search = document.getElementById('chat-search-input')?.value.trim() || '';
+      const sentiment = document.getElementById('chat-sentiment-filter')?.value || '';
+      const topic = document.getElementById('chat-topic-filter')?.value || '';
+
+      let url = '/api/dashboard/chats?limit=50';
+      if (currentFeedbackFilter) url += `&feedback=${currentFeedbackFilter}`;
+      if (sentiment) url += `&sentiment=${sentiment}`;
+      if (topic) url += `&topic=${topic}`;
+      if (search) url += `&search=${encodeURIComponent(search)}`;
+
       try {
-        const res = await fetch(url, {
+        const res = await fetch(url, { headers: {'Authorization': `Bearer ${authToken}`} });
+        if (res.ok) {
+          const sessions = await res.json();
+          document.getElementById('sessions-count-badge').innerText = `${sessions.length} found`;
+          const listContainer = document.getElementById('chat-sessions-list');
+
+          if (sessions.length === 0) {
+            listContainer.innerHTML = '<div class="text-center py-10 text-xs text-slate-400 font-mono">No matching conversations found.</div>';
+            document.getElementById('session-detail-container').innerHTML = '<div class="text-center py-20 text-slate-400 font-mono text-xs">No conversation selected.</div>';
+            return;
+          }
+
+          listContainer.innerHTML = sessions.map(s => {
+            const lastMsg = s.messages && s.messages.length > 0 ? s.messages[s.messages.length - 1].content : 'No messages';
+            const sentClass = `pill-${s.sentiment || 'neutral'}`;
+            return `
+              <div onclick="selectSession('${s.session_id}')" id="session-card-${s.session_id}" class="chat-session-item p-3.5 rounded-xl space-y-2 ${s.session_id === selectedSessionId ? 'active' : ''}">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-bold text-slate-900">${s.customer_email || 'Anonymous Visitor'}</span>
+                  <span class="text-[10px] text-slate-400 font-mono">${new Date(s.started_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                </div>
+                <p class="text-xs text-slate-600 line-clamp-1 font-sans">${escapeHtml(lastMsg)}</p>
+                <div class="flex items-center justify-between pt-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${sentClass}">${s.sentiment}</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold pill-topic">${s.primary_topic}</span>
+                  </div>
+                  <span class="text-[10px] text-slate-400 font-mono">${s.message_count} msgs</span>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          // Select first session if none selected
+          if (!selectedSessionId || !sessions.some(s => s.session_id === selectedSessionId)) {
+            selectSession(sessions[0].session_id);
+          }
+        }
+      } catch (e) {
+        console.error("Chat history load error:", e);
+      }
+    }
+
+    async function selectSession(sessionId) {
+      selectedSessionId = sessionId;
+      document.querySelectorAll('.chat-session-item').forEach(el => el.classList.remove('active'));
+      const activeEl = document.getElementById(`session-card-${sessionId}`);
+      if (activeEl) activeEl.classList.add('active');
+
+      try {
+        const res = await fetch(`/api/dashboard/chats/${sessionId}`, {
           headers: {'Authorization': `Bearer ${authToken}`}
         });
         if (res.ok) {
-          const sessions = await res.json();
-          const container = document.getElementById('chats-container');
-          if (sessions.length === 0) {
-            container.innerHTML = '<div class="lumina-card p-8 text-center text-xs font-mono text-slate-400 rounded-2xl">No conversations found.</div>';
-            return;
-          }
-          container.innerHTML = sessions.map(s => `
-            <div class="lumina-card rounded-2xl overflow-hidden">
-              <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs font-mono">
-                <div class="flex items-center space-x-3">
-                  <span class="font-bold text-slate-900">Session #${s.session_id.substring(0, 8)}</span>
-                  <span class="text-slate-500">Channel: ${s.channel}</span>
-                  ${s.customer_email ? `<span class="text-primary font-semibold">Lead: ${escapeHtml(s.customer_email)}</span>` : ''}
-                </div>
-                <div class="flex items-center space-x-2">
-                  ${s.has_downvote ? '<span class="px-2 py-0.5 bg-rose-50 text-rose-600 border border-rose-200 rounded-full font-bold">👎 Contains Downvote</span>' : ''}
-                  <span class="text-slate-400">${new Date(s.started_at).toLocaleString()}</span>
-                </div>
-              </div>
-              <div class="p-4 space-y-3 font-mono">
-                ${s.messages.map(m => `
-                  <div class="text-xs space-y-1">
-                    <span class="font-bold ${m.sender==='customer'?'text-primary':'text-purple-600'} uppercase">${m.sender}:</span>
-                    <p class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-sans leading-relaxed">${escapeHtml(m.content)}</p>
-                    ${m.citations && m.citations.length > 0 ? `
-                      <div class="text-[10px] text-emerald-700 flex gap-2 font-mono">
-                        <span>Citations:</span>
-                        ${m.citations.map(c => `<span>[${escapeHtml(c.document_name)}, p.${c.page_number}]</span>`).join('')}
-                      </div>
-                    ` : ''}
+          const s = await res.json();
+          renderSessionDetail(s);
+        }
+      } catch (err) {
+        console.error("Session detail error:", err);
+      }
+    }
+
+    function renderSessionDetail(s) {
+      const detailContainer = document.getElementById('session-detail-container');
+      const shareUrl = `${window.location.origin}/share/${s.session_id}`;
+
+      detailContainer.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-100 gap-2">
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="font-bold text-slate-900 text-sm">${s.customer_email || 'Customer Conversation'}</h3>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold pill-${s.sentiment}">${s.sentiment}</span>
+              <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold pill-topic">${s.primary_topic}</span>
+            </div>
+            <p class="text-[11px] text-slate-400 font-mono mt-0.5">Session ID: ${s.session_id} • Channel: ${s.channel}</p>
+          </div>
+          <button onclick="copySessionShare('${s.session_id}')" class="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-mono font-semibold rounded-lg flex items-center gap-1.5 transition shadow-xs self-start sm:self-auto">
+            <span class="material-symbols-outlined text-[15px] text-primary">share</span>
+            <span>Share Conversation</span>
+          </button>
+        </div>
+
+        <div class="space-y-4 max-h-[460px] overflow-y-auto pr-2">
+          ${s.messages.map(m => `
+            <div class="flex flex-col ${m.sender === 'customer' ? 'items-end' : 'items-start'}">
+              <div class="max-w-[85%] p-3.5 rounded-2xl text-xs leading-relaxed ${m.sender === 'customer' ? 'bg-primary text-white rounded-tr-xs' : 'bg-slate-50 border border-slate-200 text-slate-900 rounded-tl-xs'}">
+                <p class="font-sans whitespace-pre-wrap">${escapeHtml(m.content)}</p>
+                ${m.citations && m.citations.length > 0 ? `
+                  <div class="mt-2 pt-2 border-t ${m.sender === 'customer' ? 'border-primary-hover' : 'border-slate-200'} text-[10px] font-mono space-y-1">
+                    <span class="font-bold text-emerald-600">Grounded Sources:</span>
+                    ${m.citations.map(c => `<div>• ${escapeHtml(c.document_name)} (p.${c.page_number})</div>`).join('')}
                   </div>
-                `).join('')}
+                ` : ''}
+              </div>
+              <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-1 px-1">
+                <span>${new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                ${m.latency_ms ? `<span>• ${m.latency_ms}ms</span>` : ''}
+                ${m.llm_provider_used ? `<span>• ${m.llm_provider_used}</span>` : ''}
+                ${m.feedback ? `<span>• ${m.feedback === 'up' ? '👍' : '👎'}</span>` : ''}
               </div>
             </div>
-          `).join('');
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function copySessionShare(sessionId) {
+      const shareUrl = `${window.location.origin}/share/${sessionId}`;
+      navigator.clipboard.writeText(shareUrl);
+      alert(`Conversation permalink copied to clipboard:\n${shareUrl}`);
+    }
+
+    // Voiceflow-Style Widget Studio
+    function selectPresetAvatar(url) {
+      document.getElementById('setting-avatar-url').value = url;
+      updateWidgetPreview();
+    }
+
+    function syncColorInput(val) {
+      document.getElementById('setting-color').value = val;
+      updateWidgetPreview();
+    }
+
+    function syncColorPicker(val) {
+      if (/^#[0-9A-F]{6}$/i.test(val)) {
+        document.getElementById('setting-color-picker').value = val;
+      }
+      updateWidgetPreview();
+    }
+
+    function updateWidgetPreview() {
+      const name = document.getElementById('setting-name')?.value || 'Support Assistant';
+      const welcome = document.getElementById('setting-welcome')?.value || 'Hello! How can I assist you today?';
+      const color = document.getElementById('setting-color')?.value || '#4F46E5';
+      const avatarUrl = document.getElementById('setting-avatar-url')?.value.trim() || '';
+      const pos = document.getElementById('setting-position')?.value || 'bottom-right';
+
+      document.getElementById('preview-name').innerText = name;
+      document.getElementById('preview-welcome-msg').innerText = welcome;
+      document.getElementById('preview-header').style.backgroundColor = color;
+      document.getElementById('preview-bubble').style.backgroundColor = color;
+
+      // Position
+      const bubble = document.getElementById('preview-bubble');
+      const win = document.getElementById('preview-chat-window');
+      if (pos === 'bottom-left') {
+        bubble.style.left = '16px'; bubble.style.right = 'auto';
+        win.style.left = '16px'; win.style.right = 'auto';
+      } else {
+        bubble.style.right = '16px'; bubble.style.left = 'auto';
+        win.style.right = '16px'; win.style.left = 'auto';
+      }
+
+      // Avatar
+      const avBox = document.getElementById('preview-avatar-box');
+      const avBubble = document.getElementById('preview-bubble-avatar');
+      if (avatarUrl) {
+        avBox.innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
+        avBubble.innerHTML = `<img src="${avatarUrl}" class="w-full h-full rounded-full object-cover">`;
+      } else {
+        avBox.innerHTML = `<span>${name.charAt(0).toUpperCase()}</span>`;
+        avBubble.innerHTML = `<span class="material-symbols-outlined text-[20px]">chat</span>`;
+      }
+
+      // Starter Chips in preview
+      const startersText = document.getElementById('setting-starters')?.value || '';
+      const chips = startersText.split('\n').map(s => s.trim()).filter(Boolean);
+      const chipsBox = document.getElementById('preview-chips-container');
+      if (chipsBox) {
+        chipsBox.innerHTML = chips.map(c => `
+          <span class="px-2 py-0.5 bg-white border border-slate-200 rounded text-[9px] text-slate-700 font-mono">${escapeHtml(c)}</span>
+        `).join('');
+      }
+    }
+
+    function setEmbedTab(platform) {
+      ['html', 'shopify', 'wordpress', 'react'].forEach(p => {
+        const btn = document.getElementById(`embed-tab-${p}`);
+        if (btn) btn.className = p === platform ? 'px-2.5 py-1 rounded bg-slate-100 font-semibold text-slate-800' : 'px-2.5 py-1 rounded text-slate-500 hover:text-slate-800';
+      });
+      updateEmbedCode(platform);
+    }
+
+    function updateEmbedCode(platform) {
+      if (!currentBusiness) return;
+      const slug = currentBusiness.slug;
+      const origin = window.location.origin;
+      const area = document.getElementById('embed-code-area');
+
+      if (platform === 'shopify') {
+        area.value = `<!-- Paste right before </body> in theme.liquid -->\n<script src="${origin}/widget.js" data-business="${slug}" defer><\/script>`;
+      } else if (platform === 'wordpress') {
+        area.value = `// Paste into header.php or WPCode plugin:\nwp_enqueue_script('iveri-widget', '${origin}/widget.js', array(), null, true);\n// data-business: ${slug}`;
+      } else if (platform === 'react') {
+        area.value = `import Script from 'next/script';\n\n<Script src="${origin}/widget.js" data-business="${slug}" strategy="lazyOnload" />`;
+      } else {
+        area.value = `<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  defer>\n<\/script>`;
+      }
+    }
+
+    function copyEmbedCode() {
+      const el = document.getElementById('embed-code-area');
+      el.select();
+      document.execCommand('copy');
+      alert("Embed code copied!");
+    }
+
+    async function saveAssistantSettings() {
+      if (!authToken) return;
+      const rawStarters = document.getElementById('setting-starters').value;
+      const startersList = rawStarters.split('\n').map(s => s.trim()).filter(Boolean);
+      const body = {
+        name: document.getElementById('setting-name').value,
+        welcome_message: document.getElementById('setting-welcome').value,
+        avatar_url: document.getElementById('setting-avatar-url').value,
+        brand_color: document.getElementById('setting-color').value,
+        widget_position: document.getElementById('setting-position').value,
+        fallback_message: document.getElementById('setting-fallback').value,
+        starter_questions: startersList
+      };
+
+      try {
+        const res = await fetch('/api/business/settings', {
+          method: 'PUT',
+          headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}`},
+          body: JSON.stringify(body)
+        });
+        if (res.ok) {
+          alert("Widget customizations saved & published live!");
+          loadBusinessProfile();
+        } else {
+          alert("Failed to save settings.");
         }
       } catch (e) {
-        console.error("Chats load error:", e);
+        console.error("Settings save error:", e);
       }
+    }
+
+    // Copilot Navigation Assistant
+    function toggleCopilot() {
+      document.getElementById('copilot-window').classList.toggle('hidden');
+    }
+
+    function copilotNavigate(tabId) {
+      switchTab(tabId);
+      const msgs = document.getElementById('copilot-messages');
+      msgs.innerHTML += `
+        <div class="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
+          ✓ Navigated to <strong>${tabId.toUpperCase()}</strong> tab.
+        </div>
+      `;
+      msgs.scrollTop = msgs.scrollHeight;
+    }
+
+    function sendCopilotQuery() {
+      const input = document.getElementById('copilot-input');
+      const text = input.value.trim().toLowerCase();
+      if (!text) return;
+      input.value = '';
+
+      const msgs = document.getElementById('copilot-messages');
+      msgs.innerHTML += `<div class="p-2 rounded-lg bg-slate-200 text-slate-800 text-right">You: ${escapeHtml(text)}</div>`;
+
+      let reply = "";
+      if (text.includes("doc") || text.includes("upload") || text.includes("pdf") || text.includes("1000")) {
+        reply = "Navigating to Documents tab. You can stream 1,000-page PDFs here without memory issues!";
+        copilotNavigate('documents');
+      } else if (text.includes("unanswer") || text.includes("gap") || text.includes("pending")) {
+        reply = "Navigating to Unanswered Queue. You can resolve missing questions directly into the vector DB!";
+        copilotNavigate('unanswered');
+      } else if (text.includes("chat") || text.includes("convo") || text.includes("history")) {
+        reply = "Navigating to 2-Pane Chat History where you can inspect transcripts and share permalinks!";
+        copilotNavigate('chats');
+      } else if (text.includes("widget") || text.includes("avatar") || text.includes("dp") || text.includes("color") || text.includes("studio")) {
+        reply = "Navigating to Widget Studio. Customize avatar picture, color, and launcher position!";
+        copilotNavigate('settings');
+      } else if (text.includes("power bi") || text.includes("excel") || text.includes("export") || text.includes("analytic")) {
+        reply = "Downloading your executive Power BI dataset CSV now and opening analytics!";
+        downloadPowerBiExport();
+        copilotNavigate('overview');
+      } else if (text.includes("test") || text.includes("playground")) {
+        reply = "Navigating to RAG Playground to verify circuit breaker & citations!";
+        copilotNavigate('playground');
+      } else {
+        reply = "I can help you navigate to Documents, Unanswered Queue, Chat History, Widget Studio, or Export Power BI datasets.";
+      }
+
+      msgs.innerHTML += `<div class="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-800">${reply}</div>`;
+      msgs.scrollTop = msgs.scrollHeight;
     }
 
     async function runPlaygroundTest() {
@@ -932,10 +1490,7 @@
       try {
         const res = await fetch('/api/dashboard/playground', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
+          headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}`},
           body: JSON.stringify({ query })
         });
         if (res.ok) {
@@ -944,10 +1499,10 @@
 
           const cbBadge = document.getElementById('pg-cb-badge');
           if (data.circuit_breaker_passed) {
-            cbBadge.className = 'px-2.5 py-1 text-xs rounded-full font-bold badge-success';
-            cbBadge.innerText = 'Allowed (Sufficient Confidence)';
+            cbBadge.className = 'px-2.5 py-1 text-xs rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200';
+            cbBadge.innerText = 'Allowed (Sufficient Grounded Confidence)';
           } else {
-            cbBadge.className = 'px-2.5 py-1 text-xs rounded-full font-bold badge-danger';
+            cbBadge.className = 'px-2.5 py-1 text-xs rounded-full font-bold bg-rose-50 text-rose-700 border border-rose-200';
             cbBadge.innerText = 'Blocked by Circuit Breaker (Zero Hallucination)';
           }
 
@@ -971,38 +1526,6 @@
       }
     }
 
-    async function saveAssistantSettings() {
-      if (!authToken) return;
-      const rawStarters = document.getElementById('setting-starters').value;
-      const startersList = rawStarters.split('\n').map(s => s.trim()).filter(Boolean);
-      const body = {
-        name: document.getElementById('setting-name').value,
-        tone: document.getElementById('setting-tone').value,
-        fallback_message: document.getElementById('setting-fallback').value,
-        brand_color: document.getElementById('setting-color').value,
-        starter_questions: startersList
-      };
-      try {
-        const res = await fetch('/api/business/settings', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          body: JSON.stringify(body)
-        });
-        if (res.ok) {
-          alert("Assistant settings updated successfully!");
-          loadBusinessProfile();
-        } else {
-          const err = await res.json();
-          alert(err.detail || "Failed to update settings.");
-        }
-      } catch (e) {
-        console.error("Settings save error:", e);
-      }
-    }
-
     function switchTab(tabId) {
       ['overview', 'documents', 'unanswered', 'chats', 'playground', 'settings'].forEach(t => {
         document.getElementById(`view-${t}`).classList.add('hidden');
@@ -1011,9 +1534,11 @@
       document.getElementById(`view-${tabId}`).classList.remove('hidden');
       document.getElementById(`tab-${tabId}`).classList.add('tab-active');
 
+      if (tabId === 'overview') { loadDashboardData(); loadAnalyticsCharts(); }
       if (tabId === 'documents') loadDocuments();
       if (tabId === 'unanswered') loadUnansweredQuestions();
       if (tabId === 'chats') loadChatHistory();
+      if (tabId === 'settings') updateWidgetPreview();
     }
 
     function toggleAuthModal() {
@@ -1073,7 +1598,7 @@
       const email = document.getElementById('auth-reg-email').value.trim();
       const password = document.getElementById('auth-reg-password').value;
       if (!businessName || !email || !password) {
-        alert("Please fill in all fields to create your business account.");
+        alert("Please fill in all fields.");
         return;
       }
       if (password.length < 6) {
@@ -1084,12 +1609,7 @@
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            business_name: businessName,
-            email: email,
-            password: password,
-            role: 'owner'
-          })
+          body: JSON.stringify({ business_name: businessName, email: email, password: password, role: 'owner' })
         });
         if (res.ok) {
           const data = await res.json();
@@ -1119,13 +1639,6 @@
       } else {
         alert("Please sign in first.");
       }
-    }
-
-    function copyToClipboard(elementId) {
-      const el = document.getElementById(elementId);
-      el.select();
-      document.execCommand('copy');
-      alert("Copied to clipboard!");
     }
 
     function escapeHtml(text) {

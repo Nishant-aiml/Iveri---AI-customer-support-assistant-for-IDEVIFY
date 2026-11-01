@@ -7,6 +7,7 @@ from app.services.bm25_store import bm25_store_service
 from app.services.rrf import reciprocal_rank_fusion
 from app.services.circuit_breaker import GreetingInterceptor, circuit_breaker
 from app.services.llm_client import llm_client
+from app.services.guardrails import guardrails_service
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +58,25 @@ class HybridRAGEngine:
         )
         tone = business_settings.get("tone", "friendly")
 
+        # Step 0: Inbound Guardrail (Prompt Injection, Jailbreak & Input Bounding)
+        inbound_check = guardrails_service.check_inbound_safety(user_query)
+        if not inbound_check["is_safe"]:
+            latency_ms = int((time.time() - start_time) * 1000)
+            return {
+                "answer": inbound_check["safe_reply"],
+                "is_answered": True,
+                "confidence_score": 1.0,
+                "citations": [],
+                "llm_provider": "guardrail_inbound",
+                "latency_ms": max(latency_ms, 5),
+                "retrieved_chunks": []
+            }
+
+        # Mask sensitive PII & bound query length
+        sanitized_query = guardrails_service.sanitize_input(user_query)
+
         # Step 1: Greeting & Conversational Interceptor (Less AI-Dependent)
-        greeting_reply = GreetingInterceptor.check_greeting(user_query, business_name=business_name)
+        greeting_reply = GreetingInterceptor.check_greeting(sanitized_query, business_name=business_name)
         if greeting_reply:
             latency_ms = int((time.time() - start_time) * 1000)
             return {
@@ -74,10 +92,10 @@ class HybridRAGEngine:
         # Step 1.5: Typo Correction & Normalization against Knowledge Base
         import difflib
         import re
-        clean_query = user_query
+        clean_query = sanitized_query
         vocab = bm25_store_service.get_vocabulary(business_id)
         if vocab:
-            tokens = user_query.split()
+            tokens = sanitized_query.split()
             corrected = []
             for tok in tokens:
                 alph = re.sub(r"[^a-zA-Z]", "", tok.lower())
@@ -129,6 +147,9 @@ class HybridRAGEngine:
             business_name=business_name,
             tone=tone
         )
+
+        # Step 5.5: Outbound Guardrail Check (Secret Leakage & Grounding Filter)
+        generated_answer = guardrails_service.check_outbound_safety(generated_answer, fallback_msg)
 
         # Step 6: Post-generation Unknown check
         if "[UNKNOWN]" in generated_answer or generated_answer.strip() == "[UNKNOWN]":

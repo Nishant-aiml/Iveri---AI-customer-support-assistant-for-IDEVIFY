@@ -67,11 +67,14 @@ class MultiTierLLMClient:
             try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
                 payload = {
+                    "system_instruction": {
+                        "parts": [{"text": prompt}]
+                    },
                     "contents": [
                         {
                             "role": "user",
                             "parts": [
-                                {"text": f"{prompt}\n\n{user_content}"}
+                                {"text": user_content}
                             ]
                         }
                     ],

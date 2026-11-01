@@ -223,14 +223,21 @@
   chatWindow.className = 'iveri-widget-window';
   chatWindow.innerHTML = `
     <div class="iveri-widget-header" id="iveri-header">
-      <div style="display:flex; align-items:center; gap:8px;">
-        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#059669;"></span>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div id="iveri-header-avatar" style="width:30px; height:30px; border-radius:50%; background:#EEF2FF; color:#4F46E5; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:13px; overflow:hidden;">
+          <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#059669;"></span>
+        </div>
         <div>
           <div style="font-weight: 600; font-size: 14px; color: #0F172A;" id="iveri-biz-name">Support Assistant</div>
           <div style="font-size: 11px; font-family:'JetBrains Mono', monospace; color: #64748B;">Grounded RAG • Verified</div>
         </div>
       </div>
-      <button style="background:none; border:none; color:#64748B; font-size:20px; cursor:pointer; padding:2px;" id="iveri-close">×</button>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button id="iveri-share-btn" title="Share Conversation" style="background:none; border:none; color:#64748B; font-size:14px; cursor:pointer; padding:4px; display:flex; align-items:center;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+        </button>
+        <button style="background:none; border:none; color:#64748B; font-size:20px; cursor:pointer; padding:2px;" id="iveri-close">×</button>
+      </div>
     </div>
     <div class="iveri-widget-messages" id="iveri-msgs">
       <div class="iveri-msg iveri-msg-assistant">
@@ -269,24 +276,56 @@
         bubble.style.backgroundColor = data.brand_color;
         document.getElementById('iveri-send').style.backgroundColor = data.brand_color;
       }
+
+      if (data.widget_position === 'bottom-left') {
+        bubble.style.left = '24px';
+        bubble.style.right = 'auto';
+        chatWindow.style.left = '24px';
+        chatWindow.style.right = 'auto';
+      }
+
+      if (data.avatar_url) {
+        bubble.innerHTML = `<img src="${data.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="Avatar">`;
+        document.getElementById('iveri-header-avatar').innerHTML = `<img src="${data.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="Avatar">`;
+      }
+
+      if (data.welcome_message) {
+        const welcomeBubble = document.querySelector('.iveri-msg.iveri-msg-assistant');
+        if (welcomeBubble) {
+          welcomeBubble.innerHTML = `${formatContent(data.welcome_message)}<div class="iveri-starters" id="iveri-starter-container"></div>`;
+        }
+      }
+
       document.getElementById('iveri-biz-name').innerText = data.name || 'Support Assistant';
       
       const starterContainer = document.getElementById('iveri-starter-container');
-      starterContainer.innerHTML = '';
-      if (data.starter_questions && data.starter_questions.length > 0) {
-        starterContainer.style.display = 'flex';
-        data.starter_questions.forEach(q => {
-          const pill = document.createElement('button');
-          pill.className = 'iveri-starter-pill';
-          pill.innerText = q;
-          pill.onclick = () => sendMessage(q);
-          starterContainer.appendChild(pill);
-        });
-      } else {
-        starterContainer.style.display = 'none';
+      if (starterContainer) {
+        starterContainer.innerHTML = '';
+        if (data.starter_questions && data.starter_questions.length > 0) {
+          starterContainer.style.display = 'flex';
+          data.starter_questions.forEach(q => {
+            const pill = document.createElement('button');
+            pill.className = 'iveri-starter-pill';
+            pill.innerText = q;
+            pill.onclick = () => sendMessage(q);
+            starterContainer.appendChild(pill);
+          });
+        } else {
+          starterContainer.style.display = 'none';
+        }
       }
     })
     .catch(err => console.warn('[Iveri Widget] Failed to load business branding:', err));
+
+  document.getElementById('iveri-share-btn').onclick = () => {
+    if (!sessionId) {
+      alert("Please send a question before sharing this conversation.");
+      return;
+    }
+    const shareUrl = `${apiBaseUrl}/share/${sessionId}`;
+    navigator.clipboard.writeText(shareUrl);
+    alert(`Conversation link copied to clipboard!\n${shareUrl}`);
+  };
 
   // Initialize Session
   function initSession() {

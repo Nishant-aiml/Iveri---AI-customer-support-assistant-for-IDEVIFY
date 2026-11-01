@@ -16,6 +16,8 @@ base_repos/
 
 # Databases & Vector Stores
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 chroma_db/
