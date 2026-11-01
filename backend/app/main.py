@@ -1,10 +1,12 @@
+import os
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, business, documents
+from app.routers import auth, business, documents, chat
 from app.services.ingestion_queue import ingestion_queue
 
 logging.basicConfig(
@@ -44,6 +46,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(business.router)
 app.include_router(documents.router)
+app.include_router(chat.router)
 
 @app.get("/api/health", tags=["Health"])
 async def health_check():
@@ -57,3 +60,9 @@ async def health_check():
         "primary_parser": "Sarvam Document Intelligence API",
         "fallback_parser": "PyMuPDF (fitz)"
     }
+
+@app.get("/widget.js", tags=["Widget"])
+async def serve_widget_script():
+    """Serves the standalone embeddable chat widget script."""
+    widget_path = os.path.join(os.path.dirname(__file__), "static", "widget.js")
+    return FileResponse(widget_path, media_type="application/javascript")
