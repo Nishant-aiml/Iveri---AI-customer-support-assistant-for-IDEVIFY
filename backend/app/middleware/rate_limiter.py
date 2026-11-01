@@ -1,6 +1,7 @@
 from collections import defaultdict
 import json
 import logging
+import os
 import time
 
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -51,7 +52,7 @@ class SlidingWindowRateLimiter(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         # 0. Bypass rate limiting in automated testing environment (unless explicitly evaluating rate limits)
-        if settings.ENVIRONMENT == "testing" and request.headers.get("X-Test-Rate-Limit") != "true":
+        if (settings.ENVIRONMENT == "testing" or os.environ.get("PYTEST_CURRENT_TEST")) and request.headers.get("X-Test-Rate-Limit") != "true":
             return await call_next(request)
 
         path = request.url.path
