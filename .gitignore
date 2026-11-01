@@ -1,0 +1,30 @@
+# Dependencies & Environments
+venv/
+env/
+.env
+.env.local
+__pycache__/
+*.py[cod]
+*$py.class
+node_modules/
+dist/
+build/
+.vite/
+
+# Base Reference Repositories (local reference only)
+base_repos/
+
+# Databases & Vector Stores
+*.db
+*.sqlite
+*.sqlite3
+chroma_db/
+uploads/
+storage/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
