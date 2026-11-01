@@ -23,20 +23,23 @@ def generate_slug(name: str) -> str:
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register_user(req: UserRegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Registers a new business owner or customer account."""
-    # Check if email already registered
-    existing_user_query = select(User).where(User.email == req.email)
+    """Registers a new business owner or customer account with case-insensitive email normalization."""
+    clean_email = req.email.strip().lower()
+
+    # Check if email already registered (case-insensitive)
+    from sqlalchemy import func
+    existing_user_query = select(User).where(func.lower(User.email) == clean_email)
     existing_user = (await db.execute(existing_user_query)).scalar_one_or_none()
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An account with this email address already exists."
+            detail="An account with this email address already exists. Please sign in with your password."
         )
 
     # Create new business workspace for the owner
     slug = generate_slug(req.business_name)
     business = Business(
-        name=req.business_name,
+        name=req.business_name.strip(),
         slug=slug,
         share_token=str(uuid.uuid4())
     )
@@ -46,7 +49,7 @@ async def register_user(req: UserRegisterRequest, db: AsyncSession = Depends(get
     # Create user associated with the business
     user = User(
         business_id=business.id,
-        email=req.email,
+        email=clean_email,
         password_hash=hash_password(req.password),
         role=req.role
     )
@@ -76,8 +79,10 @@ async def register_user(req: UserRegisterRequest, db: AsyncSession = Depends(get
 
 @router.post("/login", response_model=TokenResponse)
 async def login_user(req: UserLoginRequest, db: AsyncSession = Depends(get_db)):
-    """Authenticates user and returns JWT token."""
-    user_query = select(User).where(User.email == req.email)
+    """Authenticates user with case-insensitive email matching and returns JWT token."""
+    clean_email = req.email.strip().lower()
+    from sqlalchemy import func
+    user_query = select(User).where(func.lower(User.email) == clean_email)
     user = (await db.execute(user_query)).scalar_one_or_none()
     
     if not user or not verify_password(req.password, user.password_hash):
@@ -112,6 +117,30 @@ async def login_user(req: UserLoginRequest, db: AsyncSession = Depends(get_db)):
         business_slug=business.slug,
         share_token=business.share_token
     )
+
+@router.get("/active-owner")
+async def get_active_owner_workspace(db: AsyncSession = Depends(get_db)):
+    """
+    Seamless cross-device discovery helper:
+    Returns the most recently active workspace name and owner email to simplify signing in on mobile/second devices without losing data.
+    """
+    res = await db.execute(
+        select(User, Business)
+        .join(Business, User.business_id == Business.id)
+        .where(User.role == "owner")
+        .order_by(User.created_at.desc())
+        .limit(1)
+    )
+    row = res.first()
+    if row:
+        u, b = row
+        return {
+            "has_active_workspace": True,
+            "business_name": b.name,
+            "business_slug": b.slug,
+            "owner_email": u.email
+        }
+    return {"has_active_workspace": False}
 
 @router.post("/firebase-login", response_model=TokenResponse)
 async def firebase_login(req: FirebaseLoginRequest, db: AsyncSession = Depends(get_db)):
