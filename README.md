@@ -109,21 +109,17 @@ cp .env.example .env
 ```
 *(Optional: Add `GEMINI_API_KEY`, `GROQ_API_KEY`, or `SARVAM_API_KEY`. If keys are not provided, the platform automatically switches to extractive fallback synthesis and PyMuPDF local parsing).*
 
-### 3. Seed Realistic Demo Data
-Populate the database with a ready-to-test business ("Iveri Retail & Electronics"), 3 pre-indexed policies, sample chat history, and an unanswered query:
-```bash
-python backend/seed.py
-```
-**Demo Owner Credentials:**
-- **Email**: `owner@iveri-demo.com`
-- **Password**: `IveriDemo2026!`
-- **Dashboard URL**: `http://localhost:8000/dashboard`
-- **Public Customer Chat**: `http://localhost:8000/chat/iveri-retail`
-
-### 4. Start the Application
+### 3. Start the Application & Register Your Business
 ```bash
 python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
+1. Navigate to **`http://localhost:8000/dashboard`**.
+2. Click **Register New Business** and provide your company name, email, and password.
+3. Your isolated tenant workspace is instantly initialized with local ONNX semantic vectors and BM25 indexing.
+4. Drag-and-drop your business documents (PDF, DOCX, TXT) directly in the **Documents** tab (e.g. `AI Customer Support.pdf`).
+5. Open **RAG Playground** to verify citations, or visit **`http://localhost:8000/chat/{your-business-slug}`** to chat as a customer!
+
+*(Optional Developer Utility: `python backend/seed.py` can be run if you want to inspect a pre-loaded sample workspace).*
 
 ---
 

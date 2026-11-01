@@ -200,11 +200,7 @@
           if (data.starter_questions && data.starter_questions.length > 0) {
             renderStarters(data.starter_questions);
           } else {
-            renderStarters([
-              "What is your return policy?",
-              "How long does shipping take?",
-              "Do you offer international warranty?"
-            ]);
+            document.getElementById('starter-container').classList.add('hidden');
           }
         }
       } catch (e) {
