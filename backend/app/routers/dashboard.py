@@ -478,9 +478,17 @@ async def get_business_analytics(
     # 3. Topic Counts
     topic_map = {"pricing": 0, "shipping": 0, "returns": 0, "products": 0, "support": 0, "general": 0}
     for m in customer_msgs:
-        t = m.topic or topic_analyzer.classify(m.content)
+        t = (m.topic or topic_analyzer.classify(m.content)).lower()
         if t in topic_map:
             topic_map[t] += 1
+        elif any(k in t for k in ["price", "cost", "bill", "gst"]):
+            topic_map["pricing"] += 1
+        elif any(k in t for k in ["ship", "delivery", "track"]):
+            topic_map["shipping"] += 1
+        elif any(k in t for k in ["return", "refund"]):
+            topic_map["returns"] += 1
+        elif any(k in t for k in ["product", "item", "plan"]):
+            topic_map["products"] += 1
         else:
             topic_map["general"] += 1
 
