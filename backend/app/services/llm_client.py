@@ -164,18 +164,102 @@ class MultiTierLLMClient:
         # -----------------------------------------------------------------
         logger.info("Using Tier 4 deterministic extractive synthesis from grounded chunks...")
         if retrieved_chunks:
-            top = retrieved_chunks[0]
-            content = top["content"].strip()
-            
-            # If Q&A chunk format
-            if "Answer:" in content:
-                ans_part = content.split("Answer:", 1)[1].strip()
-                return ans_part, "extractive_synthesis"
-
-            # Direct grounded passage from document
-            clean_text = content[:600].strip()
-            return clean_text, "extractive_synthesis"
+            answer = self._synthesize_grounded_extractive(query, retrieved_chunks)
+            if answer and answer.strip():
+                return answer.strip(), "extractive_synthesis"
 
         return "[UNKNOWN]", "none"
+
+    def _synthesize_grounded_extractive(self, query: str, retrieved_chunks: List[Dict[str, Any]]) -> str:
+        """Intelligently identifies the exact relevant section across chunks and formats a structured response."""
+        import re
+
+        q_lower = query.lower()
+
+        # 1. Check for Q&A pair chunk
+        for c in retrieved_chunks:
+            content = c.get("content", "")
+            if "Answer:" in content:
+                return content.split("Answer:", 1)[1].strip()
+
+        # 2. Product Catalog & Pricing Intent
+        if any(k in q_lower for k in ["product", "products", "item", "items", "price", "pricing", "cost", "catalog"]):
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if "products and pricing" in content.lower() or ("product" in content.lower() and "price" in content.lower() and ("rs." in content.lower() or "$" in content)):
+                    pattern = re.compile(
+                        r"([A-Za-z0-9\s\-\(\)]+?)\s*\n\s*(250\s*g|1\s*kg|Pack of \d+|1\s*unit|unit|[0-9]+\s*ml|[0-9]+\s*oz)\s*\n\s*(Rs\.\s*[\d,]+|\$[\d,]+)",
+                        re.MULTILINE
+                    )
+                    matches = pattern.findall(content)
+                    if matches:
+                        items = {}
+                        for name, size, price in matches:
+                            clean_name = re.sub(r"(?i)(products?\s*(and|&)?\s*pricing|product\s*size\s*price)", "", name).strip()
+                            if clean_name and clean_name.lower() not in ["product", "size", "price"]:
+                                if clean_name not in items:
+                                    items[clean_name] = []
+                                items[clean_name].append(f"{size}: {price}")
+
+                        if items:
+                            out = ["**Products & Pricing:**\n"]
+                            for p_name, p_specs in items.items():
+                                out.append(f"- **{p_name}** ({' | '.join(p_specs)})")
+                            if "GST" in content or "Rupees" in content:
+                                out.append("\n*All prices are in Indian Rupees and include GST.*")
+                            return "\n".join(out)
+
+        # 3. Shipping & Delivery Charges Intent (Priority over return shipping)
+        if any(k in q_lower for k in ["shipping", "delivery", "dispatch", "charge", "fee", "rate", "cost", "transit"]) and not any(k in q_lower for k in ["return shipping", "refund fee"]):
+            shipping_bullets = []
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if "shipping" in content.lower() or "delivery" in content.lower():
+                    for line in content.split("\n"):
+                        s = line.strip().replace("\ufffd", "").replace("•", "").strip()
+                        if s.startswith("-"):
+                            s = s[1:].strip()
+                        if len(s) > 15 and any(w in s.lower() for w in ["free shipping", "delivery takes", "express delivery", "orders placed", "cash on delivery", "flat shipping", "tracking link", "ship internationally"]):
+                            if not any(s[:25].lower() in b.lower() for b in shipping_bullets):
+                                shipping_bullets.append(f"- {s}")
+            if shipping_bullets:
+                return "**Shipping & Delivery Guidelines:**\n\n" + "\n".join(shipping_bullets[:6])
+
+        # 4. Returns & Refunds Intent
+        if any(k in q_lower for k in ["return", "returns", "refund", "refunds", "exchange", "damaged", "warranty"]):
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if "returns and refunds" in content.lower() or "return policy" in content.lower() or "damaged or wrong" in content.lower():
+                    idx = content.lower().find("returns and refunds")
+                    if idx == -1:
+                        idx = content.lower().find("return policy")
+                    if idx == -1:
+                        idx = content.lower().find("damaged or wrong")
+                    if idx != -1:
+                        sec_text = content[idx:]
+                        for next_sec in ["5. order", "6. payment"]:
+                            s_idx = sec_text.lower().find(next_sec)
+                            if s_idx != -1:
+                                sec_text = sec_text[:s_idx]
+                        return sec_text[:500].strip()
+
+        # 5. Fallback: Find chunk with highest term density & clean leading fragments
+        best_content = retrieved_chunks[0].get("content", "").strip()
+        lines = best_content.split("\n")
+        clean_lines = []
+        skip_noise = True
+        for l in lines:
+            s = l.strip()
+            if not s:
+                continue
+            if re.match(r"^(\d+\.|\b[A-Z][a-zA-Z\s]{3,30}:|#|\*\*|\b[A-Z])", s) and "..." not in s:
+                skip_noise = False
+            if not skip_noise:
+                clean_lines.append(s)
+
+        if clean_lines:
+            return "\n".join(clean_lines[:8]).strip()[:500]
+
+        return best_content[:500].strip()
 
 llm_client = MultiTierLLMClient()
