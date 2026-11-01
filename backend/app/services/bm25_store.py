@@ -5,16 +5,16 @@ from typing import Dict, List, Any, Optional
 logger = logging.getLogger(__name__)
 
 class BM25StoreService:
-    """In-memory sparse lexical search engine powered by rank-bm25.
+    """In-memory sparse lexical search engine powered by rank-bm25 (BM25Plus).
     
-    Provides ultra-fast exact keyword, SKU, pricing, and acronym retrieval
-    partitioned strictly per business tenant.
+    BM25Plus prevents negative IDF penalties on small corpuses, providing
+    reliable keyword, SKU, pricing, and acronym retrieval per business tenant.
     """
 
     def __init__(self):
         # business_id -> List of chunk dicts
         self._corpus: Dict[str, List[Dict[str, Any]]] = {}
-        # business_id -> BM25Okapi instance
+        # business_id -> BM25Plus instance
         self._bm25_models: Dict[str, Any] = {}
 
     @staticmethod
@@ -24,7 +24,7 @@ class BM25StoreService:
 
     def add_chunks(self, business_id: str, chunks: List[Dict[str, Any]]):
         """Adds chunks to the business's BM25 corpus and updates the index."""
-        from rank_bm25 import BM25Okapi
+        from rank_bm25 import BM25Plus
 
         if business_id not in self._corpus:
             self._corpus[business_id] = []
@@ -35,15 +35,15 @@ class BM25StoreService:
             if chunk["id"] not in existing_ids:
                 self._corpus[business_id].append(chunk)
 
-        # Rebuild index
+        # Rebuild index using BM25Plus
         tokenized_corpus = [self._tokenize(c["content"]) for c in self._corpus[business_id]]
         if tokenized_corpus:
-            self._bm25_models[business_id] = BM25Okapi(tokenized_corpus)
-            logger.info(f"BM25 index updated for business {business_id} with {len(self._corpus[business_id])} documents.")
+            self._bm25_models[business_id] = BM25Plus(tokenized_corpus)
+            logger.info(f"BM25Plus index updated for business {business_id} with {len(self._corpus[business_id])} documents.")
 
     def delete_document(self, business_id: str, document_id: str):
         """Removes all chunks of a specific document and rebuilds the BM25 index."""
-        from rank_bm25 import BM25Okapi
+        from rank_bm25 import BM25Plus
 
         if business_id not in self._corpus:
             return
@@ -55,14 +55,14 @@ class BM25StoreService:
 
         tokenized_corpus = [self._tokenize(c["content"]) for c in self._corpus[business_id]]
         if tokenized_corpus:
-            self._bm25_models[business_id] = BM25Okapi(tokenized_corpus)
+            self._bm25_models[business_id] = BM25Plus(tokenized_corpus)
         else:
             self._bm25_models.pop(business_id, None)
 
         logger.info(f"BM25 chunks pruned for document {document_id} in business {business_id}.")
 
     def search(self, business_id: str, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
-        """Searches the business corpus using BM25 lexical ranking."""
+        """Searches the business corpus using BM25Plus lexical ranking."""
         if business_id not in self._bm25_models or business_id not in self._corpus:
             return []
 
