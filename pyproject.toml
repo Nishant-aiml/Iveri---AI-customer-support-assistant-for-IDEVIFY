@@ -1,0 +1,22 @@
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+exclude = [
+    ".git",
+    "base_repos",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "test_chroma",
+    "chroma_db",
+    "uploads"
+]
+
+[tool.ruff.lint]
+# Lint for critical syntax, undefined variables, and fatal runtime flaws:
+select = ["E4", "E7", "E9", "F"]
+ignore = [
+    "E501",  # Line length
+    "E402",  # Module level import not at top of file (used for sys.path setups)
+    "E731"   # Do not assign a lambda expression
+]

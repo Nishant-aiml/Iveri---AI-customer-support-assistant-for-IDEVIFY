@@ -1,6 +1,6 @@
-import re
 import logging
-from typing import Dict, Any
+import re
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class PromptInjectionGuard:
     COMPILED_PATTERNS = [re.compile(p, re.IGNORECASE) for p in INJECTION_PATTERNS]
 
     @classmethod
-    def evaluate(cls, query: str) -> Dict[str, Any]:
+    def evaluate(cls, query: str) -> dict[str, Any]:
         """Scans query for prompt injection heuristics.
 
         Returns safe fallback response if triggered.
@@ -116,7 +116,7 @@ class GuardrailsService:
         # Redact any sensitive PII
         return self.pii_shield.redact(bounded)
 
-    def check_inbound_safety(self, query: str) -> Dict[str, Any]:
+    def check_inbound_safety(self, query: str) -> dict[str, Any]:
         """Runs pre-retrieval safety scan."""
         return self.injection_guard.evaluate(query)
 

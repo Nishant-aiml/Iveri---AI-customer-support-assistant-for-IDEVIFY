@@ -1,11 +1,12 @@
-import time
+from collections import defaultdict
 import json
 import logging
-from collections import defaultdict
-from typing import Dict, List
+import time
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+
 from app.config import settings
 
 logger = logging.getLogger("idevify.ratelimit")
@@ -16,7 +17,7 @@ class SlidingWindowRateLimiter(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
         # Dictionary mapping key -> list of float timestamps
-        self.request_history: Dict[str, List[float]] = defaultdict(list)
+        self.request_history: dict[str, list[float]] = defaultdict(list)
         self.last_cleanup = time.time()
 
         # Path rules: (prefix, max_requests, window_seconds)

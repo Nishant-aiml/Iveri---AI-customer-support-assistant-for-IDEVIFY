@@ -1,5 +1,4 @@
 import os
-from typing import List
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -50,7 +49,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "*"
     
     @property
-    def cors_origins(self) -> List[str]:
+    def cors_origins(self) -> list[str]:
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",") if origin.strip()]
 
     class Config:

@@ -1,7 +1,7 @@
 import os
 import re
-from typing import Tuple
-from fastapi import HTTPException, status, UploadFile
+
+from fastapi import HTTPException, UploadFile, status
 
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}
 
@@ -54,7 +54,7 @@ def verify_file_signature(header: bytes, ext: str) -> bool:
     return True
 
 
-async def read_and_validate_upload(file: UploadFile, max_bytes: int) -> Tuple[bytes, str, str]:
+async def read_and_validate_upload(file: UploadFile, max_bytes: int) -> tuple[bytes, str, str]:
     """Safely reads upload stream, enforces max byte limit in memory,
 
     and validates magic byte signatures.

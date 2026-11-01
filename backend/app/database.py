@@ -1,8 +1,11 @@
 import logging
-from typing import AsyncGenerator, Dict, Any
+from collections.abc import AsyncGenerator
+from typing import Any
+
 from sqlalchemy import event, text
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import declarative_base
+
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -121,7 +124,7 @@ async def init_db():
 
     logger.info("Database initialized successfully.")
 
-async def get_database_health() -> Dict[str, Any]:
+async def get_database_health() -> dict[str, Any]:
     """Checks database connectivity and returns telemetry."""
     try:
         async with AsyncSessionLocal() as session:
