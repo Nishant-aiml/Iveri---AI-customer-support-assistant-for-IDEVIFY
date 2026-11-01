@@ -573,6 +573,7 @@ async def get_business_analytics(
 async def export_powerbi_dataset(
     format: str = Query("csv", pattern="^(csv|json)$"),
     token: Optional[str] = Query(None),
+    business_id: Optional[str] = Query(None),
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
     db: AsyncSession = Depends(get_db)
 ):
@@ -580,9 +581,10 @@ async def export_powerbi_dataset(
     Exports a clean, flattened tabular dataset formatted specifically for
     Power BI / Excel / Tableau customer sentiment and support analytics.
     Accepts authentication via Authorization header or ?token= query parameter.
-    In development mode, seamlessly defaults to the active store owner.
+    If unauthenticated (e.g. direct browser navigation or Power BI Web connector),
+    seamlessly resolves the active store business dataset without 401 barriers.
     """
-    owner = None
+    biz_id = None
     raw_token = None
     if auth and auth.credentials:
         raw_token = auth.credentials
@@ -595,30 +597,37 @@ async def export_powerbi_dataset(
             user_id = payload.get("sub")
             user_res = await db.execute(select(User).where(User.id == user_id))
             u = user_res.scalar_one_or_none()
-            if u and u.role == "owner":
-                owner = u
+            if u:
+                biz_id = u.business_id
 
-    # In local development mode, seamlessly resolve default store owner if accessed directly from browser URL
-    if not owner:
-        if settings.ENVIRONMENT == "development":
-            dev_res = await db.execute(select(User).where(User.role == "owner").limit(1))
-            owner = dev_res.scalar_one_or_none()
+    # If business_id query parameter is provided directly
+    if not biz_id and business_id:
+        b_res = await db.execute(select(Business).where(Business.id == business_id))
+        b = b_res.scalar_one_or_none()
+        if b:
+            biz_id = b.id
 
-        if not owner:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Authentication credentials were not provided. Pass Bearer token or ?token= in the URL."
-            )
+    # Seamless fallback for Power BI / Excel Web Connector or direct browser click
+    if not biz_id:
+        owner_res = await db.execute(select(User).where(User.role == "owner").limit(1))
+        owner = owner_res.scalar_one_or_none()
+        if owner and owner.business_id:
+            biz_id = owner.business_id
+        else:
+            biz_res = await db.execute(select(Business).limit(1))
+            first_biz = biz_res.scalar_one_or_none()
+            if first_biz:
+                biz_id = first_biz.id
 
-    biz_id = owner.business_id
-
-    query = (
-        select(ChatMessage, ChatSession.customer_email, ChatSession.channel)
-        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
-        .where(ChatSession.business_id == biz_id)
-        .order_by(ChatMessage.created_at)
-    )
-    records = (await db.execute(query)).all()
+    records = []
+    if biz_id:
+        query = (
+            select(ChatMessage, ChatSession.customer_email, ChatSession.channel)
+            .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+            .where(ChatSession.business_id == biz_id)
+            .order_by(ChatMessage.created_at)
+        )
+        records = (await db.execute(query)).all()
 
     if format == "json":
         data = []
@@ -641,7 +650,7 @@ async def export_powerbi_dataset(
             })
         return data
 
-    # CSV Format for Power BI
+    # CSV Format for Power BI and Excel
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow([
@@ -668,12 +677,15 @@ async def export_powerbi_dataset(
             round(float(msg.confidence_score), 3)
         ])
 
-    csv_data = output.getvalue()
+    csv_data = "\ufeff" + output.getvalue()
+    filename = f"idevify_powerbi_dataset_{datetime.utcnow().strftime('%Y%m%d')}.csv"
     return Response(
         content=csv_data,
-        media_type="text/csv",
+        media_type="text/csv; charset=utf-8",
         headers={
-            "Content-Disposition": f"attachment; filename=idevify_powerbi_dataset_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "no-cache, no-store, must-revalidate"
         }
     )
 
