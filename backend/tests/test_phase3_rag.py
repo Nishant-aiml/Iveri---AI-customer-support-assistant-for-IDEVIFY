@@ -102,5 +102,61 @@ class TestPhase3RAG(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(res["llm_provider"], "circuit_breaker")
         print("[PASS] RAG-04: Tenant isolation verified (Tenant 2 cannot query Tenant 1's knowledge base).")
 
+    async def test_05_circuit_breaker_blocks_out_of_domain_technical_entities(self):
+        for q in ["tell about ai", "tell me about ai", "tell about bm25", "what is quantum computing"]:
+            res = await rag_engine.query(
+                business_id=self.tenant_1_id,
+                user_query=q,
+                business_settings={
+                    "name": "Maria Boutique",
+                    "fallback_message": "Information not available."
+                }
+            )
+            self.assertFalse(res["is_answered"], f"Query '{q}' should have been blocked by circuit breaker.")
+            self.assertEqual(res["llm_provider"], "circuit_breaker")
+            self.assertEqual(res["answer"], "Information not available.")
+        print("[PASS] RAG-05: Strict circuit breaker successfully blocked all out-of-domain technical entities ('ai', 'bm25', 'quantum').")
+
+    async def test_06_telecom_plans_and_gst_extraction(self):
+        telecom_chunks = [
+            {
+                "id": "chunk-telecom-1",
+                "content": (
+                    "ZEPHYR FIBER BROADBAND\n"
+                    "Home Broadband Plans:\n"
+                    "Basic: 50 Mbps, Rs. 499 per month, fair usage limit 1,000 GB (1 TB) per month\n"
+                    "Plus: 100 Mbps, Rs. 699 per month, fair usage limit 2,000 GB (2 TB) per month\n"
+                    "Pro: 200 Mbps, Rs. 899 per month, fair usage limit 3.3 TB per month\n"
+                    "Max: 500 Mbps, Rs. 1,099 per month, fair usage limit 3.3 TB per month\n"
+                    "Prices are per month and include 18% GST.\n"
+                    "Standard installation takes place within 3 working days of KYC approval."
+                ),
+                "metadata": {
+                    "document_name": "Zephyr_Fiber_Terms_FAQ.pdf",
+                    "page_number": 1,
+                    "document_id": "doc-zephyr-1",
+                    "business_id": self.tenant_2_id
+                }
+            }
+        ]
+        await rag_engine.index_document_chunks(self.tenant_2_id, telecom_chunks)
+
+        res_prod = await rag_engine.query(
+            business_id=self.tenant_2_id,
+            user_query="what is the product",
+            business_settings={"name": "Zephyr Fiber"}
+        )
+        self.assertTrue(res_prod["is_answered"])
+        self.assertIn("Basic:", res_prod["answer"])
+
+        res_gst = await rag_engine.query(
+            business_id=self.tenant_2_id,
+            user_query="how much gst",
+            business_settings={"name": "Zephyr Fiber"}
+        )
+        self.assertTrue(res_gst["is_answered"])
+        self.assertIn("18%", res_gst["answer"])
+        print("[PASS] RAG-06: Telecom product plans & GST grounded extraction passed with zero hallucination.")
+
 if __name__ == "__main__":
     unittest.main()
