@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Iveri AI Owner Analytics</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+              "on-tertiary-container": "#000703",
+              "on-secondary-fixed-variant": "#5516be",
+              "on-error": "#690005",
+              "outline": "#908fa0",
+              "secondary-container": "#571bc1",
+              "secondary": "#d0bcff",
+              "surface-variant": "#33343d",
+              "on-secondary-container": "#c4abff",
+              "surface-container-lowest": "#0c0e16",
+              "surface-container-highest": "#33343d",
+              "outline-variant": "#464554",
+              "on-primary-container": "#0d0096",
+              "background": "#11131b",
+              "secondary-fixed": "#e9ddff",
+              "on-secondary": "#3c0091",
+              "error": "#ffb4ab",
+              "on-tertiary-fixed-variant": "#005236",
+              "secondary-fixed-dim": "#d0bcff",
+              "tertiary-container": "#00885d",
+              "on-error-container": "#ffdad6",
+              "on-tertiary": "#003824",
+              "surface-container": "#1d1f28",
+              "on-primary-fixed": "#07006c",
+              "primary": "#c0c1ff",
+              "tertiary-fixed-dim": "#4edea3",
+              "on-secondary-fixed": "#23005c",
+              "on-primary-fixed-variant": "#2f2ebe",
+              "on-surface": "#e2e1ed",
+              "on-surface-variant": "#c7c4d7",
+              "tertiary": "#4edea3",
+              "primary-fixed": "#e1e0ff",
+              "surface-dim": "#11131b",
+              "inverse-primary": "#494bd6",
+              "surface": "#11131b",
+              "tertiary-fixed": "#6ffbbe",
+              "primary-fixed-dim": "#c0c1ff",
+              "on-background": "#e2e1ed",
+              "surface-container-low": "#191b24",
+              "on-primary": "#1000a9",
+              "surface-bright": "#373942",
+              "on-tertiary-fixed": "#002113",
+              "inverse-surface": "#e2e1ed",
+              "surface-tint": "#c0c1ff",
+              "inverse-on-surface": "#2e3039",
+              "surface-container-high": "#282a32",
+              "primary-container": "#8083ff",
+              "error-container": "#93000a"
+            },
+            "borderRadius": {
+              "DEFAULT": "0.125rem",
+              "lg": "0.25rem",
+              "xl": "0.5rem",
+              "full": "0.75rem"
+            },
+            "spacing": {
+              "space-lg": "1rem",
+              "space-md": "0.75rem",
+              "margin": "1rem",
+              "space-xl": "1.5rem",
+              "gutter": "1rem",
+              "space-3xl": "3rem",
+              "space-2xs": "0.125rem",
+              "space-2xl": "2rem",
+              "gutter-desktop": "1.5rem",
+              "space-xs": "0.25rem",
+              "space-sm": "0.5rem",
+              "margin-desktop": "2rem"
+            },
+            "fontFamily": {
+              "body-sm": ["Geist"],
+              "body-md": ["Geist"],
+              "label-mono-md": ["JetBrains Mono"],
+              "body-lg": ["Geist"],
+              "label-mono-sm": ["JetBrains Mono"],
+              "headline-sm": ["Geist"],
+              "headline-md": ["Geist"],
+              "headline-lg": ["Geist"],
+              "display-hero-mobile": ["Geist"],
+              "headline-lg-mobile": ["Geist"],
+              "display-hero": ["Geist"],
+              "caption-caps": ["Geist"]
+            },
+            "fontSize": {
+              "body-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }],
+              "body-md": ["13px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "400" }],
+              "label-mono-md": ["12px", { "lineHeight": "16px", "letterSpacing": "-0.02em", "fontWeight": "500" }],
+              "body-lg": ["15px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+              "label-mono-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+              "headline-sm": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.015em", "fontWeight": "500" }],
+              "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "500" }],
+              "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+              "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+              "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+              "display-hero": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.03em", "fontWeight": "600" }],
+              "caption-caps": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }]
+            }
+          }
+        }
+      }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md antialiased min-h-screen flex flex-col selection:bg-primary-container selection:text-on-primary-container">
+<!-- Top App Bar -->
+<header class="bg-surface border-b border-surface-container-highest flex justify-between items-center w-full px-gutter-desktop h-16 max-w-full sticky top-0 z-50 backdrop-blur-md bg-opacity-90">
+<div class="flex items-center gap-space-md">
+<span class="material-symbols-outlined text-primary text-2xl" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<h1 class="text-headline-md font-headline-md text-on-surface tracking-tight">Iveri AI Owner Analytics</h1>
+<div class="hidden md:flex items-center ml-space-lg px-space-sm py-space-2xs bg-surface-container rounded-lg border border-outline-variant/30 text-body-sm">
+<span class="w-2 h-2 rounded-full bg-tertiary animate-pulse mr-space-xs"></span>
+<span class="text-on-surface-variant font-label-mono-sm">TENANT:</span>
+<span class="ml-1 text-on-surface font-medium">Enterprise Tier-1 (US-East)</span>
+<span class="material-symbols-outlined text-sm ml-space-xs text-on-surface-variant">expand_more</span>
+</div>
+</div>
+<div class="flex items-center gap-space-md">
+<div class="hidden lg:flex items-center gap-space-sm px-space-md py-space-2xs bg-surface-container-low rounded-full border border-surface-container-highest">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-caption-caps bg-tertiary/10 text-tertiary border border-tertiary/25">
+                    SECURE NODE
+                </span>
+<span class="font-label-mono-sm text-on-surface-variant">P99: 142ms</span>
+</div>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-all duration-200" title="Notifications">
+<span class="material-symbols-outlined text-lg">notifications</span>
+</button>
+<button class="w-8 h-8 rounded-lg bg-surface-container hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-all duration-200" title="Toggle Theme">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">light_mode</span>
+</button>
+<div class="h-6 w-[1px] bg-surface-container-highest"></div>
+<div class="flex items-center gap-space-sm">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-headline-sm text-sm">
+                    IV
+                </div>
+</div>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden">
+<!-- Side Navigation Bar -->
+<aside class="hidden md:flex flex-col justify-between p-space-md w-72 h-[calc(100vh-4rem)] bg-surface-container-low border-r border-surface-container-highest shrink-0">
+<div class="flex flex-col gap-space-xs">
+<div class="px-3 py-2 mb-space-sm">
+<div class="text-headline-sm font-headline-sm text-on-surface">Iveri AI Console</div>
+<div class="text-body-sm text-on-surface-variant font-label-mono-sm mt-0.5">Enterprise Tier-1</div>
+</div>
+<!-- Navigation Tabs -->
+<nav class="flex flex-col gap-1">
+<a class="bg-secondary-container text-on-secondary-container font-headline-sm rounded-lg px-3 py-2 flex items-center gap-space-sm transition-all duration-200 active:scale-[0.98]" href="#knowledge-base">
+<span class="material-symbols-outlined text-lg" style="font-variation-settings: 'FILL' 1;">book</span>
+<span>Knowledge Base</span>
+</a>
+<a class="text-on-surface-variant px-3 py-2 rounded-lg flex items-center justify-between gap-space-sm hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 active:scale-[0.98]" href="#unanswered">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-lg">help_outline</span>
+<span>Unanswered Queue</span>
+</div>
+<span class="px-1.5 py-0.2 bg-error/20 text-error text-caption-caps rounded-full border border-error/30 font-label-mono-sm">3</span>
+</a>
+<a class="text-on-surface-variant px-3 py-2 rounded-lg flex items-center gap-space-sm hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 active:scale-[0.98]" href="#leads">
+<span class="material-symbols-outlined text-lg">person_add</span>
+<span>Lead Capture</span>
+</a>
+<a class="text-on-surface-variant px-3 py-2 rounded-lg flex items-center gap-space-sm hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 active:scale-[0.98]" href="#settings">
+<span class="material-symbols-outlined text-lg">settings</span>
+<span>Assistant Settings</span>
+</a>
+<a class="text-on-surface-variant px-3 py-2 rounded-lg flex items-center gap-space-sm hover:bg-surface-container-high hover:text-on-surface transition-all duration-200 active:scale-[0.98]" href="#playground">
+<span class="material-symbols-outlined text-lg">science</span>
+<span>Test Playground</span>
+</a>
+</nav>
+</div>
+<!-- Sidebar Footer Status -->
+<div class="p-space-md bg-surface-container rounded-xl border border-surface-container-highest">
+<div class="flex items-center justify-between mb-space-xs">
+<span class="text-caption-caps text-on-surface-variant font-label-mono-sm">SYSTEM HEALTH</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-tertiary/10 text-tertiary font-label-mono-sm">NOMINAL</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1.5 rounded-full overflow-hidden mt-space-sm">
+<div class="bg-tertiary h-full w-[99.8%]"></div>
+</div>
+<div class="flex justify-between items-center mt-space-xs text-[11px] text-on-surface-variant font-label-mono-sm">
+<span>Uptime: 99.98%</span>
+<span>v4.2.0-prod</span>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto bg-surface p-space-xl flex flex-col gap-space-xl">
+<!-- Top KPI Metric Cards Row -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-space-md">
+<!-- Card 1: Total Chats -->
+<div class="bg-surface-container border border-surface-container-highest rounded-xl p-space-md relative overflow-hidden group hover:border-primary/50 transition-all duration-200 shadow-sm">
+<div class="flex justify-between items-start mb-space-xs">
+<span class="text-caption-caps text-on-surface-variant font-label-mono-sm">TOTAL CHATS</span>
+<span class="material-symbols-outlined text-primary text-base">chat</span>
+</div>
+<div class="flex items-baseline justify-between">
+<div class="text-headline-lg font-headline-lg text-on-surface">24,892</div>
+<span class="text-tertiary text-body-sm font-medium flex items-center">+14.2%</span>
+</div>
+<div class="mt-space-sm flex items-center justify-between text-[11px] text-on-surface-variant font-label-mono-sm">
+<span>Past 30 days</span>
+<span class="text-primary">Live stream active</span>
+</div>
+</div>
+<!-- Card 2: Total Inquiries -->
+<div class="bg-surface-container border border-surface-container-highest rounded-xl p-space-md relative overflow-hidden group hover:border-primary/50 transition-all duration-200 shadow-sm">
+<div class="flex justify-between items-start mb-space-xs">
+<span class="text-caption-caps text-on-surface-variant font-label-mono-sm">TOTAL INQUIRIES</span>
+<span class="material-symbols-outlined text-secondary text-base">forum</span>
+</div>
+<div class="flex items-baseline justify-between">
+<div class="text-headline-lg font-headline-lg text-on-surface">18,430</div>
+<span class="text-tertiary text-body-sm font-medium flex items-center">+8.1%</span>
+</div>
+<div class="mt-space-sm flex items-center justify-between text-[11px] text-on-surface-variant font-label-mono-sm">
+<span>Resolved via RAG</span>
+<span class="text-secondary">92.4% match</span>
+</div>
+</div>
+<!-- Card 3: Resolution Rate -->
+<div class="bg-surface-container border border-surface-container-highest rounded-xl p-space-md relative overflow-hidden group hover:border-tertiary/50 transition-all duration-200 shadow-sm">
+<div class="flex justify-between items-start mb-space-xs">
+<span class="text-caption-caps text-on-surface-variant font-label-mono-sm">RESOLUTION RATE</span>
+<span class="material-symbols-outlined text-tertiary text-base">verified</span>
+</div>
+<div class="flex items-baseline justify-between">
+<div class="text-headline-lg font-headline-lg text-on-surface">96.4%</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-caption-caps bg-tertiary/10 text-tertiary border border-tertiary/25 font-label-mono-sm">
+                            OPTIMAL
+                        </span>
+</div>
+<div class="mt-space-sm flex items-center justify-between text-[11px] text-on-surface-variant font-label-mono-sm">
+<span>Deterministic guard</span>
+<span class="text-tertiary">Active</span>
+</div>
+</div>
+<!-- Card 4: Unanswered Queue -->
+<div class="bg-surface-container border border-surface-container-highest rounded-xl p-space-md relative overflow-hidden group hover:border-error/50 transition-all duration-200 shadow-sm">
+<div class="flex justify-between items-start mb-space-xs">
+<span class="text-caption-caps text-on-surface-variant font-label-mono-sm">UNANSWERED QUEUE</span>
+<span class="material-symbols-outlined text-error text-base">warning</span>
+</div>
+<div class="flex items-baseline justify-between">
+<div class="text-headline-lg font-headline-lg text-error">3</div>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-caption-caps bg-error/10 text-error border border-error/25 font-label-mono-sm animate-pulse">
+                            ACTION NEEDED
+                        </span>
+</div>
+<div class="mt-space-sm flex items-center justify-between text-[11px] text-on-surface-variant font-label-mono-sm">
+<span>Pending owner review</span>
+<span class="text-error underline cursor-pointer">Resolve now</span>
+</div>
+</div>
+<!-- Card 5: Avg Latency P99 -->
+<div class="bg-surface-container border border-surface-container-highest rounded-xl p-space-md relative overflow-hidden group hover:border-primary/50 transition-all duration-200 shadow-sm">
+<div class="flex justify-between items-start mb-space-xs">
+<span class="text-caption-caps text-on-surface-variant font-label-mono-sm">AVG LATENCY P99</span>
+<span class="material-symbols-outlined text-primary text-base">speed</span>
+</div>
+<div class="flex items-baseline justify-between">
+<div class="text-headline-lg font-headline-lg text-on-surface font-label-mono-md">142ms</div>
+<span class="text-tertiary text-body-sm font-medium">-12ms</span>
+</div>
+<div class="mt-space-sm flex items-center justify-between text-[11px] text-on-surface-variant font-label-mono-sm">
+<span>Model inference</span>
+<span class="font-label-mono-sm text-primary">PyMuPDF/Sarvam</span>
+</div>
+</div>
+</div>
+<!-- Knowledge Base Manager Section -->
+<div class="flex flex-col gap-space-lg">
+<!-- Section Header & Controls -->
+<div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-space-md">
+<div>
+<h2 class="text-headline-md font-headline-md text-on-surface">Knowledge Base Manager</h2>
+<p class="text-body-sm text-on-surface-variant mt-0.5">Manage indexed corpora, upload technical documentation, and monitor parser pipelines.</p>
+</div>
+<div class="flex items-center gap-space-sm">
+<div class="flex items-center bg-surface-container border border-surface-container-highest rounded-lg px-space-sm py-1.5">
+<span class="material-symbols-outlined text-sm text-on-surface-variant mr-space-xs">search</span>
+<input class="bg-transparent border-none text-body-sm text-on-surface focus:outline-none focus:ring-0 p-0 w-48" placeholder="Filter documents..." type="text"/>
+</div>
+<button class="bg-primary hover:bg-primary-container text-on-primary-container font-headline-sm text-body-md px-space-md py-2 rounded-lg flex items-center gap-space-xs transition-all duration-200 shadow-sm active:scale-[0.98]">
+<span class="material-symbols-outlined text-base">add</span>
+<span>Ingest Source</span>
+</button>
+</div>
+</div>
+<!-- Bento Grid Layout for Upload & Parser Stats -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-space-lg">
+<!-- Drag & Drop Upload Dropzone (Spans 2 cols) -->
+<div class="lg:col-span-2 bg-surface-container border border-dashed border-outline-variant rounded-xl p-space-xl flex flex-col items-center justify-center text-center relative hover:border-primary transition-all duration-200 group cursor-pointer bg-gradient-to-b from-surface-container/50 to-surface-container-low/50">
+<div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center mb-space-md group-hover:scale-110 transition-transform duration-200">
+<span class="material-symbols-outlined text-2xl">cloud_upload</span>
+</div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface mb-1">Drag &amp; Drop enterprise files here</h3>
+<p class="text-body-sm text-on-surface-variant max-w-md mb-space-lg">Supports high-density PDF manuals, Markdown repositories, CSV financial datasets, and unstructured knowledge dumps up to 500MB.</p>
+<div class="flex items-center gap-space-md">
+<button class="bg-surface-container-high hover:bg-surface-bright text-on-surface border border-surface-container-highest px-space-md py-1.5 rounded-lg text-body-sm font-medium transition-all duration-200">
+                                Browse Local Files
+                            </button>
+<button class="bg-transparent text-primary hover:underline text-body-sm font-medium">
+                                Connect Notion / Confluence
+                            </button>
+</div>
+<div class="absolute bottom-3 right-4 flex items-center gap-space-xs text-[10px] text-on-surface-variant font-label-mono-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-tertiary"></span>
+<span>Auto-Chunking Enabled (512 tokens)</span>
+</div>
+</div>
+<!-- Dual-Engine Parser Status Card -->
+<div class="bg-surface-container border border-surface-container-highest rounded-xl p-space-lg flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-space-md">
+<span class="text-caption-caps text-on-surface-variant font-label-mono-sm">PARSER PIPELINE</span>
+<span class="inline-flex items-center px-2 py-0.5 rounded text-caption-caps bg-tertiary/10 text-tertiary border border-tertiary/25 font-label-mono-sm">
+                                    DUAL-ACTIVE
+                                </span>
+</div>
+<h3 class="text-headline-sm font-headline-sm text-on-surface mb-space-sm">PyMuPDF + Sarvam OCR</h3>
+<p class="text-body-sm text-on-surface-variant mb-space-lg">Advanced layout-aware extraction engine optimized for multi-column enterprise specs and scanned tabular data.</p>
+</div>
+<div class="flex flex-col gap-space-sm">
+<div class="bg-surface-container-low p-space-sm rounded-lg border border-surface-container-highest flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-primary text-base">bolt</span>
+<span class="text-body-sm font-medium">PyMuPDF Text Extract</span>
+</div>
+<span class="text-tertiary text-caption-caps font-label-mono-sm">99.9% ACCURACY</span>
+</div>
+<div class="bg-surface-container-low p-space-sm rounded-lg border border-surface-container-highest flex items-center justify-between">
+<div class="flex items-center gap-space-sm">
+<span class="material-symbols-outlined text-secondary text-base">document_scanner</span>
+<span class="text-body-sm font-medium">Sarvam Indic/Global OCR</span>
+</div>
+<span class="text-tertiary text-caption-caps font-label-mono-sm">READY</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Indexed Corpora Document Table Card -->
+<div class="bg-surface-container border border-surface-container-highest rounded-xl overflow-hidden shadow-sm">
+<div class="px-space-lg py-space-md border-b border-surface-container-highest flex items-center justify-between">
+<div class="flex items-center gap-space-md">
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Indexed Corpora Documents</h3>
+<span class="px-2 py-0.5 bg-surface-container-high text-on-surface-variant text-caption-caps rounded-full font-label-mono-sm">148 FILES</span>
+</div>
+<div class="flex items-center gap-space-sm">
+<button class="text-body-sm text-on-surface-variant hover:text-on-surface px-2 py-1 rounded hover:bg-surface-container-high transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">filter_list</span>
+<span>Filter</span>
+</button>
+<button class="text-body-sm text-on-surface-variant hover:text-on-surface px-2 py-1 rounded hover:bg-surface-container-high transition-colors flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">sort</span>
+<span>Sort</span>
+</button>
+</div>
+</div>
+<!-- Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-surface-container-highest text-caption-caps text-on-surface-variant font-label-mono-sm bg-surface-container-low/50">
+<th class="py-3 px-space-lg font-medium">DOCUMENT TITLE / SOURCE</th>
+<th class="py-3 px-space-lg font-medium">PARSER ENGINE</th>
+<th class="py-3 px-space-lg font-medium">CHUNKS</th>
+<th class="py-3 px-space-lg font-medium">STATUS</th>
+<th class="py-3 px-space-lg font-medium">LAST UPDATED</th>
+<th class="py-3 px-space-lg font-medium text-right">ACTIONS</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container-highest text-body-sm">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-high/50 transition-colors group">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-base">description</span>
+</div>
+<div>
+<div class="font-medium text-on-surface">Enterprise_Architecture_v4.pdf</div>
+<div class="text-[11px] text-on-surface-variant font-label-mono-sm">PDF • 14.2 MB • 420 pages</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<span class="font-label-mono-sm text-on-surface-variant">PyMuPDF-Layout</span>
+</td>
+<td class="py-3.5 px-space-lg font-label-mono-md text-on-surface">
+                                        3,840
+                                    </td>
+<td class="py-3.5 px-space-lg">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-caption-caps bg-tertiary/10 text-tertiary border border-tertiary/25 font-label-mono-sm">
+                                            INDEXED
+                                        </span>
+</td>
+<td class="py-3.5 px-space-lg font-label-mono-md text-on-surface-variant">
+                                        2025-05-12 14:22
+                                    </td>
+<td class="py-3.5 px-space-lg text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="w-7 h-7 rounded hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" title="Re-index">
+<span class="material-symbols-outlined text-sm">refresh</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" title="Inspect Chunks">
+<span class="material-symbols-outlined text-sm">visibility</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-error/10 flex items-center justify-center text-on-surface-variant hover:text-error transition-colors" title="Delete">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-high/50 transition-colors group">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-8 h-8 rounded-lg bg-secondary/10 text-secondary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-base">table_chart</span>
+</div>
+<div>
+<div class="font-medium text-on-surface">API_Reference_Specifications_Q2.md</div>
+<div class="text-[11px] text-on-surface-variant font-label-mono-sm">Markdown • 1.8 MB • 84 sections</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<span class="font-label-mono-sm text-on-surface-variant">Sarvam-OCR-Parser</span>
+</td>
+<td class="py-3.5 px-space-lg font-label-mono-md text-on-surface">
+                                        1,120
+                                    </td>
+<td class="py-3.5 px-space-lg">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-caption-caps bg-tertiary/10 text-tertiary border border-tertiary/25 font-label-mono-sm">
+                                            INDEXED
+                                        </span>
+</td>
+<td class="py-3.5 px-space-lg font-label-mono-md text-on-surface-variant">
+                                        2025-05-10 09:15
+                                    </td>
+<td class="py-3.5 px-space-lg text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="w-7 h-7 rounded hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" title="Re-index">
+<span class="material-symbols-outlined text-sm">refresh</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" title="Inspect Chunks">
+<span class="material-symbols-outlined text-sm">visibility</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-error/10 flex items-center justify-center text-on-surface-variant hover:text-error transition-colors" title="Delete">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-high/50 transition-colors group">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-8 h-8 rounded-lg bg-error/10 text-error flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-base">warning</span>
+</div>
+<div>
+<div class="font-medium text-on-surface">Legacy_Billing_Scans_2024.pdf</div>
+<div class="text-[11px] text-on-surface-variant font-label-mono-sm">PDF (Scanned) • 45.1 MB • 190 pages</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<span class="font-label-mono-sm text-on-surface-variant">Sarvam-OCR-Parser</span>
+</td>
+<td class="py-3.5 px-space-lg font-label-mono-md text-on-surface">
+                                        890
+                                    </td>
+<td class="py-3.5 px-space-lg">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-caption-caps bg-error/10 text-error border border-error/25 font-label-mono-sm">
+                                            PARSING ERROR
+                                        </span>
+</td>
+<td class="py-3.5 px-space-lg font-label-mono-md text-on-surface-variant">
+                                        2025-05-08 18:40
+                                    </td>
+<td class="py-3.5 px-space-lg text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="w-7 h-7 rounded hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" title="Re-index">
+<span class="material-symbols-outlined text-sm">refresh</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" title="Inspect Chunks">
+<span class="material-symbols-outlined text-sm">visibility</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-error/10 flex items-center justify-center text-on-surface-variant hover:text-error transition-colors" title="Delete">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-high/50 transition-colors group">
+<td class="py-3.5 px-space-lg">
+<div class="flex items-center gap-space-md">
+<div class="w-8 h-8 rounded-lg bg-tertiary/10 text-tertiary flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-base">folder_open</span>
+</div>
+<div>
+<div class="font-medium text-on-surface">Customer_Success_Playbook_v2.docx</div>
+<div class="text-[11px] text-on-surface-variant font-label-mono-sm">DOCX • 3.4 MB • 115 pages</div>
+</div>
+</div>
+</td>
+<td class="py-3.5 px-space-lg">
+<span class="font-label-mono-sm text-on-surface-variant">PyMuPDF-Layout</span>
+</td>
+<td class="py-3.5 px-space-lg font-label-mono-md text-on-surface">
+                                        1,450
+                                    </td>
+<td class="py-3.5 px-space-lg">
+<span class="inline-flex items-center px-2 py-0.5 rounded-full text-caption-caps bg-tertiary/10 text-tertiary border border-tertiary/25 font-label-mono-sm">
+                                            INDEXED
+                                        </span>
+</td>
+<td class="py-3.5 px-space-lg font-label-mono-md text-on-surface-variant">
+                                        2025-05-02 11:04
+                                    </td>
+<td class="py-3.5 px-space-lg text-right">
+<div class="flex items-center justify-end gap-1">
+<button class="w-7 h-7 rounded hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" title="Re-index">
+<span class="material-symbols-outlined text-sm">refresh</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-on-surface transition-colors" title="Inspect Chunks">
+<span class="material-symbols-outlined text-sm">visibility</span>
+</button>
+<button class="w-7 h-7 rounded hover:bg-error/10 flex items-center justify-center text-on-surface-variant hover:text-error transition-colors" title="Delete">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Table Footer Pagination -->
+<div class="px-space-lg py-space-md bg-surface-container-low border-t border-surface-container-highest flex items-center justify-between text-body-sm text-on-surface-variant">
+<div>Showing <span class="font-medium text-on-surface">1-4</span> of <span class="font-medium text-on-surface">148</span> documents</div>
+<div class="flex items-center gap-space-sm">
+<button class="px-3 py-1 bg-surface-container rounded border border-surface-container-highest text-on-surface disabled:opacity-50" disabled="">Previous</button>
+<button class="px-3 py-1 bg-surface-container hover:bg-surface-container-high rounded border border-surface-container-highest text-on-surface">Next</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

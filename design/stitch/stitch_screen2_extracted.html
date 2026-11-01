@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Iveri - Public Customer Support Chat Interface</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary": "#1000a9",
+              "on-secondary": "#3c0091",
+              "surface-container-high": "#282a32",
+              "tertiary": "#4edea3",
+              "on-tertiary-container": "#000703",
+              "tertiary-fixed": "#6ffbbe",
+              "on-secondary-fixed-variant": "#5516be",
+              "inverse-primary": "#494bd6",
+              "error": "#ffb4ab",
+              "on-tertiary-fixed": "#002113",
+              "on-primary-fixed-variant": "#2f2ebe",
+              "primary-fixed": "#e1e0ff",
+              "on-secondary-container": "#c4abff",
+              "surface-container-low": "#191b24",
+              "surface-bright": "#373942",
+              "on-error": "#690005",
+              "inverse-surface": "#e2e1ed",
+              "on-primary-container": "#0d0096",
+              "error-container": "#93000a",
+              "outline": "#908fa0",
+              "primary-container": "#8083ff",
+              "tertiary-container": "#00885d",
+              "surface-container-highest": "#33343d",
+              "inverse-on-surface": "#2e3039",
+              "surface-tint": "#c0c1ff",
+              "surface-variant": "#33343d",
+              "surface": "#11131b",
+              "on-surface-variant": "#c7c4d7",
+              "on-secondary-fixed": "#23005c",
+              "on-primary-fixed": "#07006c",
+              "primary": "#c0c1ff",
+              "on-surface": "#e2e1ed",
+              "tertiary-fixed-dim": "#4edea3",
+              "secondary-container": "#571bc1",
+              "on-background": "#e2e1ed",
+              "outline-variant": "#464554",
+              "secondary-fixed": "#e9ddff",
+              "on-tertiary-fixed-variant": "#005236",
+              "secondary-fixed-dim": "#d0bcff",
+              "on-tertiary": "#003824",
+              "background": "#090A0F",
+              "on-error-container": "#ffdad6",
+              "surface-container-lowest": "#0c0e16",
+              "secondary": "#d0bcff",
+              "primary-fixed-dim": "#c0c1ff",
+              "surface-container": "#131622",
+              "surface-dim": "#0D0F17"
+            },
+            borderRadius: {
+              DEFAULT: "0.125rem",
+              lg: "0.25rem",
+              xl: "0.5rem",
+              full: "0.75rem"
+            },
+            spacing: {
+              "margin": "1rem",
+              "space-xs": "0.25rem",
+              "space-lg": "1rem",
+              "gutter-desktop": "1.5rem",
+              "space-md": "0.75rem",
+              "space-2xs": "0.125rem",
+              "space-sm": "0.5rem",
+              "gutter": "1rem",
+              "space-3xl": "3rem",
+              "space-xl": "1.5rem",
+              "space-2xl": "2rem",
+              "margin-desktop": "2rem"
+            },
+            fontFamily: {
+              "display-hero": ["Geist", "sans-serif"],
+              "label-mono-sm": ["JetBrains Mono", "monospace"],
+              "body-lg": ["Geist", "sans-serif"],
+              "headline-sm": ["Geist", "sans-serif"],
+              "display-hero-mobile": ["Geist", "sans-serif"],
+              "headline-lg-mobile": ["Geist", "sans-serif"],
+              "headline-lg": ["Geist", "sans-serif"],
+              "body-md": ["Geist", "sans-serif"],
+              "caption-caps": ["Geist", "sans-serif"],
+              "headline-md": ["Geist", "sans-serif"],
+              "label-mono-md": ["JetBrains Mono", "monospace"],
+              "body-sm": ["Geist", "sans-serif"]
+            },
+            fontSize: {
+              "display-hero": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.03em", "fontWeight": "600" }],
+              "label-mono-sm": ["10px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "500" }],
+              "body-lg": ["15px", { "lineHeight": "24px", "letterSpacing": "-0.01em", "fontWeight": "400" }],
+              "headline-sm": ["16px", { "lineHeight": "24px", "letterSpacing": "-0.015em", "fontWeight": "500" }],
+              "display-hero-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+              "headline-lg-mobile": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+              "headline-lg": ["30px", { "lineHeight": "38px", "letterSpacing": "-0.025em", "fontWeight": "600" }],
+              "body-md": ["13px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "400" }],
+              "caption-caps": ["11px", { "lineHeight": "14px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+              "headline-md": ["20px", { "lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "500" }],
+              "label-mono-md": ["12px", { "lineHeight": "16px", "letterSpacing": "-0.02em", "fontWeight": "500" }],
+              "body-sm": ["12px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+      body {
+        background-color: #090A0F;
+        color: #e2e1ed;
+        font-family: 'Geist', sans-serif;
+      }
+      .glass-panel {
+        background-color: #131622;
+        border: 1px solid #1F2438;
+        box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
+      }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
+<!-- TopNavBar -->
+<header class="bg-surface-container-low dark:bg-surface-container-low border-b border-outline-variant dark:border-outline-variant flex justify-between items-center w-full px-margin-desktop py-space-sm h-14 sticky top-0 z-50">
+<div class="flex items-center space-x-6">
+<div class="text-headline-md font-headline-md tracking-tight font-semibold text-on-surface dark:text-on-surface flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-primary inline-block"></span>
+                Iveri
+            </div>
+<nav class="hidden md:flex items-center space-x-1">
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface font-body-md text-body-md px-3 py-1.5 rounded hover:bg-surface-container transition-colors" href="#">Overview</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface font-body-md text-body-md px-3 py-1.5 rounded hover:bg-surface-container transition-colors" href="#">Documents</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface font-body-md text-body-md px-3 py-1.5 rounded hover:bg-surface-container transition-colors" href="#">Unanswered Questions</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface font-body-md text-body-md px-3 py-1.5 rounded hover:bg-surface-container transition-colors" href="#">Chat History</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant hover:text-on-surface dark:hover:text-on-surface font-body-md text-body-md px-3 py-1.5 rounded hover:bg-surface-container transition-colors" href="#">RAG Playground</a>
+<a class="text-primary dark:text-primary border-b-2 border-primary font-body-md text-body-md px-3 py-1.5" href="#">Widget Settings</a>
+</nav>
+</div>
+<div class="flex items-center space-x-4">
+<!-- Online & Grounded Status -->
+<div class="hidden lg:flex items-center space-x-2 bg-surface-container-lowest px-3 py-1 rounded-full border border-outline-variant">
+<span class="relative flex h-2 w-2">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+</span>
+<span class="text-label-mono-md font-label-mono-md text-tertiary">Online &amp; Grounded</span>
+</div>
+<button class="bg-[#6366F1] hover:bg-[#4F46E5] text-white px-3 py-1.5 rounded-lg text-body-md font-medium transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]">share</span>
+                Share Chat Link
+            </button>
+<div class="flex items-center space-x-2 border-l border-outline-variant pl-4">
+<button class="w-8 h-8 rounded bg-surface-container hover:bg-surface-bright flex items-center justify-center text-on-surface transition-colors" title="Settings">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+<button class="w-8 h-8 rounded bg-surface-container hover:bg-surface-bright flex items-center justify-center text-on-surface transition-colors" title="Notifications">
+<span class="material-symbols-outlined text-[18px]">notifications</span>
+</button>
+<button class="w-8 h-8 rounded bg-surface-container hover:bg-surface-bright flex items-center justify-center text-on-surface transition-colors" title="Help">
+<span class="material-symbols-outlined text-[18px]">help</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-gradient-to-tr from-primary to-secondary flex items-center justify-center text-on-primary font-semibold text-xs ml-1 overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="Close up professional portrait of a software engineer with glasses working in a modern well-lit office environment with multiple glowing monitors displaying code and dark mode user interfaces." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7Mk_7YjWwn-HX2VtP2hOH9ol79lYBzm3g281e5H0TnRL8an9hEpc1Hfwa5M8QGh7QdVJzWbIpeO5U5PMh5dJtuCpINPrdeqvzd2lHgn7LbK2Mdv9XlloFJFN4D6-gIb4E7LE5go-bLimVKTr0agCJrXjM7cG3TRvxJTRyWxz86FVIdiX3wbAxmDZEHfLIHGo9XtR9iLg81WGM8dZkYNaCqpE-AAowU4SnIuCEYVUteD-3fRv-YDgI__HroukJFSXZl2uigrbbGQ"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Workspace Container -->
+<main class="flex-1 flex flex-col md:flex-row p-margin-desktop gap-6 max-w-[1600px] mx-auto w-full">
+<!-- LEFT SIDE: Public Customer Support Chat Interface -->
+<section class="flex-1 glass-panel rounded-xl flex flex-col overflow-hidden">
+<!-- Chat Header -->
+<div class="px-6 py-4 border-b border-outline-variant flex items-center justify-between bg-surface-dim">
+<div class="flex items-center space-x-3">
+<div class="w-10 h-10 rounded-lg bg-primary-container/20 border border-primary/30 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">support_agent</span>
+</div>
+<div>
+<h2 class="text-headline-sm font-headline-sm text-on-surface">Iveri Support Assistant</h2>
+<p class="text-body-sm text-on-surface-variant flex items-center gap-1.5">
+<span>Knowledge Base v4.12</span>
+<span>•</span>
+<span class="text-tertiary">142ms • Gemini Flash</span>
+</p>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<span class="px-2.5 py-1 rounded-full bg-tertiary/10 text-tertiary border border-tertiary/25 text-label-mono-sm font-label-mono-sm flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">verified</span>
+                        Verified Citations Active
+                    </span>
+</div>
+</div>
+<!-- Chat Message History -->
+<div class="flex-1 p-6 overflow-y-auto space-y-6 bg-[#090A0F]/50">
+<!-- System Timestamp -->
+<div class="flex justify-center">
+<span class="text-label-mono-sm text-outline px-3 py-1 rounded bg-surface-container">Today, 10:42 AM</span>
+</div>
+<!-- Customer Query 1 -->
+<div class="flex items-start gap-3 justify-end">
+<div class="bg-[#1A1E2E] border border-outline-variant rounded-xl p-4 max-w-xl text-on-surface shadow-sm">
+<p class="text-body-md font-body-md">What is your return window for international orders?</p>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant flex-shrink-0 text-xs font-semibold border border-outline-variant">
+                        U
+                    </div>
+</div>
+<!-- AI Response 1 -->
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[16px]">smart_toy</span>
+</div>
+<div class="glass-panel rounded-xl p-5 max-w-2xl space-y-4">
+<p class="text-body-md font-body-md leading-relaxed text-on-surface">
+                            For international shipments, the standard return window is extended to <strong class="text-primary font-medium">45 days</strong> from the delivery timestamp confirmed by the courier. Items must remain in unopened original packaging with all security seals intact.
+                        </p>
+<!-- Verified Citation Pill -->
+<div class="flex flex-wrap gap-2 pt-2 border-t border-outline-variant/60">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-mono-sm bg-[rgba(16,185,129,0.1)] text-[#10B981] border border-[rgba(16,185,129,0.25)] font-label-mono-md">
+<span class="material-symbols-outlined text-[12px]">description</span>
+                                📄 Iveri Return Policy, p.1
+                            </span>
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-mono-sm bg-[rgba(139,92,246,0.1)] text-[#A78BFA] border border-[rgba(139,92,246,0.25)] font-label-mono-md">
+<span class="material-symbols-outlined text-[12px]">neurology</span>
+                                Autonomous Reasoning
+                            </span>
+</div>
+<!-- Feedback triggers -->
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center space-x-1">
+<button class="p-1.5 rounded bg-surface-container hover:bg-surface-bright text-on-surface-variant hover:text-on-surface transition-colors" title="Helpful">
+<span class="material-symbols-outlined text-[14px]">thumb_up</span>
+</button>
+<button class="p-1.5 rounded bg-surface-container hover:bg-surface-bright text-on-surface-variant hover:text-on-surface transition-colors" title="Not helpful">
+<span class="material-symbols-outlined text-[14px]">thumb_down</span>
+</button>
+</div>
+<span class="text-label-mono-sm text-outline">Confidence: 99.4%</span>
+</div>
+</div>
+</div>
+<!-- Customer Query 2 -->
+<div class="flex items-start gap-3 justify-end">
+<div class="bg-[#1A1E2E] border border-outline-variant rounded-xl p-4 max-w-xl text-on-surface shadow-sm">
+<p class="text-body-md font-body-md">Does warranty cover battery health degradation over time?</p>
+</div>
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center text-on-surface-variant flex-shrink-0 text-xs font-semibold border border-outline-variant">
+                        U
+                    </div>
+</div>
+<!-- AI Response 2 -->
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center text-primary flex-shrink-0">
+<span class="material-symbols-outlined text-[16px]">smart_toy</span>
+</div>
+<div class="glass-panel rounded-xl p-5 max-w-2xl space-y-4">
+<p class="text-body-md font-body-md leading-relaxed text-on-surface">
+                            Yes. Under the comprehensive hardware tier, battery capacity degradation dropping below <strong class="text-primary font-medium">80% within 24 months</strong> of purchase qualifies for a direct zero-cost battery module replacement.
+                        </p>
+<!-- Verified Citation Pill -->
+<div class="flex flex-wrap gap-2 pt-2 border-t border-outline-variant/60">
+<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-mono-sm bg-[rgba(16,185,129,0.1)] text-[#10B981] border border-[rgba(16,185,129,0.25)] font-label-mono-md">
+<span class="material-symbols-outlined text-[12px]">description</span>
+                                📄 Hardware Warranty Terms v2, p.14
+                            </span>
+</div>
+<!-- Feedback triggers -->
+<div class="flex items-center justify-between pt-1">
+<div class="flex items-center space-x-1">
+<button class="p-1.5 rounded bg-surface-container hover:bg-surface-bright text-on-surface-variant hover:text-on-surface transition-colors" title="Helpful">
+<span class="material-symbols-outlined text-[14px]">thumb_up</span>
+</button>
+<button class="p-1.5 rounded bg-surface-container hover:bg-surface-bright text-on-surface-variant hover:text-on-surface transition-colors" title="Not helpful">
+<span class="material-symbols-outlined text-[14px]">thumb_down</span>
+</button>
+</div>
+<span class="text-label-mono-sm text-outline">Confidence: 98.9%</span>
+</div>
+</div>
+</div>
+<!-- Suggested Starter Question Pills -->
+<div class="pt-2">
+<p class="text-label-mono-sm text-on-surface-variant uppercase mb-2">Suggested Follow-ups</p>
+<div class="flex flex-wrap gap-2">
+<button class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface text-body-sm transition-all hover:border-primary/50">
+                            What is your return window?
+                        </button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface text-body-sm transition-all hover:border-primary/50">
+                            How much is express shipping?
+                        </button>
+<button class="px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high border border-outline-variant text-on-surface text-body-sm transition-all hover:border-primary/50">
+                            Does warranty cover battery health?
+                        </button>
+</div>
+</div>
+<!-- Human Handoff Prompt Box -->
+<div class="bg-surface-dim border border-outline-variant rounded-xl p-4 mt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+<div>
+<h4 class="text-headline-sm font-headline-sm text-on-surface mb-0.5">Need further help?</h4>
+<p class="text-body-sm text-on-surface-variant">Leave your email for our team to follow up directly.</p>
+</div>
+<div class="flex w-full sm:w-auto items-center gap-2">
+<input class="bg-surface-container border border-outline-variant rounded-lg px-3 py-2 text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary w-full sm:w-64" placeholder="name@company.com" type="email"/>
+<button class="bg-[#6366F1] hover:bg-[#4F46E5] text-white px-4 py-2 rounded-lg text-body-md font-medium whitespace-nowrap transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+                            Submit
+                        </button>
+</div>
+</div>
+</div>
+<!-- Chat Input Footer -->
+<div class="p-4 border-t border-outline-variant bg-surface-container-low">
+<div class="relative flex items-center">
+<input class="w-full bg-[#0D0F17] border border-outline-variant rounded-lg pl-4 pr-24 py-3 text-body-md text-on-surface focus:border-primary focus:ring-1 focus:ring-primary" placeholder="Ask anything regarding company policy, warranties, or orders..." type="text"/>
+<div class="absolute right-2 flex items-center space-x-1">
+<button class="p-1.5 rounded hover:bg-surface-container text-on-surface-variant hover:text-on-surface transition-colors" title="Attach Document">
+<span class="material-symbols-outlined text-[18px]">attach_file</span>
+</button>
+<button class="bg-[#6366F1] hover:bg-[#4F46E5] text-white w-8 h-8 rounded-md flex items-center justify-center transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+<span class="material-symbols-outlined text-[16px]">arrow_upward</span>
+</button>
+</div>
+</div>
+<div class="flex items-center justify-between mt-2 px-1">
+<span class="text-label-mono-sm text-outline">Iveri Enterprise Grounded RAG v4</span>
+<span class="text-label-mono-sm text-outline">Press Enter to send</span>
+</div>
+</div>
+</section>
+<!-- RIGHT SIDE: Live Preview Card (Embeddable Floating Chat Widget) -->
+<section class="w-full md:w-[420px] flex flex-col gap-6">
+<!-- Preview Controller Card -->
+<div class="glass-panel rounded-xl p-5 space-y-4">
+<div class="flex items-center justify-between border-b border-outline-variant pb-3">
+<div class="flex items-center space-x-2">
+<span class="material-symbols-outlined text-primary">widgets</span>
+<h3 class="text-headline-sm font-headline-sm text-on-surface">Embeddable Widget Preview</h3>
+</div>
+<span class="px-2 py-0.5 rounded bg-primary/10 text-primary text-label-mono-sm border border-primary/30">Live Sandbox</span>
+</div>
+<p class="text-body-md text-on-surface-variant">
+                    This interactive container mirrors your public customer support widget deployed via the embed script on external client sites.
+                </p>
+<!-- Configuration toggles simulation -->
+<div class="space-y-3 pt-2">
+<div class="flex items-center justify-between text-body-md bg-surface-dim p-2.5 rounded-lg border border-outline-variant">
+<span class="text-on-surface">Theme Mode</span>
+<span class="text-label-mono-sm text-tertiary">Obsidian Dark</span>
+</div>
+<div class="flex items-center justify-between text-body-md bg-surface-dim p-2.5 rounded-lg border border-outline-variant">
+<span class="text-on-surface">Widget Position</span>
+<span class="text-label-mono-sm text-primary">Bottom Right</span>
+</div>
+<div class="flex items-center justify-between text-body-md bg-surface-dim p-2.5 rounded-lg border border-outline-variant">
+<span class="text-on-surface">Grounded Citations</span>
+<span class="text-label-mono-sm text-[#10B981]">Enabled</span>
+</div>
+</div>
+</div>
+<!-- Simulated Webpage Canvas Container showcasing the floating widget -->
+<div class="flex-1 glass-panel rounded-xl relative min-h-[440px] flex flex-col justify-end p-6 overflow-hidden bg-gradient-to-b from-[#0D0F17] to-[#11131b]">
+<!-- Mock Webpage Content Background Elements -->
+<div class="absolute top-6 left-6 right-6 space-y-4 opacity-40 select-none pointer-events-none">
+<div class="h-4 bg-surface-container rounded w-1/3"></div>
+<div class="h-20 bg-surface-container rounded w-full"></div>
+<div class="flex gap-4">
+<div class="h-10 bg-surface-container rounded w-1/2"></div>
+<div class="h-10 bg-surface-container rounded w-1/2"></div>
+</div>
+</div>
+<!-- Floating Chat Widget Modal Pop-up (Simulated Expanded State) -->
+<div class="glass-panel rounded-xl shadow-2xl border border-outline-variant flex flex-col overflow-hidden z-20 mb-16 bg-[#131622]/95 backdrop-blur-md">
+<!-- Widget Header -->
+<div class="px-4 py-3 bg-surface-dim border-b border-outline-variant flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="w-2.5 h-2.5 rounded-full bg-tertiary"></span>
+<span class="text-headline-sm font-headline-sm text-on-surface">Iveri Assistant</span>
+</div>
+<div class="flex items-center space-x-1">
+<button class="p-1 rounded hover:bg-surface-container text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">remove</span>
+</button>
+<button class="p-1 rounded hover:bg-surface-container text-on-surface-variant">
+<span class="material-symbols-outlined text-[16px]">close</span>
+</button>
+</div>
+</div>
+<!-- Widget Body -->
+<div class="p-4 space-y-3 max-h-[220px] overflow-y-auto">
+<div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant">
+<p class="text-body-sm text-on-surface">Hello! How can I assist you with your order or warranty today?</p>
+<span class="text-label-mono-sm text-outline mt-1 block">10:45 AM</span>
+</div>
+<div class="bg-[#1A1E2E] p-3 rounded-lg border border-outline-variant ml-6">
+<p class="text-body-sm text-on-surface">What is your return window?</p>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant space-y-2">
+<p class="text-body-sm text-on-surface">Standard international returns are accepted within <strong class="text-primary font-medium">45 days</strong>.</p>
+<div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-label-mono-sm bg-[rgba(16,185,129,0.1)] text-[#10B981] border border-[rgba(16,185,129,0.25)]">
+                                📄 Return Policy p.1
+                            </div>
+</div>
+</div>
+<!-- Widget Input -->
+<div class="p-3 border-t border-outline-variant bg-surface-dim">
+<div class="relative flex items-center">
+<input class="w-full bg-surface-container border border-outline-variant rounded-md pl-3 pr-10 py-1.5 text-body-sm text-on-surface focus:border-primary" placeholder="Type a message..." type="text"/>
+<button class="absolute right-1.5 bg-[#6366F1] text-white w-6 h-6 rounded flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Floating Widget Trigger Button (Bottom Right) -->
+<div class="absolute bottom-4 right-4 flex items-center gap-3 z-30">
+<div class="bg-surface-container-high border border-outline-variant text-on-surface text-body-sm px-3 py-1.5 rounded-lg shadow-lg">
+                        Need help? Chat with Iveri
+                    </div>
+<button class="relative w-14 h-14 rounded-full bg-[#6366F1] hover:bg-[#4F46E5] text-white flex items-center justify-center shadow-xl transition-all transform hover:scale-105">
+<span class="material-symbols-outlined text-[24px]">chat</span>
+<span class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-tertiary text-on-tertiary-container font-bold text-xs flex items-center justify-center border-2 border-[#090A0F]">1</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+</body></html>
