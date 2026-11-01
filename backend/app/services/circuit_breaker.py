@@ -107,7 +107,7 @@ class PreLLMCircuitBreaker:
                         entity_hits.append(t)
 
                 # If query entities (e.g. 'ai', 'bm25') have 0 genuine mentions in retrieved chunks
-                if not entity_hits and dense_sim < 0.62:
+                if not entity_hits:
                     logger.info(f"Circuit breaker tripped: Query entities {tokens} missing from retrieved content (Dense={dense_sim:.3f}).")
                     return {
                         "can_answer": False,

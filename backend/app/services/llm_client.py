@@ -486,7 +486,7 @@ class MultiTierLLMClient:
                 if not s or s.startswith("SECTION") or len(s) < 15:
                     continue
                 line_lower = s.lower()
-                matches = sum(1 for tok in q_tokens if tok in line_lower)
+                matches = sum(1 for tok in q_tokens if re.search(r"\b" + re.escape(tok) + r"\b", line_lower))
                 if matches > 0:
                     candidate_sentences.append((matches, s))
 

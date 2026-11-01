@@ -139,7 +139,7 @@ class HybridRAGEngine:
             expanded_query = f"{clean_query} 18% gst taxes billing"
 
         # Step 2: Multi-Hybrid Retrieval (Dense Vector + Sparse BM25)
-        dense_hits = await vector_store_service.search(business_id, clean_query, top_k=10)
+        dense_hits = await vector_store_service.search(business_id, expanded_query, top_k=10)
         sparse_hits = bm25_store_service.search(business_id, expanded_query, top_k=10)
 
         # Step 3: Reciprocal Rank Fusion (RRF)
