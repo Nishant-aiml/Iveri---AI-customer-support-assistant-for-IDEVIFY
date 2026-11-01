@@ -129,7 +129,7 @@ class TestPhase1AndPhase2(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(upload_res.status_code, 202)
         upload_data = upload_res.json()
         self.assertEqual(upload_data["status"], "QUEUED")
-        doc_id = upload_data["document_id"]
+        self.assertTrue(upload_data["document_id"])
 
         # Wait briefly for background ingestion worker
         await asyncio.sleep(2.0)
