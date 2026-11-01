@@ -13,7 +13,8 @@ from app.models.chat import ChatSession, ChatMessage
 from app.models.unanswered import UnansweredQuestion
 from app.schemas.chat import (
     ChatSessionCreateRequest, ChatSessionResponse,
-    ChatMessageRequest, ChatMessageResponse, SourceCitation
+    ChatMessageRequest, ChatMessageResponse, SourceCitation,
+    FeedbackRequest, LeadCaptureRequest
 )
 from app.services.rag_engine import rag_engine
 
@@ -179,6 +180,47 @@ async def get_session_history(session_id: str, db: AsyncSession = Depends(get_db
         )
         for m in messages
     ]
+
+@router.post("/message/{message_id}/feedback")
+async def submit_message_feedback(
+    message_id: str,
+    req: FeedbackRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Submits thumbs up ('up') or thumbs down ('down') feedback on an assistant message."""
+    query = select(ChatMessage).where(ChatMessage.id == message_id)
+    msg = (await db.execute(query)).scalar_one_or_none()
+    if not msg:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found.")
+
+    msg.feedback = req.feedback
+    await db.commit()
+    return {"status": "success", "message_id": message_id, "feedback": req.feedback}
+
+@router.post("/session/{session_id}/lead")
+async def capture_customer_lead(
+    session_id: str,
+    req: LeadCaptureRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """Captures customer email for human handoff when a question could not be answered."""
+    session_query = select(ChatSession).where(ChatSession.id == session_id)
+    session = (await db.execute(session_query)).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found.")
+
+    session.customer_email = str(req.email)
+
+    # Attach email to recent unanswered questions in this session
+    unans_query = select(UnansweredQuestion).where(
+        UnansweredQuestion.session_id == session_id
+    )
+    unans_results = (await db.execute(unans_query)).scalars().all()
+    for u in unans_results:
+        u.customer_email = str(req.email)
+
+    await db.commit()
+    return {"status": "success", "message": "Email captured successfully. Our team will contact you."}
 
 @router.get("/stream")
 async def stream_chat_message(session_id: str, message: str, db: AsyncSession = Depends(get_db)):
