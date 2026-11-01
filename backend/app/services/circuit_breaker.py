@@ -66,6 +66,14 @@ class PreLLMCircuitBreaker:
         "service", "services", "catalog", "pricing", "broadband"
     }
 
+    _PRODUCT_RE = re.compile(
+        r"\b(" + "|".join(re.escape(s) for s in [
+            "product", "products", "item", "items", "plan", "plans", "package", "packages",
+            "service", "services", "catalog", "pricing", "broadband"
+        ]) + r")\b",
+        re.IGNORECASE
+    )
+
     def __init__(self, default_threshold: float = 0.55):
         self.default_threshold = default_threshold
 
@@ -101,7 +109,7 @@ class PreLLMCircuitBreaker:
                 
                 entity_hits = []
                 for t in tokens:
-                    if t in self.PRODUCT_SYNONYMS and any(re.search(r"\b" + re.escape(syn) + r"\b", top_text_clean) for syn in self.PRODUCT_SYNONYMS):
+                    if t in self.PRODUCT_SYNONYMS and self._PRODUCT_RE.search(top_text_clean):
                         entity_hits.append(t)
                     elif re.search(r"\b" + re.escape(t) + r"\b", top_text_clean):
                         entity_hits.append(t)
