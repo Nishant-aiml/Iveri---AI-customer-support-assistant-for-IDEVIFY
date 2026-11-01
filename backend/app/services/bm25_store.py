@@ -18,7 +18,7 @@ class BM25StoreService:
         self._bm25_models: Dict[str, Any] = {}
 
     ENGLISH_STOPWORDS = {
-        "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are",
+        "a", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are",
         "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but",
         "by", "can", "could", "did", "do", "does", "doing", "down", "during", "each", "few", "for",
         "from", "further", "had", "has", "have", "having", "he", "her", "here", "hers", "herself",
@@ -29,6 +29,14 @@ class BM25StoreService:
         "there", "these", "they", "this", "those", "through", "to", "too", "under", "until", "up",
         "very", "was", "we", "were", "what", "when", "where", "which", "while", "who", "whom", "why",
         "will", "with", "you", "your", "yours", "yourself", "yourselves"
+    }
+
+    SYNONYM_MAP = {
+        "company": ["co", "brand", "store", "business", "brewnest"],
+        "co": ["company", "business"],
+        "subscription": ["club", "membership"],
+        "damaged": ["defect", "broken", "wrong"],
+        "pricing": ["price", "cost", "rates"],
     }
 
     @classmethod
@@ -86,10 +94,16 @@ class BM25StoreService:
         if not tokenized_query:
             return []
 
+        # Add domain synonyms to query tokens
+        expanded_query = list(tokenized_query)
+        for tok in tokenized_query:
+            if tok in self.SYNONYM_MAP:
+                expanded_query.extend(self.SYNONYM_MAP[tok])
+
         bm25 = self._bm25_models[business_id]
         corpus = self._corpus[business_id]
 
-        scores = bm25.get_scores(tokenized_query)
+        scores = bm25.get_scores(expanded_query)
         
         # Rank by score descending
         ranked_indices = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)

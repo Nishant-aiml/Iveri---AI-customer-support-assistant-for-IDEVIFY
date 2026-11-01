@@ -8,6 +8,7 @@ class BusinessSettingsUpdateRequest(BaseModel):
     avatar_url: Optional[str] = Field(None, max_length=512)
     widget_position: Optional[str] = Field(None, pattern="^(bottom-right|bottom-left)$")
     welcome_message: Optional[str] = Field(None, min_length=2, max_length=500)
+    custom_prompt: Optional[str] = Field(None, max_length=2000)
     fallback_message: Optional[str] = Field(None, min_length=5, max_length=1000)
     starter_questions: Optional[List[str]] = Field(None, max_length=8)
 
@@ -21,6 +22,7 @@ class BusinessSettingsResponse(BaseModel):
     avatar_url: str = ""
     widget_position: str = "bottom-right"
     welcome_message: str = "Hello! How can I help you today?"
+    custom_prompt: str = ""
     fallback_message: str
     starter_questions: List[str]
     shareable_link: str
@@ -35,6 +37,7 @@ class PublicBusinessInfoResponse(BaseModel):
     avatar_url: str = ""
     widget_position: str = "bottom-right"
     welcome_message: str = "Hello! How can I help you today?"
+    custom_prompt: str = ""
     fallback_message: str
     starter_questions: List[str]
     document_count: int

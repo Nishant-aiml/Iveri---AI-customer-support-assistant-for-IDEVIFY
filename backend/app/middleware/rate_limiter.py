@@ -50,8 +50,8 @@ class SlidingWindowRateLimiter(BaseHTTPMiddleware):
             self.last_cleanup = current_time
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        # 0. Bypass rate limiting in automated testing environment
-        if settings.ENVIRONMENT == "testing":
+        # 0. Bypass rate limiting in automated testing environment (unless explicitly evaluating rate limits)
+        if settings.ENVIRONMENT == "testing" and request.headers.get("X-Test-Rate-Limit") != "true":
             return await call_next(request)
 
         path = request.url.path

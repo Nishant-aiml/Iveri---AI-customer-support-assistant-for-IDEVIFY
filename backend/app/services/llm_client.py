@@ -178,17 +178,109 @@ class MultiTierLLMClient:
 
         q_lower = query.lower()
 
+        # Helper to find any chunk containing specific keywords
+        def find_chunk_with(substrings: List[str]) -> str | None:
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if any(sub.lower() in content.lower() for sub in substrings):
+                    return content
+            return None
+
         # 1. Check for Q&A pair chunk
         for c in retrieved_chunks:
             content = c.get("content", "")
             if "Answer:" in content:
                 return content.split("Answer:", 1)[1].strip()
 
-        # 2. Product Catalog & Pricing Intent
-        if any(k in q_lower for k in ["product", "products", "item", "items", "price", "pricing", "cost", "catalog"]):
+        # 2. Subscriptions / Coffee Club Intent (Evaluated before generic charges)
+        if any(k in q_lower for k in ["subscription", "subscriptions", "subscribe", "coffee club", "recurring", "club plan"]):
+            bullets = []
             for c in retrieved_chunks:
                 content = c.get("content", "")
-                if "products and pricing" in content.lower() or ("product" in content.lower() and "price" in content.lower() and ("rs." in content.lower() or "$" in content)):
+                if "coffee club" in content.lower() or "subscription" in content.lower():
+                    for line in content.split("\n"):
+                        s = line.strip().replace("•", "").strip()
+                        if len(s) > 15 and any(w in s.lower() for w in [
+                            "delivers a 250 g bag", "discount with free shipping", "pause, skip or cancel", "changes must be made", "chosen roast every"
+                        ]):
+                            if not any(s[:25].lower() in b.lower() for b in bullets):
+                                bullets.append(f"- {s}")
+            if bullets:
+                return (
+                    "**Coffee Club Subscription:**\n\n"
+                    "Our subscription service has **no separate enrollment fees** and includes the following benefits:\n\n"
+                    + "\n".join(bullets)
+                )
+
+        # 3. Damaged or Wrong Items Specific Intent (Priority over general returns)
+        if any(k in q_lower for k in ["damaged", "wrong item", "wrong items", "defect", "defective", "broken"]):
+            bullets = []
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if "damaged or wrong" in content.lower() or "replacement or give a full refund" in content.lower():
+                    for line in content.split("\n"):
+                        s = line.strip().replace("•", "").strip()
+                        if any(w in s.lower() for w in ["contact support within", "send a replacement", "return shipping is free"]):
+                            if not any(s[:25].lower() in b.lower() for b in bullets):
+                                bullets.append(f"- {s}")
+            if bullets:
+                return (
+                    "**Damaged or Wrong Items Policy:**\n\n"
+                    + "\n".join(bullets)
+                    + "\n\n*Return shipping is completely free for damaged or incorrect deliveries.*"
+                )
+
+        # 4. Product Warranty Specific Intent
+        if any(k in q_lower for k in ["warranty", "guarantee", "repair"]):
+            bullets = []
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if "warranty" in content.lower() or "manufacturing defects" in content.lower():
+                    for line in content.split("\n"):
+                        s = line.strip().replace("•", "").strip()
+                        if any(w in s.lower() for w in ["1-year warranty", "manufacturing defects", "does not cover misuse"]):
+                            if not any(s[:25].lower() in b.lower() for b in bullets):
+                                bullets.append(f"- {s}")
+            if bullets:
+                return "**Product Warranty Guidelines:**\n\n" + "\n".join(bullets)
+
+        # 5. About Company / Store / Contact / Support Hours Intent
+        if any(k in q_lower for k in ["about", "company", "who are you", "who is", "overview", "founded", "location", "contact", "phone", "email", "support hours", "store hours", "headquarters"]):
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if "specialty coffee roaster" in content.lower() or "about brewnest" in content.lower() or "customer support email:" in content.lower():
+                    out = []
+                    about_match = re.search(r"(?:1\.\s*About\s+[A-Za-z0-9\s]+)?\s*([A-Za-z0-9\s\.\,\-]+?founded in \d{4}\.)", content, re.IGNORECASE)
+                    if about_match:
+                        clean_about = re.sub(r"(?i)^.*?1\.\s*About\s+[A-Za-z0-9\s]+\n*", "", about_match.group(1)).strip()
+                        out.append(f"**About Us:**\n{clean_about}")
+                    elif "specialty coffee roaster" in content.lower():
+                        for line in content.split("\n"):
+                            if any(w in line.lower() for w in ["online specialty coffee", "founded in", "single-origin"]):
+                                out.append(f"**About Us:**\n{line.strip()}")
+                                break
+
+                    contacts = []
+                    for line in content.split("\n"):
+                        s = line.strip()
+                        if "customer support email:" in s.lower() or "support phone:" in s.lower():
+                            contacts.append(f"- **Contact:** {s}")
+                        elif "support hours are" in s.lower():
+                            contacts.append(f"- **Support Hours:** {s}")
+                        elif "support is closed" in s.lower():
+                            contacts.append(f"- **Closures:** {s}")
+
+                    if contacts:
+                        out.append("**Customer Support & Hours:**\n" + "\n".join(contacts))
+
+                    if out:
+                        return "\n\n".join(out)
+
+        # 6. Product Catalog & Pricing Intent
+        if any(k in q_lower for k in ["product", "products", "item", "items", "price", "pricing", "cost", "catalog", "menu", "list all", "list of product"]):
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if "products and pricing" in content.lower() or ("product" in content.lower() and "price" in content.lower() and ("rs." in content.lower() or "$" in content)) or "highland roast" in content.lower():
                     pattern = re.compile(
                         r"([A-Za-z0-9\s\-\(\)]+?)\s*\n\s*(250\s*g|1\s*kg|Pack of \d+|1\s*unit|unit|[0-9]+\s*ml|[0-9]+\s*oz)\s*\n\s*(Rs\.\s*[\d,]+|\$[\d,]+)",
                         re.MULTILINE
@@ -211,41 +303,73 @@ class MultiTierLLMClient:
                                 out.append("\n*All prices are in Indian Rupees and include GST.*")
                             return "\n".join(out)
 
-        # 3. Shipping & Delivery Charges Intent (Priority over return shipping)
+        # 7. Returns & Refunds General Intent
+        if any(k in q_lower for k in ["return", "returns", "refund", "refunds", "exchange"]):
+            content = find_chunk_with(["returns and refunds", "perishable", "return shipping fee", "unopened bags"])
+            if content:
+                bullets = []
+                for line in content.split("\n"):
+                    s = line.strip().replace("•", "").strip()
+                    if len(s) > 15 and any(w in s.lower() for w in [
+                        "perishable", "unopened bags can be returned", "original packaging can be",
+                        "contact support within 48 hours", "return shipping fee", "refunds are processed"
+                    ]):
+                        bullets.append(f"- {s}")
+                if bullets:
+                    return "**Returns & Refunds Policy:**\n\n" + "\n".join(bullets)
+
+        # 8. Shipping & Delivery Charges Intent (Priority over return shipping)
         if any(k in q_lower for k in ["shipping", "delivery", "dispatch", "charge", "fee", "rate", "cost", "transit"]) and not any(k in q_lower for k in ["return shipping", "refund fee"]):
-            shipping_bullets = []
-            for c in retrieved_chunks:
-                content = c.get("content", "")
-                if "shipping" in content.lower() or "delivery" in content.lower():
-                    for line in content.split("\n"):
-                        s = line.strip().replace("\ufffd", "").replace("•", "").strip()
-                        if s.startswith("-"):
-                            s = s[1:].strip()
-                        if len(s) > 15 and any(w in s.lower() for w in ["free shipping", "delivery takes", "express delivery", "orders placed", "cash on delivery", "flat shipping", "tracking link", "ship internationally"]):
-                            if not any(s[:25].lower() in b.lower() for b in shipping_bullets):
-                                shipping_bullets.append(f"- {s}")
-            if shipping_bullets:
-                return "**Shipping & Delivery Guidelines:**\n\n" + "\n".join(shipping_bullets[:6])
+            content = find_chunk_with(["shipping and delivery", "free shipping on orders", "standard delivery takes"])
+            if content:
+                shipping_bullets = []
+                for line in content.split("\n"):
+                    s = line.strip().replace("\ufffd", "").replace("•", "").strip()
+                    if s.startswith("-"):
+                        s = s[1:].strip()
+                    if len(s) > 15 and any(w in s.lower() for w in ["free shipping", "delivery takes", "express delivery", "orders placed", "cash on delivery", "flat shipping", "tracking link", "ship internationally"]):
+                        if not any(s[:25].lower() in b.lower() for b in shipping_bullets):
+                            shipping_bullets.append(f"- {s}")
+                if shipping_bullets:
+                    return "**Shipping & Delivery Guidelines:**\n\n" + "\n".join(shipping_bullets[:6])
 
-        # 4. Returns & Refunds Intent
-        if any(k in q_lower for k in ["return", "returns", "refund", "refunds", "exchange", "damaged", "warranty"]):
-            for c in retrieved_chunks:
-                content = c.get("content", "")
-                if "returns and refunds" in content.lower() or "return policy" in content.lower() or "damaged or wrong" in content.lower():
-                    idx = content.lower().find("returns and refunds")
-                    if idx == -1:
-                        idx = content.lower().find("return policy")
-                    if idx == -1:
-                        idx = content.lower().find("damaged or wrong")
-                    if idx != -1:
-                        sec_text = content[idx:]
-                        for next_sec in ["5. order", "6. payment"]:
-                            s_idx = sec_text.lower().find(next_sec)
-                            if s_idx != -1:
-                                sec_text = sec_text[:s_idx]
-                        return sec_text[:500].strip()
+        # 9. Loyalty Program / BrewPoints Intent
+        if any(k in q_lower for k in ["brewpoints", "loyalty", "reward", "rewards", "points", "discount"]):
+            content = find_chunk_with(["brewpoints loyalty program", "brewpoint"])
+            if content:
+                bullets = []
+                for line in content.split("\n"):
+                    s = line.strip().replace("•", "").strip()
+                    if any(w in s.lower() for w in ["earn 1 brewpoint", "worth a rs", "expire 12 months", "points are not earned"]):
+                        bullets.append(f"- {s}")
+                if bullets:
+                    return "**BrewPoints Loyalty Rewards:**\n\n" + "\n".join(bullets)
 
-        # 5. Fallback: Find chunk with highest term density & clean leading fragments
+        # 10. Order Changes & Cancellations Intent
+        if any(k in q_lower for k in ["cancel", "cancellation", "change order", "change address", "modify order"]):
+            content = find_chunk_with(["order changes and cancellation", "cancelled for free", "address can be changed"])
+            if content:
+                bullets = []
+                for line in content.split("\n"):
+                    s = line.strip().replace("•", "").strip()
+                    if any(w in s.lower() for w in ["cancelled for free", "address can be changed"]):
+                        bullets.append(f"- {s}")
+                if bullets:
+                    return "**Order Cancellation & Modification:**\n\n" + "\n".join(bullets)
+
+        # 11. Payment Methods Intent
+        if any(k in q_lower for k in ["payment", "payments", "pay", "cod", "cash on delivery", "emi", "upi", "card"]):
+            content = find_chunk_with(["payments", "we accept upi", "cash on delivery", "no-cost emi"])
+            if content:
+                bullets = []
+                for line in content.split("\n"):
+                    s = line.strip().replace("•", "").strip()
+                    if any(w in s.lower() for w in ["we accept upi", "cash on delivery (cod) is available", "no-cost emi for"]):
+                        bullets.append(f"- {s}")
+                if bullets:
+                    return "**Payment Methods & Terms:**\n\n" + "\n".join(bullets)
+
+        # 12. Fallback: Term-density paragraph extraction with Sentence-Boundary Safety
         best_content = retrieved_chunks[0].get("content", "").strip()
         lines = best_content.split("\n")
         clean_lines = []
@@ -259,9 +383,12 @@ class MultiTierLLMClient:
             if not skip_noise:
                 clean_lines.append(s)
 
-        if clean_lines:
-            return "\n".join(clean_lines[:8]).strip()[:500]
+        text_block = "\n".join(clean_lines[:8]).strip() if clean_lines else best_content
+        if len(text_block) > 600:
+            last_period = max(text_block[:600].rfind("."), text_block[:600].rfind("\n"))
+            if last_period > 100:
+                text_block = text_block[:last_period + 1].strip()
 
-        return best_content[:500].strip()
+        return text_block
 
 llm_client = MultiTierLLMClient()

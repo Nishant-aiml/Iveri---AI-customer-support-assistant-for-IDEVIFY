@@ -18,6 +18,7 @@ class Business(Base, TimestampMixin):
     avatar_url = Column(String(512), default="", nullable=False)
     widget_position = Column(String(20), default="bottom-right", nullable=False)
     welcome_message = Column(Text, default="Hello! How can I help you today?", nullable=False)
+    custom_prompt = Column(Text, default="", nullable=False)
     fallback_message = Column(
         Text, 
         default="I'm sorry, but I do not have this information in my documents. I have logged your question for our team to assist you.",

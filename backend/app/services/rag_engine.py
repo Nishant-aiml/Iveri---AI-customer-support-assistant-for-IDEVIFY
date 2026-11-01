@@ -118,7 +118,7 @@ class HybridRAGEngine:
             dense_hits=dense_hits,
             sparse_hits=sparse_hits,
             k=settings.RRF_K,
-            top_n=settings.TOP_K_CHUNKS
+            top_n=max(settings.TOP_K_CHUNKS, 8)
         )
 
         # Step 4: Pre-LLM Confidence Circuit Breaker (Less AI-Dependent)

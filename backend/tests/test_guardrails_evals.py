@@ -246,10 +246,14 @@ class TestGuardrailsAndEvals(unittest.IsolatedAsyncioTestCase):
         # 16 rapid requests to /api/auth/login (limit is 15/min)
         triggered_429 = False
         for i in range(17):
-            res = await self.client.post("/api/auth/login", json={
-                "email": "nonexistent@idevify-eval.com",
-                "password": "InvalidPassword123!"
-            })
+            res = await self.client.post(
+                "/api/auth/login",
+                headers={"X-Test-Rate-Limit": "true"},
+                json={
+                    "email": "nonexistent@idevify-eval.com",
+                    "password": "InvalidPassword123!"
+                }
+            )
             if res.status_code == 429:
                 triggered_429 = True
                 self.assertIn("Retry-After", res.headers)

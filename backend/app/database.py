@@ -111,6 +111,7 @@ async def init_db():
                 await add_column_if_missing("businesses", "avatar_url", "VARCHAR(512) DEFAULT ''")
                 await add_column_if_missing("businesses", "widget_position", "VARCHAR(20) DEFAULT 'bottom-right'")
                 await add_column_if_missing("businesses", "welcome_message", "TEXT DEFAULT 'Hello! How can I help you today?'")
+                await add_column_if_missing("businesses", "custom_prompt", "TEXT DEFAULT ''")
 
                 # chat_messages migrations
                 await add_column_if_missing("chat_messages", "sentiment", "VARCHAR(20) DEFAULT 'neutral'")

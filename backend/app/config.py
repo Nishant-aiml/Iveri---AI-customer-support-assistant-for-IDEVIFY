@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     # RAG Tuning Parameters
     CONFIDENCE_THRESHOLD: float = 0.55
     RRF_K: int = 60
-    TOP_K_CHUNKS: int = 4
+    TOP_K_CHUNKS: int = 8
     
     # CORS (set to * or comma-separated origins)
     ALLOWED_ORIGINS: str = "*"

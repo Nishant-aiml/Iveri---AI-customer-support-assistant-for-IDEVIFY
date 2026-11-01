@@ -1,7 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import uuid
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func
+from app.config import settings
 from app.database import get_db
 from app.models.business import Business
 from app.models.user import User
@@ -10,6 +14,9 @@ from app.schemas.business import BusinessSettingsUpdateRequest, BusinessSettings
 from app.utils.security import get_current_owner
 
 router = APIRouter(tags=["Business Settings & Public"])
+
+AVATARS_DIR = os.path.join(settings.UPLOAD_DIRECTORY, "avatars")
+os.makedirs(AVATARS_DIR, exist_ok=True)
 
 @router.get("/api/business/settings", response_model=BusinessSettingsResponse)
 async def get_business_settings(owner: User = Depends(get_current_owner), db: AsyncSession = Depends(get_db)):
@@ -32,6 +39,7 @@ async def get_business_settings(owner: User = Depends(get_current_owner), db: As
         avatar_url=business.avatar_url or "",
         widget_position=business.widget_position or "bottom-right",
         welcome_message=business.welcome_message or "Hello! How can I help you today?",
+        custom_prompt=getattr(business, "custom_prompt", "") or "",
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
         shareable_link=shareable_link,
@@ -62,6 +70,8 @@ async def update_business_settings(
         business.widget_position = req.widget_position
     if req.welcome_message is not None:
         business.welcome_message = req.welcome_message
+    if req.custom_prompt is not None:
+        business.custom_prompt = req.custom_prompt
     if req.fallback_message is not None:
         business.fallback_message = req.fallback_message
     if req.starter_questions is not None:
@@ -83,11 +93,74 @@ async def update_business_settings(
         avatar_url=business.avatar_url or "",
         widget_position=business.widget_position or "bottom-right",
         welcome_message=business.welcome_message or "Hello! How can I help you today?",
+        custom_prompt=getattr(business, "custom_prompt", "") or "",
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
         shareable_link=shareable_link,
         embed_snippet=embed_snippet
     )
+
+@router.post("/api/business/avatar/upload")
+async def upload_business_avatar(
+    file: UploadFile = File(...),
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Owner endpoint: Upload custom chatbot avatar DP directly from local device."""
+    allowed_types = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/svg+xml", "image/gif"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid file format. Please upload a PNG, JPEG, WEBP, GIF, or SVG image."
+        )
+
+    file_bytes = await file.read()
+    if len(file_bytes) > 5 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Avatar image size exceeds 5MB limit."
+        )
+
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if not ext or ext not in [".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif"]:
+        ext = ".png"
+
+    filename = f"{owner.business_id}_{uuid.uuid4().hex[:10]}{ext}"
+    file_path = os.path.join(AVATARS_DIR, filename)
+
+    with open(file_path, "wb") as f:
+        f.write(file_bytes)
+
+    avatar_url = f"/api/business/avatar/{filename}"
+
+    biz_res = await db.execute(select(Business).where(Business.id == owner.business_id))
+    business = biz_res.scalar_one_or_none()
+    if business:
+        business.avatar_url = avatar_url
+        await db.commit()
+        await db.refresh(business)
+
+    return {"avatar_url": avatar_url, "message": "Avatar uploaded successfully."}
+
+@router.get("/api/business/avatar/{filename}")
+async def get_business_avatar(filename: str):
+    """Public endpoint: Serves uploaded business chatbot avatar images."""
+    clean_filename = os.path.basename(filename)
+    file_path = os.path.join(AVATARS_DIR, clean_filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Avatar image not found.")
+
+    ext = os.path.splitext(clean_filename)[1].lower()
+    media_types = {
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+        ".svg": "image/svg+xml",
+        ".gif": "image/gif"
+    }
+    media_type = media_types.get(ext, "application/octet-stream")
+    return FileResponse(file_path, media_type=media_type, headers={"Cache-Control": "public, max-age=86400"})
 
 @router.get("/api/public/business/{slug_or_token}", response_model=PublicBusinessInfoResponse)
 async def get_public_business_info(slug_or_token: str, db: AsyncSession = Depends(get_db)):
@@ -118,6 +191,7 @@ async def get_public_business_info(slug_or_token: str, db: AsyncSession = Depend
         avatar_url=business.avatar_url or "",
         widget_position=business.widget_position or "bottom-right",
         welcome_message=business.welcome_message or "Hello! How can I help you today?",
+        custom_prompt=getattr(business, "custom_prompt", "") or "",
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
         document_count=doc_count
