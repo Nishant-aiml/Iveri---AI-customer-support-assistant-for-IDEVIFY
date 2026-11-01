@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import uuid
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
@@ -109,7 +110,9 @@ class IngestionWorkerQueue:
                             "document_id": job.document_id
                         }
 
+                        chunk_id = str(uuid.uuid4())
                         db_chunk = DocumentChunk(
+                            id=chunk_id,
                             document_id=job.document_id,
                             business_id=job.business_id,
                             chunk_index=chunk_index,
@@ -119,7 +122,7 @@ class IngestionWorkerQueue:
                         )
                         db.add(db_chunk)
                         all_chunks.append({
-                            "id": db_chunk.id,
+                            "id": chunk_id,
                             "content": text,
                             "metadata": meta
                         })
