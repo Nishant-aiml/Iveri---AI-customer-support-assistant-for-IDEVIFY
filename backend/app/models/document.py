@@ -14,6 +14,9 @@ class Document(Base, TimestampMixin):
     storage_path = Column(String(512), nullable=True)
     file_size_bytes = Column(Integer, default=0, nullable=False)
     chunk_count = Column(Integer, default=0, nullable=False)
+    total_pages = Column(Integer, default=0, nullable=False)
+    processed_pages = Column(Integer, default=0, nullable=False)
+    processing_progress = Column(Integer, default=0, nullable=False)  # 0 to 100 percentage
     status = Column(String(50), default="QUEUED", nullable=False)  # 'QUEUED', 'PROCESSING', 'INDEXED', 'FAILED'
     parser_used = Column(String(50), default="pending", nullable=False)  # 'sarvam', 'pymupdf', 'docx', 'txt', 'manual'
     error_message = Column(Text, nullable=True)

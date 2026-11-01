@@ -33,10 +33,22 @@ class VectorStoreService:
         )
 
     async def get_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Computes dense vector embeddings using Google Gemini (or local fallback)."""
+        """Computes dense vector embeddings using Google Gemini (or local fallback) in batches of 50."""
         if not texts:
             return []
 
+        # Batch texts into chunks of 50 to honor external API limits
+        BATCH_SIZE = 50
+        all_embeddings: List[List[float]] = []
+
+        for i in range(0, len(texts), BATCH_SIZE):
+            batch_texts = texts[i:i + BATCH_SIZE]
+            batch_embeddings = await self._get_embeddings_batch(batch_texts)
+            all_embeddings.extend(batch_embeddings)
+
+        return all_embeddings
+
+    async def _get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
         # 1. Google Gemini Embeddings (Primary Free Tier)
         if settings.GEMINI_API_KEY:
             try:
@@ -88,32 +100,34 @@ class VectorStoreService:
 
         return fallback_embeddings
 
-    async def add_chunks(self, business_id: str, chunks: List[Dict[str, Any]]):
-        """Generates embeddings and inserts chunks into ChromaDB with tenant metadata."""
+    async def add_chunks(self, business_id: str, chunks: List[Dict[str, Any]], batch_size: int = 50):
+        """Generates embeddings and inserts chunks into ChromaDB with tenant metadata in batches."""
         if not chunks:
             return
 
-        ids = [c["id"] for c in chunks]
-        texts = [c["content"] for c in chunks]
-        metadatas = []
+        for i in range(0, len(chunks), batch_size):
+            chunk_slice = chunks[i:i + batch_size]
+            ids = [c["id"] for c in chunk_slice]
+            texts = [c["content"] for c in chunk_slice]
+            metadatas = []
 
-        for c in chunks:
-            meta = c.get("metadata", {}).copy()
-            meta["business_id"] = str(business_id)
-            meta["document_id"] = str(meta.get("document_id", ""))
-            meta["document_name"] = str(meta.get("document_name", "Unknown Document"))
-            meta["page_number"] = int(meta.get("page_number", 1))
-            metadatas.append(meta)
+            for c in chunk_slice:
+                meta = c.get("metadata", {}).copy()
+                meta["business_id"] = str(business_id)
+                meta["document_id"] = str(meta.get("document_id", ""))
+                meta["document_name"] = str(meta.get("document_name", "Unknown Document"))
+                meta["page_number"] = int(meta.get("page_number", 1))
+                metadatas.append(meta)
 
-        embeddings = await self.get_embeddings(texts)
+            embeddings = await self.get_embeddings(texts)
 
-        self.collection.upsert(
-            ids=ids,
-            embeddings=embeddings,
-            documents=texts,
-            metadatas=metadatas
-        )
-        logger.info(f"ChromaDB indexed {len(ids)} chunks for business {business_id}.")
+            self.collection.upsert(
+                ids=ids,
+                embeddings=embeddings,
+                documents=texts,
+                metadatas=metadatas
+            )
+        logger.info(f"ChromaDB indexed {len(chunks)} chunks for business {business_id}.")
 
     async def delete_document(self, business_id: str, document_id: str):
         """Removes all chunks belonging to a document under the specified business."""

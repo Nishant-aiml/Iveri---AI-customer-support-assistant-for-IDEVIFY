@@ -14,6 +14,7 @@ from app.models.document import Document, DocumentChunk
 from app.models.unanswered import UnansweredQuestion
 from app.schemas.document import DocumentResponse, DocumentUploadResponse, ManualQACreateRequest, ManualQAResponse
 from app.utils.security import get_current_owner
+from app.utils.upload_validator import read_and_validate_upload
 from app.services.ingestion_queue import ingestion_queue, IngestionJob
 from app.services.rag_engine import rag_engine
 
@@ -28,39 +29,26 @@ async def upload_document(
     db: AsyncSession = Depends(get_db)
 ):
     """Uploads a PDF, DOCX, or TXT file and enqueues it for background parsing and vector indexing."""
-    filename = file.filename or "uploaded_document"
-    ext = os.path.splitext(filename)[1].lower()
+    max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
+    content_bytes, sanitized_filename, ext = await read_and_validate_upload(file, max_bytes)
 
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file format '{ext}'. Supported formats are: PDF, DOCX, TXT."
-        )
-
-    # Save to disk
+    # Save to disk in owner's isolated tenant directory
     business_upload_dir = os.path.join(settings.UPLOAD_DIRECTORY, owner.business_id)
     os.makedirs(business_upload_dir, exist_ok=True)
     
     unique_file_id = uuid.uuid4().hex[:8]
-    sanitized_filename = f"{unique_file_id}_{filename}"
-    saved_file_path = os.path.join(business_upload_dir, sanitized_filename)
+    disk_filename = f"{unique_file_id}_{sanitized_filename}"
+    saved_file_path = os.path.join(business_upload_dir, disk_filename)
 
     with open(saved_file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(content_bytes)
 
-    file_size = os.path.getsize(saved_file_path)
-    max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
-    if file_size > max_bytes:
-        os.remove(saved_file_path)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File exceeds maximum limit of {settings.MAX_FILE_SIZE_MB}MB."
-        )
+    file_size = len(content_bytes)
 
     # Create document record with QUEUED status
     doc = Document(
         business_id=owner.business_id,
-        file_name=filename,
+        file_name=sanitized_filename,
         file_type=ext.lstrip("."),
         storage_path=saved_file_path,
         file_size_bytes=file_size,
@@ -75,13 +63,13 @@ async def upload_document(
         document_id=doc.id,
         business_id=owner.business_id,
         file_path=saved_file_path,
-        file_name=filename
+        file_name=sanitized_filename
     )
     await ingestion_queue.enqueue(job)
 
     return DocumentUploadResponse(
         document_id=doc.id,
-        file_name=filename,
+        file_name=sanitized_filename,
         status="QUEUED",
         message="Document uploaded successfully and queued for background indexing."
     )

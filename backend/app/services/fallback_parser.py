@@ -12,6 +12,62 @@ class PyMuPDFFallbackParser:
     """
 
     @staticmethod
+    def get_page_count(file_path: str) -> int:
+        """Returns the total number of pages in the PDF document."""
+        try:
+            import fitz
+        except ImportError:
+            raise ImportError("PyMuPDF (fitz) is not installed. Run `pip install PyMuPDF`.")
+
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"PDF file not found at: {file_path}")
+
+        doc = fitz.open(file_path)
+        try:
+            return len(doc)
+        finally:
+            doc.close()
+
+    @staticmethod
+    def stream_pages(file_path: str, batch_size: int = 25):
+        """Streams pages in memory-efficient batches to support 1,000+ page documents without memory exhaustion.
+        
+        Yields:
+            Tuple[List[Dict[str, Any]], int, int]: (batch_pages, processed_pages_so_far, total_pages)
+        """
+        try:
+            import fitz
+        except ImportError:
+            raise ImportError("PyMuPDF (fitz) is not installed. Run `pip install PyMuPDF`.")
+
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"PDF file not found at: {file_path}")
+
+        doc = fitz.open(file_path)
+        total_pages = len(doc)
+
+        try:
+            batch: List[Dict[str, Any]] = []
+            for page_index in range(total_pages):
+                page = doc[page_index]
+                text = page.get_text("text").strip()
+                if text:
+                    batch.append({
+                        "page_number": page_index + 1,
+                        "text": text
+                    })
+
+                # Yield batch when limit reached or at the very end
+                if len(batch) >= batch_size:
+                    yield batch, page_index + 1, total_pages
+                    batch = []
+
+            if batch:
+                yield batch, total_pages, total_pages
+        finally:
+            doc.close()
+
+    @staticmethod
     def parse(file_path: str) -> List[Dict[str, Any]]:
         try:
             import fitz  # PyMuPDF

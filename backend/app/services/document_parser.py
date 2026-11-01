@@ -56,4 +56,25 @@ class UnifiedDocumentParserService:
         else:
             raise ValueError(f"Unsupported file format '{ext}'. Only PDF, DOCX, and TXT are supported.")
 
+    def stream_parse(self, file_path: str, file_name: str, batch_size: int = 25):
+        """Streams document pages in memory-efficient batches to support 1,000+ page documents.
+        
+        Yields:
+            Tuple[List[Dict[str, Any]], int, int, str]: 
+            (page_batch, processed_count, total_count, parser_used)
+        """
+        ext = os.path.splitext(file_name)[1].lower()
+
+        if ext == ".pdf":
+            for batch, processed, total in PyMuPDFFallbackParser.stream_pages(file_path, batch_size=batch_size):
+                yield batch, processed, total, "pymupdf"
+        elif ext == ".docx":
+            pages = DocxParser.parse(file_path)
+            yield pages, len(pages), len(pages), "docx"
+        elif ext in (".txt", ".md"):
+            pages = PlainTextParser.parse(file_path)
+            yield pages, len(pages), len(pages), "txt"
+        else:
+            raise ValueError(f"Unsupported file format '{ext}'. Only PDF, DOCX, and TXT are supported.")
+
 document_parser_service = UnifiedDocumentParserService()

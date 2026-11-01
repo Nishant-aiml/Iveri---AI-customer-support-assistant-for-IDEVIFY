@@ -9,6 +9,9 @@ class DocumentResponse(BaseModel):
     file_type: str
     file_size_bytes: int
     chunk_count: int
+    total_pages: int = 0
+    processed_pages: int = 0
+    processing_progress: int = 0
     status: str
     parser_used: str
     error_message: Optional[str] = None

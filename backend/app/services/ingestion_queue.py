@@ -67,11 +67,12 @@ class IngestionWorkerQueue:
                 await asyncio.sleep(1.0)
 
     async def _process_single_job(self, job: IngestionJob):
-        """Executes parsing, chunking, and indexing for an individual job."""
+        """Executes streamed parsing, chunking, and indexing for an individual job (supports 1,000+ pages)."""
+        import gc
         from app.utils.chunker import recursive_chunk_text
         from app.services.rag_engine import rag_engine
 
-        logger.info(f"Beginning ingestion for document {job.document_id} ('{job.file_name}')...")
+        logger.info(f"Beginning streamed ingestion for document {job.document_id} ('{job.file_name}')...")
 
         async with AsyncSessionLocal() as db:
             # 1. Update status to PROCESSING
@@ -82,63 +83,89 @@ class IngestionWorkerQueue:
                 return
 
             doc.status = "PROCESSING"
+            doc.processed_pages = 0
+            doc.processing_progress = 0
             await db.commit()
 
             try:
-                # 2. Parse document (Sarvam AI with PyMuPDF fallback)
-                pages, parser_used = await document_parser_service.parse(job.file_path, job.file_name)
-                doc.parser_used = parser_used
-
-                # 3. Chunk text recursively per page
-                all_chunks = []
                 chunk_index = 0
+                total_chunks_indexed = 0
+                parser_used_final = "pending"
 
-                for page_item in pages:
-                    page_num = page_item["page_number"]
-                    page_text = page_item["text"]
+                # 2. Stream parse in memory-safe batches of 25 pages
+                for page_batch, processed_count, total_count, parser_used in document_parser_service.stream_parse(
+                    job.file_path, job.file_name, batch_size=25
+                ):
+                    parser_used_final = parser_used
+                    batch_chunks = []
 
-                    text_chunks = recursive_chunk_text(page_text, chunk_size=600, overlap=60)
-                    for text in text_chunks:
-                        if not text.strip():
-                            continue
+                    for page_item in page_batch:
+                        p_num = page_item["page_number"]
+                        p_text = page_item["text"]
 
-                        meta = {
-                            "document_name": job.file_name,
-                            "page_number": page_num,
-                            "chunk_index": chunk_index,
-                            "business_id": job.business_id,
-                            "document_id": job.document_id
-                        }
+                        t_chunks = recursive_chunk_text(p_text, chunk_size=600, overlap=60)
+                        for text in t_chunks:
+                            if not text.strip():
+                                continue
 
-                        chunk_id = str(uuid.uuid4())
-                        db_chunk = DocumentChunk(
-                            id=chunk_id,
-                            document_id=job.document_id,
-                            business_id=job.business_id,
-                            chunk_index=chunk_index,
-                            page_number=page_num,
-                            content=text,
-                            payload=meta
-                        )
-                        db.add(db_chunk)
-                        all_chunks.append({
-                            "id": chunk_id,
-                            "content": text,
-                            "metadata": meta
-                        })
-                        chunk_index += 1
+                            meta = {
+                                "document_name": job.file_name,
+                                "page_number": p_num,
+                                "chunk_index": chunk_index,
+                                "business_id": job.business_id,
+                                "document_id": job.document_id
+                            }
 
-                # 4. Save chunks to relational database
-                doc.chunk_count = len(all_chunks)
+                            c_id = str(uuid.uuid4())
+                            db_chunk = DocumentChunk(
+                                id=c_id,
+                                document_id=job.document_id,
+                                business_id=job.business_id,
+                                chunk_index=chunk_index,
+                                page_number=p_num,
+                                content=text,
+                                payload=meta
+                            )
+                            db.add(db_chunk)
+                            batch_chunks.append({
+                                "id": c_id,
+                                "content": text,
+                                "metadata": meta
+                            })
+                            chunk_index += 1
+
+                    # 3. Commit chunks for this batch
+                    await db.commit()
+
+                    # 4. Streamed Indexing into Multi-Hybrid Engine (ChromaDB + BM25)
+                    if batch_chunks:
+                        await rag_engine.index_document_chunks(job.business_id, batch_chunks)
+                        total_chunks_indexed += len(batch_chunks)
+
+                    # 5. Progressive status update in database
+                    progress_pct = int((processed_count / max(total_count, 1)) * 100)
+                    doc.processed_pages = processed_count
+                    doc.total_pages = total_count
+                    doc.processing_progress = min(progress_pct, 99)
+                    doc.chunk_count = total_chunks_indexed
+                    doc.parser_used = parser_used_final
+                    await db.commit()
+
+                    # Explicit memory cleanup for 1,000-page stability
+                    del batch_chunks
+                    gc.collect()
+
+                # 6. Final completion state
                 doc.status = "INDEXED"
+                doc.processing_progress = 100
+                doc.processed_pages = doc.total_pages
+                doc.chunk_count = total_chunks_indexed
+                doc.parser_used = parser_used_final
                 await db.commit()
-
-                # 5. Index into Multi-Hybrid Engine (ChromaDB Vector + BM25 Lexical)
-                await rag_engine.index_document_chunks(job.business_id, all_chunks)
 
                 logger.info(
                     f"Successfully indexed document {job.document_id} "
-                    f"('{job.file_name}') with {len(all_chunks)} chunks using '{parser_used}'."
+                    f"('{job.file_name}') with {total_chunks_indexed} chunks across {doc.total_pages} pages."
                 )
 
             except Exception as err:
