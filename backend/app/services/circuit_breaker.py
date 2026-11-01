@@ -73,13 +73,13 @@ class PreLLMCircuitBreaker:
 
         # 2. Strict Confidence Evaluation:
         # A confident match requires either:
-        # a) Both engines agreed (sparse keyword match > 0 AND dense similarity >= 0.50)
-        # b) Strong keyword hit (sparse >= 0.30)
-        # c) High semantic similarity (dense >= 0.65)
+        # a) Both engines agreed (sparse keyword match > 0 AND dense similarity >= 0.48)
+        # b) Significant keyword hit (sparse >= 0.25)
+        # c) High semantic similarity when sparse has no hit (dense >= 0.65)
         has_confident_match = False
-        if sparse_score > 0.0 and dense_sim >= 0.50:
+        if sparse_score > 0.0 and dense_sim >= 0.48:
             has_confident_match = True
-        elif sparse_score >= 0.30:
+        elif sparse_score >= 0.25:
             has_confident_match = True
         elif dense_sim >= 0.65:
             has_confident_match = True

@@ -71,9 +71,29 @@ class HybridRAGEngine:
                 "retrieved_chunks": []
             }
 
+        # Step 1.5: Typo Correction & Normalization against Knowledge Base
+        import difflib
+        import re
+        clean_query = user_query
+        vocab = bm25_store_service.get_vocabulary(business_id)
+        if vocab:
+            tokens = user_query.split()
+            corrected = []
+            for tok in tokens:
+                alph = re.sub(r"[^a-zA-Z]", "", tok.lower())
+                if len(alph) > 3 and alph not in vocab:
+                    matches = difflib.get_close_matches(alph, list(vocab), n=1, cutoff=0.74)
+                    if matches:
+                        corrected.append(matches[0])
+                        continue
+                corrected.append(tok)
+            clean_query = " ".join(corrected)
+            if clean_query.lower() != user_query.lower():
+                logger.info(f"Query typo corrected: '{user_query}' -> '{clean_query}'")
+
         # Step 2: Multi-Hybrid Retrieval (Dense Vector + Sparse BM25)
-        dense_hits = await vector_store_service.search(business_id, user_query, top_k=10)
-        sparse_hits = bm25_store_service.search(business_id, user_query, top_k=10)
+        dense_hits = await vector_store_service.search(business_id, clean_query, top_k=10)
+        sparse_hits = bm25_store_service.search(business_id, clean_query, top_k=10)
 
         # Step 3: Reciprocal Rank Fusion (RRF)
         fused_chunks = reciprocal_rank_fusion(
@@ -104,7 +124,7 @@ class HybridRAGEngine:
 
         # Step 5: Multi-Tier LLM Synthesis (Gemini Flash -> Groq Llama)
         generated_answer, provider = await llm_client.generate_answer(
-            query=user_query,
+            query=clean_query,
             retrieved_chunks=fused_chunks,
             business_name=business_name,
             tone=tone
