@@ -216,6 +216,30 @@
     .iveri-send-btn:hover {
       background: #4338CA;
     }
+    @media (max-width: 640px) {
+      .iveri-widget-bubble {
+        bottom: 16px;
+        right: 16px;
+        width: 50px;
+        height: 50px;
+      }
+      .iveri-widget-window {
+        bottom: 0 !important;
+        right: 0 !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        max-width: 100vw !important;
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
+        border: none !important;
+      }
+      .iveri-input {
+        font-size: 16px !important;
+      }
+    }
   `;
   document.head.appendChild(style);
 

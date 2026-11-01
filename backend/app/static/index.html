@@ -101,78 +101,78 @@
 
   <!-- Top Navigation Bar -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       
       <!-- Brand -->
-      <div class="flex items-center space-x-3">
-        <div class="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-lg shadow-sm">
-          <span class="material-symbols-outlined text-[20px]">smart_toy</span>
+      <div class="flex items-center space-x-2.5 sm:space-x-3">
+        <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary text-white flex items-center justify-center font-bold text-lg shadow-sm shrink-0">
+          <span class="material-symbols-outlined text-[18px] sm:text-[20px]">smart_toy</span>
         </div>
         <div>
-          <div class="flex items-center gap-2">
-            <span class="text-base font-bold text-slate-900 tracking-tight">Iveri Console</span>
-            <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-mono font-medium">Owner Portal</span>
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <span class="text-sm sm:text-base font-bold text-slate-900 tracking-tight">Iveri Console</span>
+            <span class="px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] sm:text-[10px] font-mono font-medium whitespace-nowrap">Owner Portal</span>
           </div>
-          <span class="text-[11px] text-slate-500 font-mono">Grounded Support Engine</span>
+          <span class="text-[10px] sm:text-[11px] text-slate-500 font-mono hidden xs:inline">Grounded Support Engine</span>
         </div>
       </div>
 
       <!-- Business Status Pill -->
-      <div id="biz-header-badge" class="hidden sm:flex items-center space-x-2 text-xs font-mono text-slate-600 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-200">
+      <div id="biz-header-badge" class="hidden md:flex items-center space-x-2 text-xs font-mono text-slate-600 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-200">
         <span class="relative flex h-2 w-2">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
         </span>
         <span class="text-slate-400">BUSINESS:</span>
-        <span id="biz-header-name" class="text-slate-900 font-semibold">Loading...</span>
+        <span id="biz-header-name" class="text-slate-900 font-semibold truncate max-w-[140px]">Loading...</span>
         <span class="text-slate-300">•</span>
         <span class="text-emerald-600 font-medium">Verified RAG</span>
       </div>
 
       <!-- Action Buttons -->
-      <div class="flex items-center space-x-3">
-        <button onclick="openPublicChat()" class="px-3.5 py-1.5 text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-lg transition-all flex items-center gap-1.5 shadow-xs">
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <button onclick="openPublicChat()" class="px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-lg transition-all flex items-center gap-1 sm:gap-1.5 shadow-xs">
           <span class="material-symbols-outlined text-[15px] text-primary">open_in_new</span>
-          <span>Public Chat</span>
+          <span class="hidden sm:inline">Public Chat</span>
         </button>
-        <button id="auth-action-btn" onclick="toggleAuthModal()" class="px-4 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-hover text-white rounded-lg transition-all shadow-xs">
+        <button id="auth-action-btn" onclick="toggleAuthModal()" class="px-3 sm:px-4 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-hover text-white rounded-lg transition-all shadow-xs">
           Sign In
         </button>
       </div>
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 overflow-x-auto text-xs border-t border-slate-200/80 font-mono">
-      <button onclick="switchTab('overview')" id="tab-overview" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition tab-active flex items-center gap-1.5">
-        <span class="material-symbols-outlined text-[16px]">monitoring</span>
+    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 flex space-x-2 sm:space-x-8 overflow-x-auto text-xs border-t border-slate-200/80 font-mono scrollbar-none py-0.5">
+      <button onclick="switchTab('overview')" id="tab-overview" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition tab-active flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">monitoring</span>
         <span>Overview & Analytics</span>
       </button>
-      <button onclick="switchTab('documents')" id="tab-documents" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
-        <span class="material-symbols-outlined text-[16px]">folder</span>
+      <button onclick="switchTab('documents')" id="tab-documents" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">folder</span>
         <span>Documents & Scale</span>
       </button>
-      <button onclick="switchTab('unanswered')" id="tab-unanswered" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
-        <span class="material-symbols-outlined text-[16px]">help_outline</span>
+      <button onclick="switchTab('unanswered')" id="tab-unanswered" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">help_outline</span>
         <span>Unanswered Queue</span>
         <span id="unanswered-badge-count" class="hidden px-1.5 py-0.2 text-[10px] bg-amber-100 text-amber-800 border border-amber-300 rounded-full font-bold">0</span>
       </button>
-      <button onclick="switchTab('chats')" id="tab-chats" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
-        <span class="material-symbols-outlined text-[16px]">chat</span>
+      <button onclick="switchTab('chats')" id="tab-chats" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">chat</span>
         <span>Chat History (2-Pane)</span>
       </button>
-      <button onclick="switchTab('settings')" id="tab-settings" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
-        <span class="material-symbols-outlined text-[16px]">tune</span>
+      <button onclick="switchTab('settings')" id="tab-settings" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">tune</span>
         <span>Widget Studio</span>
       </button>
-      <button onclick="switchTab('playground')" id="tab-playground" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5">
-        <span class="material-symbols-outlined text-[16px]">science</span>
+      <button onclick="switchTab('playground')" id="tab-playground" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">science</span>
         <span>RAG Playground</span>
       </button>
     </div>
   </header>
 
   <!-- Main Content Container -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8">
 
     <!-- 1. OVERVIEW & ANALYTICS TAB -->
     <section id="view-overview" class="space-y-6">
@@ -183,82 +183,82 @@
           <h2 class="text-xl font-bold text-slate-900 tracking-tight">Executive Intelligence & Support Telemetry</h2>
           <p class="text-xs text-slate-500 mt-0.5 font-mono">Live customer sentiment, topic trends, and high-concurrency performance.</p>
         </div>
-        <div class="flex items-center gap-2">
-          <button onclick="downloadPowerBiExport()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-semibold rounded-lg transition flex items-center gap-1.5 shadow-xs">
+        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+          <button onclick="downloadPowerBiExport()" class="flex-1 sm:flex-none px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-mono font-semibold rounded-lg transition flex items-center justify-center gap-1.5 shadow-xs">
             <span class="material-symbols-outlined text-[16px]">file_download</span>
             <span>Download CSV</span>
           </button>
-          <button onclick="copyPowerBIWebUrl()" class="px-3.5 py-2 bg-white border border-emerald-300 hover:border-emerald-500 text-emerald-800 text-xs font-mono font-semibold rounded-lg transition flex items-center gap-1.5 shadow-xs" title="Copy live URL for Power BI Get Data -> Web">
+          <button onclick="copyPowerBIWebUrl()" class="flex-1 sm:flex-none px-3.5 py-2 bg-white border border-emerald-300 hover:border-emerald-500 text-emerald-800 text-xs font-mono font-semibold rounded-lg transition flex items-center justify-center gap-1.5 shadow-xs" title="Copy live URL for Power BI Get Data -> Web">
             <span class="material-symbols-outlined text-[16px] text-emerald-600">link</span>
-            <span>Copy Power BI Web URL</span>
+            <span>Power BI URL</span>
           </button>
-          <button onclick="loadDashboardData()" class="px-3.5 py-2 bg-white border border-slate-200 hover:border-slate-300 text-xs font-mono font-semibold rounded-lg text-slate-700 transition flex items-center gap-1.5 shadow-xs">
+          <button onclick="loadDashboardData()" class="px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 text-xs font-mono font-semibold rounded-lg text-slate-700 transition flex items-center justify-center gap-1.5 shadow-xs">
             <span class="material-symbols-outlined text-[15px] text-primary">sync</span>
-            <span>Refresh</span>
+            <span class="hidden sm:inline">Refresh</span>
           </button>
         </div>
       </div>
 
       <!-- Metric Cards Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div class="lumina-card p-5 rounded-2xl space-y-2">
-          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
+      <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl space-y-1.5 sm:space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
             <span>Customer Chats</span>
-            <span class="material-symbols-outlined text-[18px] text-primary">forum</span>
+            <span class="material-symbols-outlined text-[16px] sm:text-[18px] text-primary">forum</span>
           </div>
           <div class="flex items-baseline justify-between">
-            <span id="stat-total-chats" class="text-2xl font-bold font-mono text-slate-900">0</span>
-            <span class="text-[10px] font-mono px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded font-medium">Sessions</span>
+            <span id="stat-total-chats" class="text-xl sm:text-2xl font-bold font-mono text-slate-900">0</span>
+            <span class="text-[9px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded font-medium">Sessions</span>
           </div>
-          <p class="text-[10px] text-slate-400 font-mono">Live customer sessions</p>
+          <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono">Live customer sessions</p>
         </div>
 
-        <div class="lumina-card p-5 rounded-2xl space-y-2">
-          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl space-y-1.5 sm:space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
             <span>Total Questions</span>
-            <span class="material-symbols-outlined text-[18px] text-secondary">help</span>
+            <span class="material-symbols-outlined text-[16px] sm:text-[18px] text-secondary">help</span>
           </div>
           <div class="flex items-baseline justify-between">
-            <span id="stat-total-questions" class="text-2xl font-bold font-mono text-slate-900">0</span>
-            <span class="text-[10px] font-mono px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded font-medium">Queries</span>
+            <span id="stat-total-questions" class="text-xl sm:text-2xl font-bold font-mono text-slate-900">0</span>
+            <span class="text-[9px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded font-medium">Queries</span>
           </div>
-          <p class="text-[10px] text-slate-400 font-mono">Customer inquiries</p>
+          <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono">Customer inquiries</p>
         </div>
 
-        <div class="lumina-card p-5 rounded-2xl space-y-2">
-          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl space-y-1.5 sm:space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
             <span>Resolution Rate</span>
-            <span class="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
+            <span class="material-symbols-outlined text-[16px] sm:text-[18px] text-emerald-600">check_circle</span>
           </div>
           <div class="flex items-baseline justify-between">
-            <span id="stat-resolution-rate" class="text-2xl font-bold font-mono text-emerald-600">100%</span>
-            <span id="stat-answered-ratio" class="text-[10px] font-mono text-slate-500">0 answered</span>
+            <span id="stat-resolution-rate" class="text-xl sm:text-2xl font-bold font-mono text-emerald-600">100%</span>
+            <span id="stat-answered-ratio" class="text-[9px] sm:text-[10px] font-mono text-slate-500">0 answered</span>
           </div>
-          <p class="text-[10px] text-slate-400 font-mono">Zero hallucination rate</p>
+          <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono">Zero hallucination rate</p>
         </div>
 
-        <div class="lumina-card p-5 rounded-2xl space-y-2">
-          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl space-y-1.5 sm:space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
             <span>Unanswered Gaps</span>
-            <span class="material-symbols-outlined text-[18px] text-amber-600">warning</span>
+            <span class="material-symbols-outlined text-[16px] sm:text-[18px] text-amber-600">warning</span>
           </div>
           <div class="flex items-baseline justify-between">
-            <span id="stat-unanswered" class="text-2xl font-bold font-mono text-amber-600">0</span>
-            <span class="text-[10px] font-mono px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded font-medium">Pending</span>
+            <span id="stat-unanswered" class="text-xl sm:text-2xl font-bold font-mono text-amber-600">0</span>
+            <span class="text-[9px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded font-medium">Pending</span>
           </div>
-          <p class="text-[10px] text-slate-400 font-mono">Requires store training</p>
+          <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono">Requires store training</p>
         </div>
 
-        <div class="lumina-card p-5 rounded-2xl space-y-2">
-          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
-            <span>Avg Latency & RAM</span>
-            <span class="material-symbols-outlined text-[18px] text-primary">speed</span>
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl space-y-1.5 sm:space-y-2 col-span-2 lg:col-span-1">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
+            <span>Avg Latency & Scale</span>
+            <span class="material-symbols-outlined text-[16px] sm:text-[18px] text-primary">speed</span>
           </div>
           <div class="flex items-baseline justify-between">
-            <span id="stat-latency" class="text-xl font-bold font-mono text-slate-900">0 ms</span>
-            <span id="stat-chunks" class="text-[10px] font-mono px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded font-medium">0 chunks</span>
+            <span id="stat-latency" class="text-lg sm:text-xl font-bold font-mono text-slate-900">0 ms</span>
+            <span id="stat-chunks" class="text-[9px] sm:text-[10px] font-mono px-1.5 sm:px-2 py-0.5 bg-slate-100 text-slate-700 border border-slate-200 rounded font-medium">0 chunks</span>
           </div>
-          <div class="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-0.5">
+          <div class="flex items-center justify-between text-[9px] sm:text-[10px] font-mono text-slate-400 pt-0.5">
             <span id="stat-documents">0 docs</span>
             <span class="text-slate-600">Feedback: <span id="stat-thumbs-up" class="text-emerald-600 font-semibold">0</span>👍 <span id="stat-thumbs-down" class="text-rose-500 font-semibold">0</span>👎</span>
           </div>
@@ -423,21 +423,21 @@
           <h2 class="text-xl font-bold text-slate-900 tracking-tight">Master-Detail Customer Conversations</h2>
           <p class="text-xs text-slate-500 font-mono">Scalable 2-pane audit view: filter sessions on left, inspect full transcripts on right.</p>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
           <input 
             type="text" 
             id="chat-search-input" 
             placeholder="Search email or keyword..." 
             oninput="debouncedChatSearch()"
-            class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary"
+            class="w-full sm:w-56 px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-base sm:text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary shadow-xs"
           />
-          <select id="chat-sentiment-filter" onchange="loadChatHistory()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700">
+          <select id="chat-sentiment-filter" onchange="loadChatHistory()" class="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-xs">
             <option value="">All Sentiments</option>
             <option value="positive">Positive</option>
             <option value="neutral">Neutral</option>
             <option value="negative">Frustrated / Negative</option>
           </select>
-          <select id="chat-topic-filter" onchange="loadChatHistory()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700">
+          <select id="chat-topic-filter" onchange="loadChatHistory()" class="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-xs">
             <option value="">All Topics</option>
             <option value="pricing">Pricing</option>
             <option value="shipping">Shipping</option>
@@ -445,7 +445,7 @@
             <option value="products">Products</option>
             <option value="support">Support</option>
           </select>
-          <button id="filter-down-chats" onclick="toggleDownvoteFilter()" class="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 text-slate-700 rounded-lg transition hover:bg-slate-50">
+          <button id="filter-down-chats" onclick="toggleDownvoteFilter()" class="px-3 py-2 sm:py-1.5 text-xs font-semibold bg-white border border-slate-200 text-slate-700 rounded-lg transition hover:bg-slate-50 shadow-xs">
             👎 Downvoted
           </button>
         </div>
@@ -830,6 +830,22 @@
         </button>
       </div>
 
+      <!-- Active Workspace Cross-Device Quick Login Banner -->
+      <div id="auth-active-workspace-banner" class="hidden p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-mono space-y-1.5">
+        <div class="flex items-center justify-between">
+          <span class="text-indigo-900 font-bold flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[15px] text-indigo-600">storefront</span>
+            <span id="active-ws-name">Existing Workspace</span>
+          </span>
+          <span class="text-[10px] bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-semibold">Ready to Sync</span>
+        </div>
+        <p class="text-[11px] text-slate-600">Existing workspace owner: <strong id="active-ws-email" class="text-slate-900"></strong></p>
+        <button type="button" onclick="prefillActiveOwnerLogin()" class="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 shadow-xs">
+          <span class="material-symbols-outlined text-[14px]">login</span>
+          <span>Sign In to Existing Workspace</span>
+        </button>
+      </div>
+
       <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-mono">
         <button id="auth-tab-login" onclick="switchAuthMode('login')" class="py-2 rounded-lg font-semibold text-white bg-primary transition shadow-xs">
           Sign In
@@ -842,7 +858,7 @@
       <div id="auth-form-login" class="space-y-3.5">
         <div>
           <label class="block text-[11px] font-mono text-slate-600 mb-1">Owner Email</label>
-          <input type="email" id="auth-login-email" placeholder="owner@company.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" />
+          <input type="email" id="auth-login-email" placeholder="owner@company.com" autocapitalize="none" autocomplete="email" spellcheck="false" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" />
         </div>
         <div>
           <label class="block text-[11px] font-mono text-slate-600 mb-1">Password</label>
@@ -860,7 +876,7 @@
         </div>
         <div>
           <label class="block text-[11px] font-mono text-slate-600 mb-1">Owner Email</label>
-          <input type="email" id="auth-reg-email" placeholder="founder@company.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" />
+          <input type="email" id="auth-reg-email" placeholder="founder@company.com" autocapitalize="none" autocomplete="email" spellcheck="false" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" />
         </div>
         <div>
           <label class="block text-[11px] font-mono text-slate-600 mb-1">Password (min 6 chars)</label>
@@ -1078,15 +1094,41 @@
       }
     }
 
-    function downloadPowerBiExport() {
-      const url = `/api/dashboard/export/powerbi?format=csv${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
-      window.open(url, '_blank');
+    async function downloadPowerBiExport() {
+      try {
+        const url = `/api/dashboard/export/powerbi?format=csv${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
+        const headers = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
+        const res = await fetch(url, { headers });
+        if (!res.ok) {
+          throw new Error(`Export request returned status ${res.status}`);
+        }
+        const blob = await res.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = `idevify_powerbi_dataset_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+      } catch (err) {
+        console.warn("Direct blob export failed, falling back to URL navigation:", err);
+        const fallbackUrl = `/api/dashboard/export/powerbi?format=csv${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
+        window.location.href = fallbackUrl;
+      }
     }
 
     function copyPowerBIWebUrl() {
       const url = `${window.location.origin}/api/dashboard/export/powerbi?format=csv${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
-      navigator.clipboard.writeText(url);
-      alert(`Power BI Web Connector Live Dataset URL copied:\n${url}\n\nPaste this URL into Power BI -> Get Data -> Web.`);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+          alert(`Power BI Web Connector Live Dataset URL copied:\n${url}\n\nIn Power BI Desktop: Click 'Get Data' -> 'Web', paste this URL, and click OK.`);
+        }).catch(() => {
+          prompt("Copy this Power BI Web Dataset URL:", url);
+        });
+      } else {
+        prompt("Copy this Power BI Web Dataset URL:", url);
+      }
     }
 
     function drillDownToChatHistory(filter = {}) {
@@ -1708,8 +1750,41 @@
       if (tabId === 'settings') updateWidgetPreview();
     }
 
-    function toggleAuthModal() {
-      document.getElementById('auth-modal').classList.toggle('hidden');
+    async function toggleAuthModal() {
+      const modal = document.getElementById('auth-modal');
+      const isOpening = modal.classList.contains('hidden');
+      modal.classList.toggle('hidden');
+
+      if (isOpening) {
+        // Detect existing active workspace to streamline cross-device login
+        try {
+          const res = await fetch('/api/auth/active-owner');
+          if (res.ok) {
+            const data = await res.json();
+            if (data.has_active_workspace) {
+              const banner = document.getElementById('auth-active-workspace-banner');
+              if (banner) {
+                document.getElementById('active-ws-name').innerText = data.business_name || 'Active Store';
+                document.getElementById('active-ws-email').innerText = data.owner_email || '';
+                banner.dataset.ownerEmail = data.owner_email;
+                banner.classList.remove('hidden');
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Workspace discovery skipped:", e);
+        }
+      }
+    }
+
+    function prefillActiveOwnerLogin() {
+      const banner = document.getElementById('auth-active-workspace-banner');
+      const email = banner?.dataset?.ownerEmail;
+      switchAuthMode('login');
+      if (email) {
+        document.getElementById('auth-login-email').value = email;
+        document.getElementById('auth-login-password').focus();
+      }
     }
 
     function switchAuthMode(mode) {
@@ -1732,7 +1807,7 @@
     }
 
     async function performLogin() {
-      const email = document.getElementById('auth-login-email').value.trim();
+      const email = document.getElementById('auth-login-email').value.trim().toLowerCase();
       const password = document.getElementById('auth-login-password').value;
       if (!email || !password) {
         alert("Please enter both email and password.");
@@ -1762,7 +1837,7 @@
 
     async function performRegister() {
       const businessName = document.getElementById('auth-reg-name').value.trim();
-      const email = document.getElementById('auth-reg-email').value.trim();
+      const email = document.getElementById('auth-reg-email').value.trim().toLowerCase();
       const password = document.getElementById('auth-reg-password').value;
       if (!businessName || !email || !password) {
         alert("Please fill in all fields.");
@@ -1786,6 +1861,14 @@
           init();
         } else {
           const err = await res.json();
+          // Seamless cross-device handling: if email already exists, offer instant sign in
+          if (err.detail && err.detail.toLowerCase().includes("already exists")) {
+            alert("This email is already registered! Switching to Sign In so you can access your existing workspace with all your documents.");
+            switchAuthMode('login');
+            document.getElementById('auth-login-email').value = email;
+            document.getElementById('auth-login-password').focus();
+            return;
+          }
           alert(err.detail || "Registration failed.");
         }
       } catch (e) {

@@ -73,60 +73,60 @@
     }
   </style>
 </head>
-<body class="bg-background text-on-surface min-h-screen flex flex-col items-center justify-center p-2 sm:p-6 antialiased selection:bg-primary/20 selection:text-primary">
+<body class="bg-slate-100 sm:bg-background text-on-surface min-h-[100dvh] flex flex-col items-center justify-center p-0 sm:p-4 md:p-6 antialiased selection:bg-primary/20 selection:text-primary">
   
-  <div class="w-full max-w-3xl lumina-card rounded-2xl flex flex-col h-[94vh] overflow-hidden relative">
+  <div class="w-full max-w-3xl lumina-card rounded-none sm:rounded-2xl border-x-0 sm:border-x border-y-0 sm:border-y flex flex-col h-[100dvh] sm:h-[94vh] overflow-hidden relative shadow-none sm:shadow-lg">
     
     <!-- Header -->
-    <header id="header" class="px-6 py-4 border-b border-outline-variant flex items-center justify-between bg-surface/95 backdrop-blur-md sticky top-0 z-20">
-      <div class="flex items-center space-x-3.5">
-        <div class="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs">
-          <span class="material-symbols-outlined text-[22px]">support_agent</span>
+    <header id="header" class="px-3.5 py-3 sm:px-6 sm:py-4 border-b border-outline-variant flex items-center justify-between bg-surface/95 backdrop-blur-md sticky top-0 z-20">
+      <div class="flex items-center space-x-2.5 sm:space-x-3.5">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs shrink-0">
+          <span class="material-symbols-outlined text-[20px] sm:text-[22px]">support_agent</span>
         </div>
         <div>
-          <div class="flex items-center gap-2">
-            <h1 id="biz-name" class="font-bold text-base tracking-tight text-on-surface leading-snug">Iveri Assistant</h1>
-            <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[10px] font-mono font-medium">Verified RAG</span>
+          <div class="flex items-center gap-1.5 sm:gap-2">
+            <h1 id="biz-name" class="font-bold text-sm sm:text-base tracking-tight text-on-surface leading-snug truncate max-w-[150px] sm:max-w-xs">Iveri Assistant</h1>
+            <span class="px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] sm:text-[10px] font-mono font-medium whitespace-nowrap">Verified RAG</span>
           </div>
-          <div class="flex items-center space-x-2 text-xs text-on-surface-variant font-mono">
+          <div class="flex items-center space-x-1.5 sm:space-x-2 text-[10px] sm:text-xs text-on-surface-variant font-mono">
             <span class="relative flex h-2 w-2">
               <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
               <span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
             </span>
             <span class="text-tertiary font-semibold">Active & Grounded</span>
-            <span class="text-slate-300">•</span>
-            <span id="latency-indicator" class="text-on-surface-variant">Deterministic Knowledge Base</span>
+            <span class="hidden sm:inline text-slate-300">•</span>
+            <span id="latency-indicator" class="hidden sm:inline text-on-surface-variant">Deterministic Knowledge Base</span>
           </div>
         </div>
       </div>
       
-      <div class="flex items-center space-x-2">
-        <button onclick="shareCurrentChat()" title="Share this conversation" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-xs transition">
+      <div class="flex items-center space-x-1.5 sm:space-x-2">
+        <button onclick="shareCurrentChat()" title="Share this conversation" class="inline-flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-xs transition active:scale-95">
           <span class="material-symbols-outlined text-[14px] text-primary">share</span>
-          <span>Share</span>
+          <span class="hidden xs:inline">Share</span>
         </button>
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-mono font-medium shadow-xs">
+        <span class="hidden md:inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-mono font-medium shadow-xs">
           <span class="material-symbols-outlined text-[13px] text-emerald-600">verified</span>
-          Zero Hallucination
+          <span>Zero Hallucination</span>
         </span>
       </div>
     </header>
 
     <!-- Chat Messages Scroll Area -->
-    <main id="chat-box" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 bg-slate-50/50">
+    <main id="chat-box" class="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-5 bg-slate-50/50">
       <div class="flex justify-center">
-        <span class="text-[11px] font-mono text-slate-500 px-3 py-1 rounded-full bg-white border border-slate-200 flex items-center gap-1.5 shadow-xs">
-          <span class="material-symbols-outlined text-[13px] text-emerald-600">lock</span>
-          All responses are strictly synthesized from indexed store policies and documents.
+        <span class="text-[10px] sm:text-[11px] font-mono text-slate-500 px-2.5 sm:px-3 py-1 rounded-full bg-white border border-slate-200 flex items-center gap-1.5 shadow-xs text-center">
+          <span class="material-symbols-outlined text-[13px] text-emerald-600 shrink-0">lock</span>
+          <span>Strictly synthesized from indexed store policies & catalogs.</span>
         </span>
       </div>
       
       <!-- Welcome message -->
-      <div class="flex items-start space-x-3">
-        <div class="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-          <span class="material-symbols-outlined text-[16px]">smart_toy</span>
+      <div class="flex items-start space-x-2.5 sm:space-x-3">
+        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
+          <span class="material-symbols-outlined text-[15px] sm:text-[16px]">smart_toy</span>
         </div>
-        <div class="chat-bubble-assistant rounded-2xl rounded-tl-xs p-4 max-w-[85%] text-sm space-y-2">
+        <div class="chat-bubble-assistant rounded-2xl rounded-tl-xs p-3.5 sm:p-4 max-w-[92%] sm:max-w-[85%] text-xs sm:text-sm space-y-2">
           <p id="welcome-text" class="text-on-surface leading-relaxed font-normal">
             Hello! I am your AI Support Assistant, indexed directly from store policies, product catalogs, and operating manuals. What questions can I answer for you today?
           </p>
@@ -134,9 +134,9 @@
       </div>
 
       <!-- Suggested Starter Questions -->
-      <div id="starter-container" class="pl-11 space-y-2 pt-1">
-        <p class="text-[11px] font-mono text-slate-400 uppercase tracking-wider font-medium">Quick Questions</p>
-        <div id="starter-chips" class="flex flex-wrap gap-2"></div>
+      <div id="starter-container" class="pl-0 sm:pl-11 space-y-2 pt-1">
+        <p class="text-[10px] sm:text-[11px] font-mono text-slate-400 uppercase tracking-wider font-medium">Quick Questions</p>
+        <div id="starter-chips" class="flex overflow-x-auto no-scrollbar sm:flex-wrap gap-2 pb-1 -mx-1 px-1"></div>
       </div>
     </main>
 
@@ -167,16 +167,16 @@
     </div>
 
     <!-- Input Footer -->
-    <footer class="p-4 bg-white border-t border-slate-200 space-y-3">
+    <footer class="p-3 sm:p-4 bg-white border-t border-slate-200 space-y-2.5 sm:space-y-3">
       <!-- Human Handoff Banner (if triggered) -->
-      <div id="handoff-box" class="hidden bg-amber-50 border border-amber-200 p-3 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-amber-800">
+      <div id="handoff-box" class="hidden bg-amber-50 border border-amber-200 p-3 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs text-amber-800">
         <div class="flex items-center space-x-2">
-          <span class="material-symbols-outlined text-amber-600 text-lg">mail</span>
-          <span class="font-medium">Could not find an answer in verified docs? Leave your email for our team:</span>
+          <span class="material-symbols-outlined text-amber-600 text-lg shrink-0">mail</span>
+          <span class="font-medium">Could not find an answer in verified docs? Leave your email:</span>
         </div>
         <div class="flex w-full sm:w-auto items-center space-x-2">
-          <input type="email" id="lead-email" placeholder="you@domain.com" class="px-3 py-1.5 text-xs bg-white border border-amber-300 rounded-lg text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 flex-1 sm:w-56" />
-          <button onclick="submitLeadEmail()" class="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap transition shadow-xs">Notify Me</button>
+          <input type="email" id="lead-email" placeholder="you@domain.com" class="px-3 py-2 text-base sm:text-xs bg-white border border-amber-300 rounded-lg text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 flex-1 sm:w-56" />
+          <button onclick="submitLeadEmail()" class="px-3.5 py-2 sm:py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap transition shadow-xs">Notify Me</button>
         </div>
       </div>
 
@@ -184,24 +184,24 @@
         <input 
           type="text" 
           id="user-input" 
-          placeholder="Ask any question about store policies, shipping, returns, products..." 
-          class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-24 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition shadow-inner"
+          placeholder="Ask any question about store policies, products..." 
+          class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3.5 sm:pl-4 pr-16 sm:pr-24 py-2.5 sm:py-3 text-base sm:text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:bg-white focus:border-primary focus:ring-2 focus:ring-primary/20 transition shadow-inner"
           onkeydown="if(event.key==='Enter') sendMessage()"
         />
-        <div class="absolute right-2 flex items-center space-x-1.5">
+        <div class="absolute right-1.5 sm:right-2 flex items-center space-x-1.5">
           <button 
             id="send-btn" 
             onclick="sendMessage()" 
-            class="px-4 py-2 bg-primary hover:bg-primary-hover active:scale-95 text-white font-semibold text-xs rounded-lg transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+            class="px-3 sm:px-4 py-2 bg-primary hover:bg-primary-hover active:scale-95 text-white font-semibold text-xs rounded-lg transition-all shadow-sm flex items-center gap-1 cursor-pointer"
           >
-            <span>Send</span>
-            <span class="material-symbols-outlined text-[14px]">send</span>
+            <span class="hidden sm:inline">Send</span>
+            <span class="material-symbols-outlined text-[16px]">send</span>
           </button>
         </div>
       </div>
-      <div class="flex justify-between items-center text-[11px] font-mono text-slate-400 px-1">
-        <span>Powered by <strong class="text-primary font-medium">Iveri RAG Engine</strong> (Sarvam + PyMuPDF + ChromaDB)</span>
-        <span class="hidden sm:inline">100% Grounded Deterministic Verification</span>
+      <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-400 px-1">
+        <span class="truncate">Powered by <strong class="text-primary font-medium">Iveri RAG Engine</strong></span>
+        <span class="hidden sm:inline">100% Grounded Verification</span>
       </div>
     </footer>
   </div>
