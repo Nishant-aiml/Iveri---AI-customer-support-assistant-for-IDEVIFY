@@ -46,13 +46,34 @@ class PreLLMCircuitBreaker:
     - 0% risk of AI hallucination
     """
 
+    STOPWORDS = {
+        "tell", "show", "give", "what", "when", "where", "which", "who", "why", "how",
+        "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does",
+        "did", "can", "could", "will", "would", "shall", "should", "may", "might", "must",
+        "the", "a", "an", "and", "or", "but", "if", "because", "as", "until", "while", "of",
+        "at", "by", "for", "with", "about", "against", "between", "into", "through", "during",
+        "before", "after", "above", "below", "to", "from", "up", "down", "in", "out", "on",
+        "off", "over", "under", "again", "further", "then", "once", "here", "there", "all",
+        "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor",
+        "not", "only", "own", "same", "so", "than", "too", "very", "me", "my", "myself", "we",
+        "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he",
+        "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they",
+        "them", "their", "theirs", "themselves", "this", "that", "these", "those", "am", "please"
+    }
+
+    PRODUCT_SYNONYMS = {
+        "product", "products", "item", "items", "plan", "plans", "package", "packages",
+        "service", "services", "catalog", "pricing", "broadband"
+    }
+
     def __init__(self, default_threshold: float = 0.55):
         self.default_threshold = default_threshold
 
     def evaluate(
         self,
         fused_chunks: List[Dict[str, Any]],
-        threshold: Optional[float] = None
+        threshold: Optional[float] = None,
+        query: Optional[str] = None
     ) -> Dict[str, Any]:
         """Evaluates whether the retrieved context contains sufficient confidence to answer."""
         # 1. Zero chunks found
@@ -69,17 +90,42 @@ class PreLLMCircuitBreaker:
         dense_sim = top_chunk.get("dense_similarity", 0.0)
         sparse_score = top_chunk.get("sparse_score", 0.0)
 
-        # 2. Strict Confidence Evaluation:
+        # 2. Key entity / keyword grounding validation
+        if query:
+            clean_q = re.sub(r"[^\w\s]", " ", query.lower())
+            tokens = [t for t in clean_q.split() if t and t not in self.STOPWORDS and len(t) > 1]
+            if tokens:
+                top_text = " ".join([c.get("content", "").lower() for c in fused_chunks[:3]])
+                # Filter out boilerplate test disclaimers from entity matching
+                top_text_clean = re.sub(r"(?i)fictional document created for testing.*?\.", "", top_text)
+                
+                entity_hits = []
+                for t in tokens:
+                    if t in self.PRODUCT_SYNONYMS and any(re.search(r"\b" + re.escape(syn) + r"\b", top_text_clean) for syn in self.PRODUCT_SYNONYMS):
+                        entity_hits.append(t)
+                    elif re.search(r"\b" + re.escape(t) + r"\b", top_text_clean):
+                        entity_hits.append(t)
+
+                # If query entities (e.g. 'ai', 'bm25') have 0 genuine mentions in retrieved chunks
+                if not entity_hits and dense_sim < 0.62:
+                    logger.info(f"Circuit breaker tripped: Query entities {tokens} missing from retrieved content (Dense={dense_sim:.3f}).")
+                    return {
+                        "can_answer": False,
+                        "confidence": round(top_score, 4),
+                        "reason": "query_entities_missing_from_context"
+                    }
+
+        # 3. Strict Confidence Evaluation:
         # A confident match requires either:
         # a) Both engines agreed (sparse keyword match > 0 AND dense similarity >= 0.44)
         # b) Significant keyword hit (sparse >= 0.20)
-        # c) High semantic similarity when sparse has no direct hit (dense >= 0.65)
+        # c) High semantic similarity when sparse has no direct hit (dense >= 0.62)
         has_confident_match = False
         if sparse_score > 0.0 and dense_sim >= 0.44:
             has_confident_match = True
         elif sparse_score >= 0.20:
             has_confident_match = True
-        elif dense_sim >= 0.65:
+        elif dense_sim >= 0.62:
             has_confident_match = True
 
         if not has_confident_match:

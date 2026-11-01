@@ -94,13 +94,34 @@ class HybridRAGEngine:
         import re
         clean_query = sanitized_query
         vocab = bm25_store_service.get_vocabulary(business_id)
+        
+        # Standard English words that must NEVER be mutated by typo correction
+        IMMUTABLE_WORDS = {
+            "tell", "toll", "show", "give", "what", "when", "where", "which", "who", "why", "how",
+            "is", "are", "was", "were", "be", "been", "being", "have", "has", "had", "do", "does",
+            "did", "can", "could", "will", "would", "shall", "should", "may", "might", "must",
+            "the", "a", "an", "and", "or", "but", "if", "because", "as", "until", "while", "of",
+            "at", "by", "for", "with", "about", "against", "between", "into", "through", "during",
+            "before", "after", "above", "below", "to", "from", "up", "down", "in", "out", "on",
+            "off", "over", "under", "again", "further", "then", "once", "here", "there", "all",
+            "any", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor",
+            "not", "only", "own", "same", "so", "than", "too", "very", "me", "my", "myself", "we",
+            "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he",
+            "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they",
+            "them", "their", "theirs", "themselves", "this", "that", "these", "those", "am",
+            "cost", "much", "many", "price", "pricing", "item", "product", "products", "policy",
+            "support", "service", "services", "help", "order", "bill", "billing", "charges", "rate",
+            "plans", "plan", "broadband", "speed", "speeds", "data", "limit", "cable", "router", "gst"
+        }
+
         if vocab:
             tokens = sanitized_query.split()
             corrected = []
             for tok in tokens:
                 alph = re.sub(r"[^a-zA-Z]", "", tok.lower())
-                if len(alph) > 3 and alph not in vocab:
-                    matches = difflib.get_close_matches(alph, list(vocab), n=1, cutoff=0.74)
+                # Only attempt fuzzy matching if word is long (>= 5 chars) and NOT an English common word
+                if len(alph) >= 5 and alph not in IMMUTABLE_WORDS and alph not in vocab:
+                    matches = difflib.get_close_matches(alph, list(vocab), n=1, cutoff=0.82)
                     if matches:
                         corrected.append(matches[0])
                         continue
@@ -109,9 +130,17 @@ class HybridRAGEngine:
             if clean_query.lower() != user_query.lower():
                 logger.info(f"Query typo corrected: '{user_query}' -> '{clean_query}'")
 
+        # Query Expansion for Domain-Aware Search
+        expanded_query = clean_query
+        q_lower = clean_query.lower()
+        if any(w in q_lower for w in ["product", "products", "item", "items", "plan", "plans", "broadband", "package"]):
+            expanded_query = f"{clean_query} plans pricing products broadband"
+        elif any(w in q_lower for w in ["gst", "tax", "vat"]):
+            expanded_query = f"{clean_query} 18% gst taxes billing"
+
         # Step 2: Multi-Hybrid Retrieval (Dense Vector + Sparse BM25)
         dense_hits = await vector_store_service.search(business_id, clean_query, top_k=10)
-        sparse_hits = bm25_store_service.search(business_id, clean_query, top_k=10)
+        sparse_hits = bm25_store_service.search(business_id, expanded_query, top_k=10)
 
         # Step 3: Reciprocal Rank Fusion (RRF)
         fused_chunks = reciprocal_rank_fusion(
@@ -124,7 +153,8 @@ class HybridRAGEngine:
         # Step 4: Pre-LLM Confidence Circuit Breaker (Less AI-Dependent)
         gate_decision = circuit_breaker.evaluate(
             fused_chunks=fused_chunks,
-            threshold=settings.CONFIDENCE_THRESHOLD
+            threshold=settings.CONFIDENCE_THRESHOLD,
+            query=clean_query
         )
 
         if not gate_decision["can_answer"]:

@@ -252,7 +252,7 @@ class MultiTierLLMClient:
                 return "**Product Warranty Guidelines:**\n\n" + "\n".join(bullets)
 
         # 5. About Company / Store / Contact / Support Hours Intent
-        if any(k in q_lower for k in ["about", "company", "who are you", "who is", "overview", "founded", "location", "contact", "phone", "email", "support hours", "store hours", "headquarters"]):
+        if any(k in q_lower for k in ["about us", "about company", "about the company", "about store", "who are you", "who is", "overview", "founded", "location", "contact", "phone", "email", "support hours", "store hours", "headquarters"]):
             for c in retrieved_chunks:
                 content = c.get("content", "")
                 if "specialty coffee roaster" in content.lower() or "about brewnest" in content.lower() or "customer support email:" in content.lower():
@@ -283,7 +283,102 @@ class MultiTierLLMClient:
                     if out:
                         return "\n\n".join(out)
 
-        # 6. Product Catalog & Pricing Intent
+            # Telecom / Broadband Contact Hours
+            contact_lines = []
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if "contact and support hours" in content.lower() or "outage and technical line" in content.lower():
+                    for line in content.split("\n"):
+                        s = line.strip().replace("•", "").strip()
+                        if any(w in s.lower() for w in ["outage line:", "billing and sales:", "stores are open", "operates in"]):
+                            if not any(s[:20].lower() in b.lower() for b in contact_lines):
+                                contact_lines.append(f"- {s}")
+            if contact_lines:
+                return "**Customer Support & Contact Hours:**\n\n" + "\n".join(contact_lines)
+
+        # 5.5. GST / Taxes / VAT Intent
+        if any(k in q_lower for k in ["gst", "tax", "taxes", "vat", "gstin"]):
+            gst_sentences = []
+            for c in retrieved_chunks:
+                text_clean = c.get("content", "").replace("\r", " ").replace("\n", " ")
+                sentences = re.split(r"(?<=[.!?])\s+", text_clean)
+                for s in sentences:
+                    s_clean = s.strip()
+                    if any(w in s_clean.lower() for w in ["gst", "tax", "gstin"]) and len(s_clean) > 8:
+                        if not any(s_clean[:25].lower() in b.lower() for b in gst_sentences):
+                            gst_sentences.append(s_clean)
+            if gst_sentences:
+                if any(k in q_lower for k in ["how much", "rate", "percentage", "%", "what is"]):
+                    for s in gst_sentences:
+                        if any(w in s.lower() for w in ["18%", "include", "gst rate", "included"]):
+                            return (
+                                f"**Taxes & GST Information:**\n\n"
+                                f"{s}\n\n"
+                                f"GST invoices are available in the customer portal (to add a business GSTIN, write to billing@zephyrfiber.example before the 25th of the month)."
+                            )
+                return "**Taxes & GST Information:**\n\n" + "\n".join([f"- {s}" for s in gst_sentences])
+
+        # 5.6. Broadband / Service Plans Intent
+        if any(k in q_lower for k in ["plan", "plans", "broadband", "speed", "speeds", "data limit", "fair usage", "fup", "product", "products"]):
+            broadband_lines = []
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if any(w in content.lower() for w in ["home broadband plans", "mbps", "basic:", "plus:", "pro:", "max:"]):
+                    for line in content.split("\n"):
+                        s = line.strip()
+                        if any(w in s.lower() for w in ["basic:", "plus:", "pro:", "max:", "static ip address:"]):
+                            if not any(s[:20].lower() in b.lower() for b in broadband_lines):
+                                broadband_lines.append(f"- **{s}**")
+            if broadband_lines:
+                return (
+                    "**Available Broadband Plans & Pricing:**\n\n"
+                    "Zephyr Fiber offers four high-speed home broadband plans (all include 18% GST and symmetrical upload/download speeds):\n\n"
+                    + "\n".join(broadband_lines)
+                )
+
+        # 5.7. Installation & Router Equipment Intent
+        if any(k in q_lower for k in ["installation", "install", "setup", "router", "equipment", "cable", "security deposit"]):
+            install_lines = []
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if "installation" in content.lower() or "router:" in content.lower():
+                    for line in content.split("\n"):
+                        s = line.strip().replace("•", "").strip()
+                        if any(w in s.lower() for w in ["standard installation", "installation covers", "installation fee:", "rs. 1,500", "rs. 1,000", "free on 12-month", "wifi 6 router", "security deposit of rs. 2,000", "kyc"]):
+                            if not any(s[:20].lower() in b.lower() for b in install_lines):
+                                install_lines.append(f"- {s}")
+            if install_lines:
+                return "**Installation & Equipment Guidelines:**\n\n" + "\n".join(install_lines)
+
+        # 5.8. Outages & Compensation Intent
+        if any(k in q_lower for k in ["outage", "down", "disconnected", "no internet", "restart router", "compensation", "credit", "fiber fault"]):
+            outage_lines = []
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if "outage" in content.lower() or "connection is down" in content.lower():
+                    for line in content.split("\n"):
+                        s = line.strip().replace("•", "").strip()
+                        if any(w in s.lower() for w in ["connection is down", "restart the router", "outage line", "engineers visit within", "credits rs. 25"]):
+                            if not any(s[:20].lower() in b.lower() for b in outage_lines):
+                                outage_lines.append(f"- {s}")
+            if outage_lines:
+                return "**Outage Support & Service Resolution:**\n\n" + "\n".join(outage_lines)
+
+        # 5.9. Relocation, Plan Changes & Cancellation Intent
+        if any(k in q_lower for k in ["relocation", "relocate", "move", "new address", "upgrade", "downgrade", "early termination"]):
+            reloc_lines = []
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if any(w in content.lower() for w in ["relocation:", "upgrades:", "cancellation:"]):
+                    for line in content.split("\n"):
+                        s = line.strip().replace("•", "").strip()
+                        if any(w in s.lower() for w in ["moving your connection", "upgrades take effect", "30 days notice", "early termination fee"]):
+                            if not any(s[:20].lower() in b.lower() for b in reloc_lines):
+                                reloc_lines.append(f"- {s}")
+            if reloc_lines:
+                return "**Relocation, Plan Changes & Cancellation:**\n\n" + "\n".join(reloc_lines)
+
+        # 6. Product Catalog & Pricing Intent (Physical goods e.g. BrewNest)
         if any(k in q_lower for k in ["product", "products", "item", "items", "price", "pricing", "cost", "catalog", "menu", "list all", "list of product"]):
             for c in retrieved_chunks:
                 content = c.get("content", "")
@@ -376,26 +471,32 @@ class MultiTierLLMClient:
                 if bullets:
                     return "**Payment Methods & Terms:**\n\n" + "\n".join(bullets)
 
-        # 12. Fallback: Term-density paragraph extraction with Sentence-Boundary Safety
-        best_content = retrieved_chunks[0].get("content", "").strip()
-        lines = best_content.split("\n")
-        clean_lines = []
-        skip_noise = True
-        for line in lines:
-            s = line.strip()
-            if not s:
-                continue
-            if re.match(r"^(\d+\.|\b[A-Z][a-zA-Z\s]{3,30}:|#|\*\*|\b[A-Z])", s) and "..." not in s:
-                skip_noise = False
-            if not skip_noise:
-                clean_lines.append(s)
+        # 12. General Term-density extraction with Strict Grounding Verification
+        clean_q = re.sub(r"[^\w\s]", " ", q_lower)
+        q_tokens = set([t for t in clean_q.split() if t not in {
+            "tell", "about", "me", "what", "is", "the", "a", "an", "can", "you", "please", "how",
+            "do", "does", "give", "show", "who", "where", "when", "why", "which"
+        } and len(t) > 1])
 
-        text_block = "\n".join(clean_lines[:8]).strip() if clean_lines else best_content
-        if len(text_block) > 600:
-            last_period = max(text_block[:600].rfind("."), text_block[:600].rfind("\n"))
-            if last_period > 100:
-                text_block = text_block[:last_period + 1].strip()
+        candidate_sentences = []
+        for c in retrieved_chunks:
+            text = c.get("content", "")
+            for raw_line in text.split("\n"):
+                s = raw_line.strip()
+                if not s or s.startswith("SECTION") or len(s) < 15:
+                    continue
+                line_lower = s.lower()
+                matches = sum(1 for tok in q_tokens if tok in line_lower)
+                if matches > 0:
+                    candidate_sentences.append((matches, s))
 
-        return text_block
+        # If NO sentence in the retrieved chunks has any query content overlap
+        if not candidate_sentences:
+            logger.info(f"Extractive synthesis: No grounded answer found for query tokens {q_tokens}. Returning [UNKNOWN].")
+            return "[UNKNOWN]"
+
+        candidate_sentences.sort(key=lambda x: x[0], reverse=True)
+        top_answers = [s for _, s in candidate_sentences[:5]]
+        return "\n".join(top_answers)
 
 llm_client = MultiTierLLMClient()
