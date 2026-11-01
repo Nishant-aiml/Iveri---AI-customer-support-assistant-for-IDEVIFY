@@ -16,6 +16,8 @@ class BM25StoreService:
         self._corpus: Dict[str, List[Dict[str, Any]]] = {}
         # business_id -> BM25Plus instance
         self._bm25_models: Dict[str, Any] = {}
+        # business_id -> Cached vocabulary set
+        self._vocab_cache: Dict[str, set] = {}
 
     ENGLISH_STOPWORDS = {
         "a", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are",
@@ -58,6 +60,9 @@ class BM25StoreService:
         for chunk in chunks:
             if chunk["id"] not in existing_ids:
                 self._corpus[business_id].append(chunk)
+
+        # Invalidate vocabulary cache
+        self._vocab_cache.pop(business_id, None)
 
         # Rebuild index using BM25Plus
         tokenized_corpus = [self._tokenize(c["content"]) for c in self._corpus[business_id]]
@@ -127,13 +132,16 @@ class BM25StoreService:
         return results
 
     def get_vocabulary(self, business_id: str) -> set:
-        """Returns set of unique words in business corpus for query typo correction."""
+        """Returns cached set of unique words in business corpus for sub-millisecond query typo correction."""
         if business_id not in self._corpus:
             return set()
+        if business_id in self._vocab_cache:
+            return self._vocab_cache[business_id]
         words = set()
         for c in self._corpus[business_id]:
             for w in re.findall(r"[a-zA-Z]{3,}", c.get("content", "").lower()):
                 words.add(w)
+        self._vocab_cache[business_id] = words
         return words
 
     async def warmup_from_db(self):
