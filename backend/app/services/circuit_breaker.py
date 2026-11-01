@@ -58,7 +58,8 @@ class PreLLMCircuitBreaker:
         "not", "only", "own", "same", "so", "than", "too", "very", "me", "my", "myself", "we",
         "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he",
         "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they",
-        "them", "their", "theirs", "themselves", "this", "that", "these", "those", "am", "please"
+        "them", "their", "theirs", "themselves", "this", "that", "these", "those", "am", "please",
+        "section", "sections", "page", "pages", "part", "parts", "chapter", "chapters", "clause", "clauses", "paragraph", "article", "doc", "document", "faq"
     }
 
     PRODUCT_SYNONYMS = {
@@ -102,6 +103,13 @@ class PreLLMCircuitBreaker:
         if query:
             clean_q = re.sub(r"[^\w\s]", " ", query.lower())
             tokens = [t for t in clean_q.split() if t and t not in self.STOPWORDS and len(t) > 1]
+            if not tokens:
+                logger.info(f"Circuit breaker tripped: Query '{query}' contains no substantive domain entities.")
+                return {
+                    "can_answer": False,
+                    "confidence": 0.0,
+                    "reason": "query_contains_no_domain_entities"
+                }
             if tokens:
                 top_text = " ".join([c.get("content", "").lower() for c in fused_chunks[:3]])
                 # Filter out boilerplate test disclaimers from entity matching
@@ -133,7 +141,7 @@ class PreLLMCircuitBreaker:
             has_confident_match = True
         elif sparse_score >= 0.20:
             has_confident_match = True
-        elif dense_sim >= 0.62:
+        elif dense_sim >= 0.55:
             has_confident_match = True
 
         if not has_confident_match:

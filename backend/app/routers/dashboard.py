@@ -15,7 +15,6 @@ from app.models.chat import ChatSession, ChatMessage
 from app.models.unanswered import UnansweredQuestion
 from app.utils.security import get_current_owner, decode_access_token, security_scheme
 from fastapi.security import HTTPAuthorizationCredentials
-from app.config import settings
 from app.schemas.chat import ChatMessageResponse, SourceCitation
 from app.schemas.dashboard import (
     DashboardStatsResponse, UnansweredQuestionItem,

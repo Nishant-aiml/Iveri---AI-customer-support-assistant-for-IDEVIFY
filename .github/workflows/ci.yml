@@ -32,7 +32,7 @@ jobs:
 
       - name: Security Vulnerability Scan (pip-audit)
         run: |
-          pip-audit -r backend/requirements.txt --ignore-vuln || echo "Non-critical advisories logged."
+          pip-audit -r backend/requirements.txt || echo "Non-critical advisories logged."
 
   test-and-evals:
     name: Test Suite & Guardrails Evals

@@ -156,16 +156,14 @@ The project includes a ready-to-deploy `render.yaml` blueprint:
 
 ---
 
-## 👥 Engineering Team & Commit Distribution
+## 👥 Engineering Team & Technical Ownership
 
-In accordance with group project guidelines, commit authoring and signing are strictly segregated across technical functional areas:
-
-| Engineer | Focus Areas | Phases | Commits |
-| :--- | :--- | :--- | :--- |
-| **Ishwari Bhoyar** ([@ishwaribhoyar](https://github.com/ishwaribhoyar)) | Document Intelligence, Dual Ingestion Queue, Multi-Hybrid RAG, Grounding & Circuit Breaker | Phase 2 & Phase 3 | **22 commits** |
-| **Nishant Datta** ([@Nishant-aiml](https://github.com/Nishant-aiml)) | System Architecture, BRD/PRD Specs, Owner Dashboard API, Analytics & Auth Sync | Phase 0 & Phase 5 | **17 commits** |
-| **Gunjan Nandeshwar** ([@gunjannan2005](https://github.com/gunjannan2005)) | Core Multi-Tenancy Models, Auth RBAC, E2E Verification, Docker & PowerBI Export | Phase 1 & Phase 6 | **16 commits** |
-| **Nazish Khan** ([@nazishkhan10](https://github.com/nazishkhan10)) | Customer Chat Engine, Citations, Feedback Voting, Embeddable Widget & Mobile UI | Phase 4 | **16 commits** |
+| Engineer | Role & Technical Focus | Architecture Modules |
+| :--- | :--- | :--- |
+| **Ishwari Bhoyar** ([@ishwaribhoyar](https://github.com/ishwaribhoyar)) | Lead AI & RAG Engineer | Document Intelligence, Dual Ingestion Queue, Multi-Hybrid RAG, Grounding & Circuit Breaker |
+| **Nishant Datta** ([@Nishant-aiml](https://github.com/Nishant-aiml)) | Systems Architect & Full-Stack Lead | System Architecture, Data Models, Analytics Engine, Owner Dashboard API & Deployment |
+| **Gunjan Nandeshwar** ([@gunjannan2005](https://github.com/gunjannan2005)) | Core Backend & Infrastructure Engineer | Multi-Tenancy Isolation, JWT Authentication, Containerization & PowerBI Pipeline |
+| **Nazish Khan** ([@nazishkhan10](https://github.com/nazishkhan10)) | Frontend & Customer Experience Engineer | Real-Time SSE Chat Engine, Embeddable Widget Studio, Citations & Mobile Experience |
 
 ---
 
