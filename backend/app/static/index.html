@@ -1015,7 +1015,21 @@
             options: {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } }
+              plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } },
+                tooltip: {
+                  callbacks: {
+                    afterLabel: () => 'Click to filter Chat History'
+                  }
+                }
+              },
+              onClick: (evt, elements) => {
+                if (elements && elements.length > 0) {
+                  const idx = elements[0].index;
+                  const sentiments = ['positive', 'neutral', 'negative'];
+                  drillDownToChatHistory({ sentiment: sentiments[idx] });
+                }
+              }
             }
           });
         }
@@ -1039,8 +1053,23 @@
               indexAxis: 'y',
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { legend: { display: false } },
-              scales: { x: { beginAtZero: true, grid: { color: '#F1F5F9' } }, y: { grid: { display: false } } }
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    afterLabel: () => 'Click bar to filter Chat History'
+                  }
+                }
+              },
+              scales: { x: { beginAtZero: true, grid: { color: '#F1F5F9' } }, y: { grid: { display: false } } },
+              onClick: (evt, elements) => {
+                if (elements && elements.length > 0) {
+                  const idx = elements[0].index;
+                  if (topics[idx]) {
+                    drillDownToChatHistory({ topic: topics[idx].topic });
+                  }
+                }
+              }
             }
           });
         }
@@ -1050,8 +1079,27 @@
     }
 
     function downloadPowerBiExport() {
-      if (!authToken) { alert("Please sign in first."); return; }
-      window.open(`/api/dashboard/export/powerbi?format=csv`, '_blank');
+      const url = `/api/dashboard/export/powerbi?format=csv${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
+      window.open(url, '_blank');
+    }
+
+    function copyPowerBIWebUrl() {
+      const url = `${window.location.origin}/api/dashboard/export/powerbi?format=csv${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
+      navigator.clipboard.writeText(url);
+      alert(`Power BI Web Connector Live Dataset URL copied:\n${url}\n\nPaste this URL into Power BI -> Get Data -> Web.`);
+    }
+
+    function drillDownToChatHistory(filter = {}) {
+      switchTab('chats');
+      if (filter.sentiment) {
+        const sentSel = document.getElementById('chat-sentiment-filter');
+        if (sentSel) sentSel.value = filter.sentiment;
+      }
+      if (filter.topic) {
+        const topicSel = document.getElementById('chat-topic-filter');
+        if (topicSel) topicSel.value = filter.topic;
+      }
+      loadChatHistory();
     }
 
     async function loadDocuments() {
@@ -1465,6 +1513,58 @@
       alert("Embed code copied!");
     }
 
+    async function uploadAvatarImage(input) {
+      if (!input.files || input.files.length === 0) return;
+      const file = input.files[0];
+      const statusEl = document.getElementById('avatar-upload-status');
+      if (statusEl) {
+        statusEl.innerText = "Uploading...";
+        statusEl.className = "text-[10px] font-mono text-primary font-bold";
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/business/avatar/upload', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}` },
+          body: formData
+        });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('setting-avatar-url').value = data.avatar_url;
+          if (statusEl) {
+            statusEl.innerText = "✓ Uploaded!";
+            statusEl.className = "text-[10px] font-mono text-emerald-600 font-bold";
+          }
+          updateWidgetPreview();
+        } else {
+          const err = await res.json();
+          if (statusEl) {
+            statusEl.innerText = err.detail || "Upload failed";
+            statusEl.className = "text-[10px] font-mono text-rose-500 font-bold";
+          }
+        }
+      } catch (e) {
+        console.error("Avatar upload error:", e);
+        if (statusEl) {
+          statusEl.innerText = "Upload error";
+          statusEl.className = "text-[10px] font-mono text-rose-500 font-bold";
+        }
+      }
+    }
+
+    function copyPublicChatUrl() {
+      if (!currentBusiness || !currentBusiness.slug) {
+        alert("Please sign in first.");
+        return;
+      }
+      const url = `${window.location.origin}/chat/${currentBusiness.slug}`;
+      navigator.clipboard.writeText(url);
+      alert(`Public Standalone Chatbot link copied:\n${url}`);
+    }
+
     async function saveAssistantSettings() {
       if (!authToken) return;
       const rawStarters = document.getElementById('setting-starters').value;
@@ -1476,7 +1576,8 @@
         brand_color: document.getElementById('setting-color').value,
         widget_position: document.getElementById('setting-position').value,
         fallback_message: document.getElementById('setting-fallback').value,
-        starter_questions: startersList
+        starter_questions: startersList,
+        custom_prompt: document.getElementById('setting-custom-prompt')?.value || ''
       };
 
       try {
