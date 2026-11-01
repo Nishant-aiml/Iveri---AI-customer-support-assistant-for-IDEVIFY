@@ -8,7 +8,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from app.main import app
 from app.database import init_db
-from app.services.rag_engine import rag_engine
 
 class TestE2EEvaluation(unittest.IsolatedAsyncioTestCase):
     """
@@ -161,7 +160,6 @@ class TestE2EEvaluation(unittest.IsolatedAsyncioTestCase):
             "business_name": "Alpha Defense Corp"
         })
         token_a = reg_a.json()["access_token"]
-        biz_a_id = reg_a.json()["business_id"]
 
         # Tenant Beta
         reg_b = await self.client.post("/api/auth/register", json={
@@ -169,7 +167,6 @@ class TestE2EEvaluation(unittest.IsolatedAsyncioTestCase):
             "password": "Password123!",
             "business_name": "Beta Consumer Store"
         })
-        token_b = reg_b.json()["access_token"]
         biz_b_slug = reg_b.json()["business_slug"]
 
         # Tenant Alpha uploads confidential doc

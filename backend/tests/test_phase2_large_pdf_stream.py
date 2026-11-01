@@ -1,6 +1,5 @@
 import os
 import fitz
-import pytest
 import unittest
 import uuid
 from sqlalchemy.future import select
