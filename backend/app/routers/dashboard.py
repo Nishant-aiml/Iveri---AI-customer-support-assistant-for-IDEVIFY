@@ -25,7 +25,6 @@ from app.schemas.dashboard import (
 )
 from app.services.vector_store import vector_store_service
 from app.services.bm25_store import bm25_store_service
-from app.services.circuit_breaker import circuit_breaker
 from app.services.rag_engine import rag_engine
 from app.services.sentiment_analyzer import sentiment_analyzer
 from app.services.topic_analyzer import topic_analyzer
@@ -517,7 +516,7 @@ async def get_business_analytics(
     avg_ms = round(sum(latencies) / len(latencies), 1) if latencies else 0.0
     min_ms = min(latencies) if latencies else 0
     max_ms = max(latencies) if latencies else 0
-    sub_second = sum(1 for l in latencies if l < 1000)
+    sub_second = sum(1 for lat in latencies if lat < 1000)
     sub_second_pct = round((sub_second / max(len(latencies), 1)) * 100, 1) if latencies else 100.0
 
     latency_metrics = LatencySummary(

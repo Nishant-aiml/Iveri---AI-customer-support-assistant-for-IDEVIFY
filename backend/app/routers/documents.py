@@ -1,6 +1,5 @@
 import os
 import uuid
-import shutil
 from datetime import datetime
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status

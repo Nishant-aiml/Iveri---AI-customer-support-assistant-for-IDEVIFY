@@ -1,7 +1,6 @@
-import time
 import logging
 import httpx
-from typing import List, Dict, Any, Tuple, Optional
+from typing import List, Dict, Any, Tuple
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -251,8 +250,8 @@ class MultiTierLLMClient:
         lines = best_content.split("\n")
         clean_lines = []
         skip_noise = True
-        for l in lines:
-            s = l.strip()
+        for line in lines:
+            s = line.strip()
             if not s:
                 continue
             if re.match(r"^(\d+\.|\b[A-Z][a-zA-Z\s]{3,30}:|#|\*\*|\b[A-Z])", s) and "..." not in s:

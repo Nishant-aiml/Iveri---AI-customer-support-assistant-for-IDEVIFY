@@ -1,4 +1,3 @@
-import re
 from typing import Optional, Tuple
 
 class SentimentAnalyzer:
@@ -35,7 +34,6 @@ class SentimentAnalyzer:
             return "positive", 0.85
 
         clean_text = text.lower()
-        words = set(re.findall(r"\b[a-z]{3,}\b", clean_text))
 
         pos_matches = 0
         neg_matches = 0

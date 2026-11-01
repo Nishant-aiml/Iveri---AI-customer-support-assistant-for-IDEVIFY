@@ -55,8 +55,6 @@ class PreLLMCircuitBreaker:
         threshold: Optional[float] = None
     ) -> Dict[str, Any]:
         """Evaluates whether the retrieved context contains sufficient confidence to answer."""
-        cutoff = threshold if threshold is not None else self.default_threshold
-
         # 1. Zero chunks found
         if not fused_chunks:
             logger.info("Circuit breaker tripped: Zero matching chunks found across Dense and Sparse indices.")

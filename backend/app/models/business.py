@@ -1,4 +1,3 @@
-import uuid
 import json
 from sqlalchemy import Column, String, Text
 from sqlalchemy.orm import relationship
