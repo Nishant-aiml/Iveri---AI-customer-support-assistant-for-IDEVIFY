@@ -6,8 +6,17 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
     PORT: int = 8000
     
-    # Database URL
+    # Database URL & Enterprise Connection Pooling
     DATABASE_URL: str = "sqlite+aiosqlite:///./idevify.db"
+    DB_POOL_SIZE: int = 20
+    DB_MAX_OVERFLOW: int = 40
+    DB_POOL_TIMEOUT: int = 30
+    DB_POOL_RECYCLE: int = 1800
+
+    # Firebase Authentication
+    FIREBASE_PROJECT_ID: str = ""
+    FIREBASE_CREDENTIALS_JSON: str = ""
+    FIREBASE_AUTH_ONLY: bool = False
     
     # JWT Security
     JWT_SECRET: str = "super-secret-jwt-key-change-in-production-123456"

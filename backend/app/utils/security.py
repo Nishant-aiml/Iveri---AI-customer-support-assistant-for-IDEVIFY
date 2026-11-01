@@ -52,6 +52,19 @@ async def get_current_user(
     
     payload = decode_access_token(auth.credentials)
     if not payload or "sub" not in payload:
+        # Dual-Engine: Check if it's a direct Firebase ID token
+        try:
+            from app.services.firebase_auth import firebase_auth_service
+            fb_decoded = firebase_auth_service.verify_token(auth.credentials)
+            fb_uid = fb_decoded.get("uid")
+            fb_email = fb_decoded.get("email")
+            user_query = select(User).where((User.firebase_uid == fb_uid) | (User.email == fb_email))
+            user = (await db.execute(user_query)).scalar_one_or_none()
+            if user:
+                return user
+        except Exception:
+            pass
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired authentication token."

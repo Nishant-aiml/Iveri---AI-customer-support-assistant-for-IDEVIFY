@@ -1,5 +1,6 @@
 import logging
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Dict, Any
+from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import declarative_base
 from app.config import settings
@@ -15,13 +16,44 @@ elif database_url.startswith("postgresql://") and not database_url.startswith("p
 elif database_url.startswith("sqlite:///") and not database_url.startswith("sqlite+aiosqlite:///"):
     database_url = database_url.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
 
-engine = create_async_engine(
-    database_url,
-    echo=False,
-    future=True,
-    # SQLite requires check_same_thread=False
-    connect_args={"check_same_thread": False} if "sqlite" in database_url else {}
-)
+# Configure Engine according to database backend
+if "sqlite" in database_url:
+    # High-concurrency SQLite setup: WAL mode + busy_timeout
+    engine = create_async_engine(
+        database_url,
+        echo=False,
+        future=True,
+        connect_args={"check_same_thread": False, "timeout": 30}
+    )
+
+    @event.listens_for(engine.sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        try:
+            cursor = dbapi_connection.cursor()
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA synchronous=NORMAL")
+            cursor.execute("PRAGMA busy_timeout=5000")
+            cursor.close()
+        except Exception as e:
+            logger.warning(f"Failed to apply SQLite WAL pragmas: {e}")
+
+    logger.info("Database configured with SQLite (WAL mode enabled for concurrent read/write throughput).")
+else:
+    # Enterprise PostgreSQL setup with asyncpg connection pool
+    engine = create_async_engine(
+        database_url,
+        echo=False,
+        future=True,
+        pool_size=settings.DB_POOL_SIZE,
+        max_overflow=settings.DB_MAX_OVERFLOW,
+        pool_timeout=settings.DB_POOL_TIMEOUT,
+        pool_recycle=settings.DB_POOL_RECYCLE,
+        pool_pre_ping=True
+    )
+    logger.info(
+        f"Database configured with PostgreSQL asyncpg connection pool "
+        f"(pool_size={settings.DB_POOL_SIZE}, max_overflow={settings.DB_MAX_OVERFLOW})."
+    )
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
@@ -46,9 +78,67 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 async def init_db():
-    """Initializes tables in database."""
+    """Initializes tables in database and applies non-destructive column migrations."""
     async with engine.begin() as conn:
         # Import all models here so metadata is fully populated
         import app.models  # noqa
         await conn.run_sync(Base.metadata.create_all)
+
+        # Safe schema auto-migration for newly added columns in SQLite
+        try:
+            if "sqlite" in database_url:
+                # Helper for conditional column addition
+                async def add_column_if_missing(table_name: str, col_name: str, col_type: str):
+                    r = await conn.execute(text(f"PRAGMA table_info({table_name})"))
+                    cols = [row[1] for row in r.fetchall()]
+                    if col_name not in cols:
+                        await conn.execute(text(f"ALTER TABLE {table_name} ADD COLUMN {col_name} {col_type}"))
+                        logger.info(f"Migrated {table_name}: added {col_name} column.")
+
+                # users migrations
+                await add_column_if_missing("users", "firebase_uid", "VARCHAR(128)")
+                await add_column_if_missing("users", "auth_provider", "VARCHAR(50) DEFAULT 'local'")
+
+                # documents migrations
+                await add_column_if_missing("documents", "total_pages", "INTEGER DEFAULT 0")
+                await add_column_if_missing("documents", "processed_pages", "INTEGER DEFAULT 0")
+                await add_column_if_missing("documents", "processing_progress", "INTEGER DEFAULT 0")
+
+                # businesses migrations
+                await add_column_if_missing("businesses", "avatar_url", "VARCHAR(512) DEFAULT ''")
+                await add_column_if_missing("businesses", "widget_position", "VARCHAR(20) DEFAULT 'bottom-right'")
+                await add_column_if_missing("businesses", "welcome_message", "TEXT DEFAULT 'Hello! How can I help you today?'")
+
+                # chat_messages migrations
+                await add_column_if_missing("chat_messages", "sentiment", "VARCHAR(20) DEFAULT 'neutral'")
+                await add_column_if_missing("chat_messages", "topic", "VARCHAR(50) DEFAULT 'general'")
+
+                # chat_sessions migrations
+                await add_column_if_missing("chat_sessions", "sentiment", "VARCHAR(20) DEFAULT 'neutral'")
+                await add_column_if_missing("chat_sessions", "primary_topic", "VARCHAR(50) DEFAULT 'general'")
+        except Exception as e:
+            logger.warning(f"Column migration check note: {e}")
+
     logger.info("Database initialized successfully.")
+
+async def get_database_health() -> Dict[str, Any]:
+    """Checks database connectivity and returns telemetry."""
+    try:
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(text("SELECT 1"))
+            val = result.scalar()
+            is_postgres = "postgres" in database_url
+            return {
+                "status": "healthy" if val == 1 else "unhealthy",
+                "database_type": "postgresql" if is_postgres else "sqlite",
+                "driver": "asyncpg" if is_postgres else "aiosqlite",
+                "concurrency_mode": "connection_pool" if is_postgres else "wal_journal",
+                "pool_size": settings.DB_POOL_SIZE if is_postgres else 1,
+                "max_overflow": settings.DB_MAX_OVERFLOW if is_postgres else 0
+            }
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        return {
+            "status": "error",
+            "error": str(e)
+        }

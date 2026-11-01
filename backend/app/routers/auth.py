@@ -3,11 +3,12 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from app.database import get_db
+from app.database import get_db, get_database_health
 from app.models.business import Business
 from app.models.user import User
-from app.schemas.auth import UserRegisterRequest, UserLoginRequest, TokenResponse, UserProfileResponse
+from app.schemas.auth import UserRegisterRequest, UserLoginRequest, FirebaseLoginRequest, TokenResponse, UserProfileResponse
 from app.utils.security import hash_password, verify_password, create_access_token, get_current_user
+from app.services.firebase_auth import firebase_auth_service
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
@@ -111,6 +112,40 @@ async def login_user(req: UserLoginRequest, db: AsyncSession = Depends(get_db)):
         business_slug=business.slug,
         share_token=business.share_token
     )
+
+@router.post("/firebase-login", response_model=TokenResponse)
+async def firebase_login(req: FirebaseLoginRequest, db: AsyncSession = Depends(get_db)):
+    """Authenticates via Firebase ID token, auto-provisioning workspace if new."""
+    try:
+        user, business, access_token = await firebase_auth_service.authenticate_firebase_user(
+            db=db,
+            id_token=req.id_token,
+            business_name=req.business_name
+        )
+        return TokenResponse(
+            access_token=access_token,
+            user_id=user.id,
+            business_id=business.id,
+            role=user.role,
+            business_name=business.name,
+            business_slug=business.slug,
+            share_token=business.share_token
+        )
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Firebase authentication error: {str(e)}"
+        )
+
+@router.get("/db-health")
+async def check_db_health():
+    """Checks database engine health, pooling status, and concurrency mode."""
+    return await get_database_health()
 
 @router.get("/me", response_model=UserProfileResponse)
 async def get_my_profile(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):

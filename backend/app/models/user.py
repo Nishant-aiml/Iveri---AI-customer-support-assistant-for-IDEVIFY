@@ -9,7 +9,9 @@ class User(Base, TimestampMixin):
     id = Column(String(36), primary_key=True, default=generate_uuid)
     business_id = Column(String(36), ForeignKey("businesses.id", ondelete="CASCADE"), nullable=False, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
-    password_hash = Column(String(255), nullable=False)
+    password_hash = Column(String(255), nullable=True)
+    firebase_uid = Column(String(128), unique=True, index=True, nullable=True)
+    auth_provider = Column(String(50), default="local", nullable=False)  # 'local' or 'firebase'
     role = Column(String(50), default="owner", nullable=False)  # 'owner' or 'customer'
 
     business = relationship("Business", back_populates="users")
