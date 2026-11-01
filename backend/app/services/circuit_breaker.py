@@ -46,7 +46,7 @@ class PreLLMCircuitBreaker:
     - 0% risk of AI hallucination
     """
 
-    def __init__(self, default_threshold: float = 0.50):
+    def __init__(self, default_threshold: float = 0.55):
         self.default_threshold = default_threshold
 
     def evaluate(
@@ -71,23 +71,28 @@ class PreLLMCircuitBreaker:
         dense_sim = top_chunk.get("dense_similarity", 0.0)
         sparse_score = top_chunk.get("sparse_score", 0.0)
 
-        # 2. Check if at least one engine had meaningful signal
-        # Either RRF score exceeds threshold OR strong direct dense/sparse match
-        has_confident_match = (
-            top_score >= cutoff or 
-            dense_sim >= 0.55 or 
-            sparse_score >= 0.60
-        )
+        # 2. Strict Confidence Evaluation:
+        # A confident match requires either:
+        # a) Both engines agreed (sparse keyword match > 0 AND dense similarity >= 0.50)
+        # b) Strong keyword hit (sparse >= 0.30)
+        # c) High semantic similarity (dense >= 0.65)
+        has_confident_match = False
+        if sparse_score > 0.0 and dense_sim >= 0.50:
+            has_confident_match = True
+        elif sparse_score >= 0.30:
+            has_confident_match = True
+        elif dense_sim >= 0.65:
+            has_confident_match = True
 
         if not has_confident_match:
             logger.info(
-                f"Circuit breaker tripped: Top score {top_score:.3f} (dense={dense_sim:.3f}, sparse={sparse_score:.3f}) "
-                f"is below threshold {cutoff:.3f}."
+                f"Circuit breaker tripped: Dense={dense_sim:.3f}, Sparse={sparse_score:.3f}, "
+                f"RRF={top_score:.3f} failed confidence criteria."
             )
             return {
                 "can_answer": False,
                 "confidence": round(top_score, 4),
-                "reason": "low_confidence_score"
+                "reason": "insufficient_confidence_and_keyword_overlap"
             }
 
         return {
