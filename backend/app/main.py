@@ -4,7 +4,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, business
+from app.routers import auth, business, documents
+from app.services.ingestion_queue import ingestion_queue
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,12 +15,14 @@ logger = logging.getLogger("idevify-rag")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Initialize Database Tables
+    # Startup
     logger.info("Starting up Iveri AI Customer Support Assistant backend...")
     await init_db()
+    ingestion_queue.start()
     yield
     # Shutdown
     logger.info("Shutting down backend services...")
+    await ingestion_queue.shutdown()
 
 app = FastAPI(
     title="Iveri - AI Customer Support Assistant API",
@@ -37,9 +40,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Mount Core Routers
+# Mount Routers
 app.include_router(auth.router)
 app.include_router(business.router)
+app.include_router(documents.router)
 
 @app.get("/api/health", tags=["Health"])
 async def health_check():
