@@ -232,6 +232,59 @@
         </div>
 
       </div>
+
+      <!-- Real-Life Onboarding Guide (Shown when 0 documents) -->
+      <div id="onboarding-guide-card" class="hidden glass-card p-6 rounded-2xl border-l-4 border-l-primary space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold">
+              <span class="material-symbols-outlined text-[22px]">rocket_launch</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-white text-sm">Welcome to your AI Support Assistant!</h3>
+              <p class="text-xs text-on-surface-variant font-mono">Launch your grounded customer assistant in 3 simple steps:</p>
+            </div>
+          </div>
+          <span class="px-2.5 py-1 text-[11px] font-mono rounded-full bg-primary/15 text-primary border border-primary/30 font-medium">Getting Started</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+          
+          <div class="p-4 bg-surface rounded-xl border border-outline-variant space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-primary text-white text-xs font-mono font-bold flex items-center justify-center">1</span>
+              <span class="font-bold text-white text-xs">Upload Documents</span>
+            </div>
+            <p class="text-[11px] text-on-surface-variant font-mono">Upload your real PDF, DOCX, or TXT policies, pricing, and FAQs.</p>
+            <button onclick="switchTab('documents')" class="mt-1 w-full py-1.5 bg-primary/20 hover:bg-primary/30 border border-primary/40 text-primary rounded-lg text-xs font-mono font-medium transition">
+              Upload Files →
+            </button>
+          </div>
+
+          <div class="p-4 bg-surface rounded-xl border border-outline-variant space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-secondary text-white text-xs font-mono font-bold flex items-center justify-center">2</span>
+              <span class="font-bold text-white text-xs">Test Playground</span>
+            </div>
+            <p class="text-[11px] text-on-surface-variant font-mono">Ask test questions to verify zero hallucination circuit breaker & citations.</p>
+            <button onclick="switchTab('playground')" class="mt-1 w-full py-1.5 bg-secondary/20 hover:bg-secondary/30 border border-secondary/40 text-secondary rounded-lg text-xs font-mono font-medium transition">
+              Open Playground →
+            </button>
+          </div>
+
+          <div class="p-4 bg-surface rounded-xl border border-outline-variant space-y-2">
+            <div class="flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-tertiary text-white text-xs font-mono font-bold flex items-center justify-center">3</span>
+              <span class="font-bold text-white text-xs">Deploy Widget</span>
+            </div>
+            <p class="text-[11px] text-on-surface-variant font-mono">Embed the 1-line script tag on your website or share your public link.</p>
+            <button onclick="switchTab('settings')" class="mt-1 w-full py-1.5 bg-tertiary/20 hover:bg-tertiary/30 border border-tertiary/40 text-tertiary rounded-lg text-xs font-mono font-medium transition">
+              View Embed Code →
+            </button>
+          </div>
+
+        </div>
+      </div>
     </section>
 
     <!-- 2. DOCUMENTS & KNOWLEDGE BASE TAB -->
@@ -418,10 +471,14 @@
           <div>
             <label class="block text-xs font-mono text-on-surface-variant mb-1">Tone of Voice</label>
             <select id="setting-tone" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-sm text-white focus:outline-none focus:border-primary">
-              <option value="professional">Professional & Formal</option>
               <option value="friendly">Warm & Friendly</option>
-              <option value="concise">Concise & Direct</option>
+              <option value="formal">Professional & Formal</option>
             </select>
+          </div>
+          <div>
+            <label class="block text-xs font-mono text-on-surface-variant mb-1">Suggested Starter Questions (One per line)</label>
+            <textarea id="setting-starters" rows="3" placeholder="What are your service hours?&#10;Where are you located?&#10;What is your return policy?" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-white focus:outline-none focus:border-primary"></textarea>
+            <p class="text-[10px] text-on-surface-variant/60 font-mono mt-1">Displayed as quick clickable starter buttons on your public customer chat page and widget.</p>
           </div>
           <div>
             <label class="block text-xs font-mono text-on-surface-variant mb-1">Deterministic Fallback Message (Missing Information)</label>
@@ -489,34 +546,73 @@
     </div>
   </div>
 
-  <!-- Sign In Modal -->
-  <div id="auth-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-    <div class="bg-[#131622] rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-outline-variant space-y-4">
-      <div class="text-center space-y-1">
-        <div class="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary mx-auto flex items-center justify-center">
-          <span class="material-symbols-outlined text-[20px]">lock</span>
+  <!-- Auth Modal (Sign In & Real Business Registration) -->
+  <div id="auth-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+    <div class="bg-[#131622] rounded-2xl max-w-md w-full p-6 shadow-2xl border border-outline-variant space-y-5">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between border-b border-outline-variant/60 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-base">
+            <span class="material-symbols-outlined text-[18px]">verified_user</span>
+          </div>
+          <div>
+            <h3 class="font-bold text-white text-sm" id="auth-modal-title">Business Console Access</h3>
+            <p class="text-[11px] font-mono text-on-surface-variant">Multi-Tenant AI Support Platform</p>
+          </div>
         </div>
-        <h3 class="font-bold text-white text-base">Owner Sign In</h3>
-        <p class="text-xs font-mono text-on-surface-variant">Access your business AI support console</p>
+        <button onclick="toggleAuthModal()" class="w-7 h-7 rounded-lg bg-surface hover:bg-surface-container flex items-center justify-center text-on-surface-variant hover:text-white transition">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
       </div>
-      <div class="space-y-3">
+
+      <!-- Auth Switcher Tabs -->
+      <div class="grid grid-cols-2 p-1 bg-surface rounded-xl border border-outline-variant text-xs font-mono">
+        <button id="auth-tab-login" onclick="switchAuthMode('login')" class="py-2 rounded-lg font-medium text-white bg-primary transition shadow-xs">
+          Sign In
+        </button>
+        <button id="auth-tab-register" onclick="switchAuthMode('register')" class="py-2 rounded-lg font-medium text-on-surface-variant hover:text-white transition">
+          Register New Business
+        </button>
+      </div>
+
+      <!-- Sign In Form -->
+      <div id="auth-form-login" class="space-y-3.5">
         <div>
-          <label class="block text-[11px] font-mono text-on-surface-variant mb-1">Email</label>
-          <input type="email" id="auth-email" placeholder="owner@store.com" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-white focus:outline-none focus:border-primary" />
+          <label class="block text-[11px] font-mono text-on-surface-variant mb-1">Owner Email</label>
+          <input type="email" id="auth-login-email" placeholder="owner@company.com" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-white focus:outline-none focus:border-primary" />
         </div>
         <div>
           <label class="block text-[11px] font-mono text-on-surface-variant mb-1">Password</label>
-          <input type="password" id="auth-password" placeholder="••••••••" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-white focus:outline-none focus:border-primary" />
+          <input type="password" id="auth-login-password" placeholder="••••••••" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-white focus:outline-none focus:border-primary" />
         </div>
         <button onclick="performLogin()" class="w-full py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-mono font-medium transition shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
-          Sign In
+          Sign In to Workspace
         </button>
-        <div class="text-center pt-2">
-          <button onclick="quickDemoLogin()" class="text-xs font-mono text-primary hover:underline">
-            Quick Auto-Register & Demo Account
-          </button>
-        </div>
       </div>
+
+      <!-- Register Form -->
+      <div id="auth-form-register" class="space-y-3.5 hidden">
+        <div>
+          <label class="block text-[11px] font-mono text-on-surface-variant mb-1">Official Business Name</label>
+          <input type="text" id="auth-reg-name" placeholder="e.g. Acme Logistics, Zenith Care" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-white focus:outline-none focus:border-primary" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-mono text-on-surface-variant mb-1">Owner Email</label>
+          <input type="email" id="auth-reg-email" placeholder="founder@company.com" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-white focus:outline-none focus:border-primary" />
+        </div>
+        <div>
+          <label class="block text-[11px] font-mono text-on-surface-variant mb-1">Password (minimum 6 characters)</label>
+          <input type="password" id="auth-reg-password" placeholder="••••••••" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-white focus:outline-none focus:border-primary" />
+        </div>
+        <p class="text-[11px] text-on-surface-variant font-mono leading-relaxed">
+          Creating an account sets up an isolated tenant workspace with Chroma vector storage, dedicated public chat link, and customizable embed widget.
+        </p>
+        <button onclick="performRegister()" class="w-full py-2.5 bg-tertiary hover:bg-emerald-600 text-white rounded-xl text-xs font-mono font-medium transition shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+          Create Business Workspace
+        </button>
+      </div>
+
     </div>
   </div>
 
@@ -548,9 +644,10 @@
 
           // Populate settings
           document.getElementById('setting-name').value = currentBusiness.name;
-          document.getElementById('setting-tone').value = currentBusiness.tone || 'professional';
+          document.getElementById('setting-tone').value = currentBusiness.tone || 'friendly';
           document.getElementById('setting-fallback').value = currentBusiness.fallback_message || '';
-          document.getElementById('setting-color').value = currentBusiness.primary_color || '#6366F1';
+          document.getElementById('setting-color').value = currentBusiness.brand_color || '#6366F1';
+          document.getElementById('setting-starters').value = (currentBusiness.starter_questions || []).join('\n');
 
           const shareUrl = `${window.location.origin}/chat/${currentBusiness.slug}`;
           document.getElementById('share-link-input').value = shareUrl;
@@ -591,6 +688,15 @@
             const badge = document.getElementById('unanswered-badge-count');
             badge.innerText = stats.unanswered_count;
             badge.classList.remove('hidden');
+          }
+
+          const guideCard = document.getElementById('onboarding-guide-card');
+          if (guideCard) {
+            if (stats.total_documents === 0) {
+              guideCard.classList.remove('hidden');
+            } else {
+              guideCard.classList.add('hidden');
+            }
           }
         }
       } catch (e) {
@@ -853,11 +959,14 @@
 
     async function saveAssistantSettings() {
       if (!authToken) return;
+      const rawStarters = document.getElementById('setting-starters').value;
+      const startersList = rawStarters.split('\n').map(s => s.trim()).filter(Boolean);
       const body = {
         name: document.getElementById('setting-name').value,
         tone: document.getElementById('setting-tone').value,
         fallback_message: document.getElementById('setting-fallback').value,
-        primary_color: document.getElementById('setting-color').value
+        brand_color: document.getElementById('setting-color').value,
+        starter_questions: startersList
       };
       try {
         const res = await fetch('/api/business/settings', {
@@ -869,8 +978,11 @@
           body: JSON.stringify(body)
         });
         if (res.ok) {
-          alert("Settings updated successfully!");
+          alert("Assistant settings updated successfully!");
           loadBusinessProfile();
+        } else {
+          const err = await res.json();
+          alert(err.detail || "Failed to update settings.");
         }
       } catch (e) {
         console.error("Settings save error:", e);
@@ -894,9 +1006,32 @@
       document.getElementById('auth-modal').classList.toggle('hidden');
     }
 
+    function switchAuthMode(mode) {
+      const tabLogin = document.getElementById('auth-tab-login');
+      const tabReg = document.getElementById('auth-tab-register');
+      const formLogin = document.getElementById('auth-form-login');
+      const formReg = document.getElementById('auth-form-register');
+
+      if (mode === 'login') {
+        tabLogin.className = 'py-2 rounded-lg font-medium text-white bg-primary transition shadow-xs';
+        tabReg.className = 'py-2 rounded-lg font-medium text-on-surface-variant hover:text-white transition';
+        formLogin.classList.remove('hidden');
+        formReg.classList.add('hidden');
+      } else {
+        tabReg.className = 'py-2 rounded-lg font-medium text-white bg-tertiary transition shadow-xs';
+        tabLogin.className = 'py-2 rounded-lg font-medium text-on-surface-variant hover:text-white transition';
+        formReg.classList.remove('hidden');
+        formLogin.classList.add('hidden');
+      }
+    }
+
     async function performLogin() {
-      const email = document.getElementById('auth-email').value.trim();
-      const password = document.getElementById('auth-password').value;
+      const email = document.getElementById('auth-login-email').value.trim();
+      const password = document.getElementById('auth-login-password').value;
+      if (!email || !password) {
+        alert("Please enter both email and password.");
+        return;
+      }
       try {
         const res = await fetch('/api/auth/login', {
           method: 'POST',
@@ -910,24 +1045,36 @@
           toggleAuthModal();
           init();
         } else {
-          alert("Invalid email or password.");
+          const err = await res.json();
+          alert(err.detail || "Invalid email or password.");
         }
       } catch (e) {
         console.error("Login error:", e);
+        alert("Network error during login.");
       }
     }
 
-    async function quickDemoLogin() {
-      const demoEmail = `owner_${Date.now()}@iveri-demo.com`;
-      const demoPass = "IveriDemo123!";
+    async function performRegister() {
+      const businessName = document.getElementById('auth-reg-name').value.trim();
+      const email = document.getElementById('auth-reg-email').value.trim();
+      const password = document.getElementById('auth-reg-password').value;
+      if (!businessName || !email || !password) {
+        alert("Please fill in all fields to create your business account.");
+        return;
+      }
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters.");
+        return;
+      }
       try {
         const res = await fetch('/api/auth/register', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
-            email: demoEmail,
-            password: demoPass,
-            business_name: "Iveri Electronics & Apparel Store"
+            business_name: businessName,
+            email: email,
+            password: password,
+            role: 'owner'
           })
         });
         if (res.ok) {
@@ -937,10 +1084,12 @@
           toggleAuthModal();
           init();
         } else {
-          alert("Quick demo registration failed.");
+          const err = await res.json();
+          alert(err.detail || "Registration failed.");
         }
       } catch (e) {
-        console.error("Quick demo login error:", e);
+        console.error("Registration error:", e);
+        alert("Network error during registration.");
       }
     }
 

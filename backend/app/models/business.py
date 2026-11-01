@@ -21,7 +21,7 @@ class Business(Base, TimestampMixin):
         default="I'm sorry, but I do not have this information in my documents. I have logged your question for our team to assist you.",
         nullable=False
     )
-    _starter_questions = Column("starter_questions", Text, default='["What are your business hours?", "What is your refund policy?", "How long does shipping take?"]', nullable=False)
+    _starter_questions = Column("starter_questions", Text, default='[]', nullable=False)
 
     # Relationships
     users = relationship("User", back_populates="business", cascade="all, delete-orphan")
