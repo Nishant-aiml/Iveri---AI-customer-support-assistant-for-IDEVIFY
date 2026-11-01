@@ -17,10 +17,26 @@ class BM25StoreService:
         # business_id -> BM25Plus instance
         self._bm25_models: Dict[str, Any] = {}
 
-    @staticmethod
-    def _tokenize(text: str) -> List[str]:
-        """Simple lowercase word tokenization."""
-        return re.findall(r"\w+", text.lower())
+    ENGLISH_STOPWORDS = {
+        "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are",
+        "as", "at", "be", "because", "been", "before", "being", "below", "between", "both", "but",
+        "by", "can", "could", "did", "do", "does", "doing", "down", "during", "each", "few", "for",
+        "from", "further", "had", "has", "have", "having", "he", "her", "here", "hers", "herself",
+        "him", "himself", "his", "how", "i", "if", "in", "into", "is", "it", "its", "itself", "just",
+        "me", "more", "most", "my", "myself", "no", "nor", "not", "of", "off", "on", "once", "only",
+        "or", "other", "our", "ours", "ourselves", "out", "over", "own", "same", "she", "should",
+        "so", "some", "such", "than", "that", "the", "their", "theirs", "them", "themselves", "then",
+        "there", "these", "they", "this", "those", "through", "to", "too", "under", "until", "up",
+        "very", "was", "we", "were", "what", "when", "where", "which", "while", "who", "whom", "why",
+        "will", "with", "you", "your", "yours", "yourself", "yourselves"
+    }
+
+    @classmethod
+    def _tokenize(cls, text: str) -> List[str]:
+        """Stopword-filtered lowercase tokenization for high-fidelity lexical matching."""
+        words = re.findall(r"\w+", text.lower())
+        meaningful = [w for w in words if w not in cls.ENGLISH_STOPWORDS and len(w) > 1]
+        return meaningful if meaningful else words
 
     def add_chunks(self, business_id: str, chunks: List[Dict[str, Any]]):
         """Adds chunks to the business's BM25 corpus and updates the index."""
