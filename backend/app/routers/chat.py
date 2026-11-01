@@ -17,6 +17,8 @@ from app.schemas.chat import (
     FeedbackRequest, LeadCaptureRequest
 )
 from app.services.rag_engine import rag_engine
+from app.services.sentiment_analyzer import sentiment_analyzer
+from app.services.topic_analyzer import topic_analyzer
 
 router = APIRouter(prefix="/api/chat", tags=["Customer Chat"])
 
@@ -66,15 +68,23 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
     if not business:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
 
-    # 2. Record Customer Message
+    # 2. Analyze Sentiment & Topic
+    sentiment_label, _ = sentiment_analyzer.analyze(req.message.strip())
+    topic_category = topic_analyzer.classify(req.message.strip())
+
+    # 3. Record Customer Message
     user_msg = ChatMessage(
         session_id=session.id,
         sender="customer",
         content=req.message.strip(),
+        sentiment=sentiment_label,
+        topic=topic_category,
         is_answered=True
     )
     db.add(user_msg)
     session.last_message_at = datetime.utcnow()
+    session.sentiment = sentiment_label
+    session.primary_topic = topic_category
     await db.flush()
 
     # 3. Retrieve Rolling History (last 4 message pairs)
@@ -116,6 +126,8 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
         session_id=session.id,
         sender="assistant",
         content=rag_result["answer"],
+        sentiment=sentiment_label,
+        topic=topic_category,
         is_answered=rag_result["is_answered"],
         confidence_score=rag_result["confidence_score"],
         latency_ms=rag_result["latency_ms"],
@@ -147,6 +159,8 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
         content=assistant_msg.content,
         is_answered=assistant_msg.is_answered,
         feedback=assistant_msg.feedback,
+        sentiment=assistant_msg.sentiment or "neutral",
+        topic=assistant_msg.topic or "general",
         confidence_score=assistant_msg.confidence_score,
         latency_ms=assistant_msg.latency_ms,
         llm_provider_used=assistant_msg.llm_provider_used,
@@ -172,6 +186,8 @@ async def get_session_history(session_id: str, db: AsyncSession = Depends(get_db
             content=m.content,
             is_answered=m.is_answered,
             feedback=m.feedback,
+            sentiment=m.sentiment or "neutral",
+            topic=m.topic or "general",
             confidence_score=m.confidence_score,
             latency_ms=m.latency_ms,
             llm_provider_used=m.llm_provider_used,
@@ -194,6 +210,16 @@ async def submit_message_feedback(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Message not found.")
 
     msg.feedback = req.feedback
+    if req.feedback == "down":
+        msg.sentiment = "negative"
+        session_obj = (await db.execute(select(ChatSession).where(ChatSession.id == msg.session_id))).scalar_one_or_none()
+        if session_obj:
+            session_obj.sentiment = "negative"
+    elif req.feedback == "up":
+        msg.sentiment = "positive"
+        session_obj = (await db.execute(select(ChatSession).where(ChatSession.id == msg.session_id))).scalar_one_or_none()
+        if session_obj:
+            session_obj.sentiment = "positive"
     await db.commit()
     return {"status": "success", "message_id": message_id, "feedback": req.feedback}
 

@@ -19,6 +19,8 @@ class ChatSessionResponse(BaseModel):
     business_name: str
     business_slug: str
     channel: str
+    sentiment: str = "neutral"
+    primary_topic: str = "general"
     started_at: datetime
     last_message_at: datetime
 
@@ -33,6 +35,8 @@ class ChatMessageResponse(BaseModel):
     content: str
     is_answered: bool
     feedback: Optional[str] = None
+    sentiment: str = "neutral"
+    topic: str = "general"
     confidence_score: float
     latency_ms: int
     llm_provider_used: str

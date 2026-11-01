@@ -1,7 +1,9 @@
+import csv
+import io
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import func, desc
@@ -17,12 +19,16 @@ from app.schemas.dashboard import (
     DashboardStatsResponse, UnansweredQuestionItem,
     ResolveQuestionRequest, ResolveQuestionResponse,
     PlaygroundTestRequest, PlaygroundTestResponse, PlaygroundChunkDetail,
-    ChatSessionSummary
+    ChatSessionSummary, BusinessAnalyticsResponse,
+    SentimentBreakdown, TopicCount, DailyTrendItem,
+    ResolutionFunnel, LatencySummary
 )
 from app.services.vector_store import vector_store_service
 from app.services.bm25_store import bm25_store_service
 from app.services.circuit_breaker import circuit_breaker
 from app.services.rag_engine import rag_engine
+from app.services.sentiment_analyzer import sentiment_analyzer
+from app.services.topic_analyzer import topic_analyzer
 
 router = APIRouter(prefix="/api/dashboard", tags=["Owner Dashboard"])
 
@@ -238,18 +244,20 @@ async def resolve_unanswered_question(
 @router.get("/chats", response_model=List[ChatSessionSummary])
 async def list_chat_sessions(
     feedback: Optional[str] = Query(None, description="Filter by customer feedback: 'down' or 'up'"),
+    sentiment: Optional[str] = Query(None, description="Filter by customer sentiment: 'positive', 'neutral', 'negative'"),
+    topic: Optional[str] = Query(None, description="Filter by topic: 'pricing', 'shipping', 'returns', 'products', 'support'"),
+    search: Optional[str] = Query(None, description="Search by email or question keyword"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     owner: User = Depends(get_current_owner),
     db: AsyncSession = Depends(get_db)
 ):
-    """Lists customer conversation history with optional filtering for downvoted answers."""
+    """Lists customer conversation history with multi-filter and sentiment analytics."""
     biz_id = owner.business_id
 
     query = select(ChatSession).where(ChatSession.business_id == biz_id)
 
     if feedback:
-        # Subquery for sessions containing matching feedback
         subq = (
             select(ChatMessage.session_id)
             .where(ChatMessage.feedback == feedback)
@@ -257,12 +265,29 @@ async def list_chat_sessions(
         )
         query = query.where(ChatSession.id.in_(subq))
 
+    if sentiment:
+        query = query.where(ChatSession.sentiment == sentiment)
+
+    if topic:
+        query = query.where(ChatSession.primary_topic == topic)
+
+    if search:
+        search_filter = f"%{search.strip().lower()}%"
+        subq_msg = (
+            select(ChatMessage.session_id)
+            .where(func.lower(ChatMessage.content).like(search_filter))
+            .distinct()
+        )
+        query = query.where(
+            (func.lower(ChatSession.customer_email).like(search_filter)) |
+            (ChatSession.id.in_(subq_msg))
+        )
+
     query = query.order_by(desc(ChatSession.last_message_at)).offset(offset).limit(limit)
     sessions = (await db.execute(query)).scalars().all()
 
     summaries = []
     for s in sessions:
-        # Load messages for this session
         msg_query = (
             select(ChatMessage)
             .where(ChatMessage.session_id == s.id)
@@ -270,6 +295,18 @@ async def list_chat_sessions(
         )
         messages = (await db.execute(msg_query)).scalars().all()
         has_downvote = any(m.feedback == "down" for m in messages)
+
+        # Infer topic or sentiment if not yet set
+        session_sentiment = s.sentiment or "neutral"
+        session_topic = s.primary_topic or "general"
+        if messages and (session_sentiment == "neutral" or session_topic == "general"):
+            customer_msgs = [m for m in messages if m.sender == "customer"]
+            if customer_msgs:
+                latest_customer_text = customer_msgs[-1].content
+                if session_sentiment == "neutral":
+                    session_sentiment, _ = sentiment_analyzer.analyze(latest_customer_text)
+                if session_topic == "general":
+                    session_topic = topic_analyzer.classify(latest_customer_text)
 
         msg_responses = [
             ChatMessageResponse(
@@ -279,6 +316,8 @@ async def list_chat_sessions(
                 content=m.content,
                 is_answered=m.is_answered,
                 feedback=m.feedback,
+                sentiment=m.sentiment or session_sentiment,
+                topic=m.topic or session_topic,
                 confidence_score=m.confidence_score,
                 latency_ms=m.latency_ms,
                 llm_provider_used=m.llm_provider_used,
@@ -292,6 +331,9 @@ async def list_chat_sessions(
             session_id=s.id,
             channel=s.channel,
             customer_email=s.customer_email,
+            sentiment=session_sentiment,
+            primary_topic=session_topic,
+            share_url=f"/share/{s.id}",
             started_at=s.created_at,
             message_count=len(messages),
             has_downvote=has_downvote,
@@ -299,6 +341,277 @@ async def list_chat_sessions(
         ))
 
     return summaries
+
+@router.get("/chats/{session_id}", response_model=ChatSessionSummary)
+async def get_chat_session_detail(
+    session_id: str,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieves full conversation details for a specific session (used by Master-Detail 2-pane view)."""
+    biz_id = owner.business_id
+    query = select(ChatSession).where(ChatSession.id == session_id, ChatSession.business_id == biz_id)
+    session = (await db.execute(query)).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found.")
+
+    msg_query = (
+        select(ChatMessage)
+        .where(ChatMessage.session_id == session.id)
+        .order_by(ChatMessage.created_at)
+    )
+    messages = (await db.execute(msg_query)).scalars().all()
+    has_downvote = any(m.feedback == "down" for m in messages)
+
+    msg_responses = [
+        ChatMessageResponse(
+            id=m.id,
+            session_id=m.session_id,
+            sender=m.sender,
+            content=m.content,
+            is_answered=m.is_answered,
+            feedback=m.feedback,
+            sentiment=m.sentiment or session.sentiment or "neutral",
+            topic=m.topic or session.primary_topic or "general",
+            confidence_score=m.confidence_score,
+            latency_ms=m.latency_ms,
+            llm_provider_used=m.llm_provider_used,
+            citations=[SourceCitation(**c) for c in m.source_citations],
+            created_at=m.created_at
+        )
+        for m in messages
+    ]
+
+    return ChatSessionSummary(
+        session_id=session.id,
+        channel=session.channel,
+        customer_email=session.customer_email,
+        sentiment=session.sentiment or "neutral",
+        primary_topic=session.primary_topic or "general",
+        share_url=f"/share/{session.id}",
+        started_at=session.created_at,
+        message_count=len(messages),
+        has_downvote=has_downvote,
+        messages=msg_responses
+    )
+
+@router.get("/analytics", response_model=BusinessAnalyticsResponse)
+async def get_business_analytics(
+    days: int = Query(7, ge=1, le=90),
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Executive Business Analytics:
+    Calculates customer sentiment distribution, top inquiry topics,
+    resolution funnel, and daily volume trends for executive decision-making.
+    """
+    biz_id = owner.business_id
+    cutoff = datetime.utcnow() - timedelta(days=days)
+
+    # 1. Fetch all customer & assistant messages within date window
+    query = (
+        select(ChatMessage)
+        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+        .where(ChatSession.business_id == biz_id, ChatMessage.created_at >= cutoff)
+        .order_by(ChatMessage.created_at)
+    )
+    all_msgs = (await db.execute(query)).scalars().all()
+
+    customer_msgs = [m for m in all_msgs if m.sender == "customer"]
+    assistant_msgs = [m for m in all_msgs if m.sender == "assistant"]
+
+    total_queries = len(customer_msgs)
+
+    # 2. Sentiment Breakdown
+    sentiment_counts = {"positive": 0, "neutral": 0, "negative": 0}
+    for m in customer_msgs:
+        s = m.sentiment or sentiment_analyzer.analyze(m.content, m.feedback)[0]
+        if s in sentiment_counts:
+            sentiment_counts[s] += 1
+        else:
+            sentiment_counts["neutral"] += 1
+
+    total_s = max(total_queries, 1)
+    sentiment_breakdown = SentimentBreakdown(
+        positive=sentiment_counts["positive"],
+        neutral=sentiment_counts["neutral"],
+        negative=sentiment_counts["negative"],
+        positive_pct=round((sentiment_counts["positive"] / total_s) * 100, 1),
+        neutral_pct=round((sentiment_counts["neutral"] / total_s) * 100, 1),
+        negative_pct=round((sentiment_counts["negative"] / total_s) * 100, 1)
+    )
+
+    # 3. Topic Counts
+    topic_map = {"pricing": 0, "shipping": 0, "returns": 0, "products": 0, "support": 0, "general": 0}
+    for m in customer_msgs:
+        t = m.topic or topic_analyzer.classify(m.content)
+        if t in topic_map:
+            topic_map[t] += 1
+        else:
+            topic_map["general"] += 1
+
+    top_topics = [
+        TopicCount(topic=k, count=v, percentage=round((v / total_s) * 100, 1))
+        for k, v in sorted(topic_map.items(), key=lambda item: item[1], reverse=True)
+        if v > 0
+    ]
+
+    # 4. Daily Trends (last N days)
+    daily_groups = {}
+    for d in range(days):
+        day_date = (datetime.utcnow() - timedelta(days=days - 1 - d)).strftime("%Y-%m-%d")
+        daily_groups[day_date] = {
+            "total_queries": 0, "answered": 0, "unanswered": 0, "positive": 0, "negative": 0
+        }
+
+    for m in customer_msgs:
+        day_str = m.created_at.strftime("%Y-%m-%d")
+        if day_str in daily_groups:
+            daily_groups[day_str]["total_queries"] += 1
+            s = m.sentiment or sentiment_analyzer.analyze(m.content)[0]
+            if s == "positive":
+                daily_groups[day_str]["positive"] += 1
+            elif s == "negative":
+                daily_groups[day_str]["negative"] += 1
+
+    for m in assistant_msgs:
+        day_str = m.created_at.strftime("%Y-%m-%d")
+        if day_str in daily_groups:
+            if m.is_answered:
+                daily_groups[day_str]["answered"] += 1
+            else:
+                daily_groups[day_str]["unanswered"] += 1
+
+    daily_trend = [
+        DailyTrendItem(
+            date=k,
+            total_queries=v["total_queries"],
+            answered=v["answered"],
+            unanswered=v["unanswered"],
+            positive=v["positive"],
+            negative=v["negative"]
+        )
+        for k, v in daily_groups.items()
+    ]
+
+    # 5. Funnel
+    total_sessions = (await db.execute(
+        select(func.count(ChatSession.id)).where(ChatSession.business_id == biz_id, ChatSession.created_at >= cutoff)
+    )).scalar() or 0
+
+    ai_resolved = sum(1 for m in assistant_msgs if m.is_answered)
+    human_needed = sum(1 for m in assistant_msgs if not m.is_answered)
+    res_rate = round((ai_resolved / max(len(assistant_msgs), 1)) * 100, 1) if assistant_msgs else 100.0
+
+    funnel = ResolutionFunnel(
+        total_sessions=total_sessions,
+        total_queries=total_queries,
+        ai_resolved=ai_resolved,
+        human_followup_needed=human_needed,
+        resolution_rate=res_rate
+    )
+
+    # 6. Latency Metrics
+    latencies = [m.latency_ms for m in assistant_msgs if m.latency_ms > 0]
+    avg_ms = round(sum(latencies) / len(latencies), 1) if latencies else 0.0
+    min_ms = min(latencies) if latencies else 0
+    max_ms = max(latencies) if latencies else 0
+    sub_second = sum(1 for l in latencies if l < 1000)
+    sub_second_pct = round((sub_second / max(len(latencies), 1)) * 100, 1) if latencies else 100.0
+
+    latency_metrics = LatencySummary(
+        avg_ms=avg_ms,
+        min_ms=min_ms,
+        max_ms=max_ms,
+        sub_second_pct=sub_second_pct
+    )
+
+    return BusinessAnalyticsResponse(
+        total_queries=total_queries,
+        sentiment_breakdown=sentiment_breakdown,
+        top_topics=top_topics,
+        daily_trend=daily_trend,
+        funnel=funnel,
+        latency_metrics=latency_metrics
+    )
+
+@router.get("/export/powerbi")
+async def export_powerbi_dataset(
+    format: str = Query("csv", pattern="^(csv|json)$"),
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Exports a clean, flattened tabular dataset formatted specifically for
+    Power BI / Excel / Tableau customer sentiment and support analytics.
+    """
+    biz_id = owner.business_id
+
+    query = (
+        select(ChatMessage, ChatSession.customer_email, ChatSession.channel)
+        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+        .where(ChatSession.business_id == biz_id)
+        .order_by(ChatMessage.created_at)
+    )
+    records = (await db.execute(query)).all()
+
+    if format == "json":
+        data = []
+        for msg, cust_email, channel in records:
+            data.append({
+                "SessionID": msg.session_id,
+                "Timestamp": msg.created_at.isoformat(),
+                "CustomerEmail": cust_email or "anonymous",
+                "Channel": channel,
+                "Sender": msg.sender,
+                "MessageContent": msg.content,
+                "IsAnswered": bool(msg.is_answered),
+                "Topic": msg.topic or topic_analyzer.classify(msg.content),
+                "Sentiment": msg.sentiment or sentiment_analyzer.analyze(msg.content, msg.feedback)[0],
+                "Feedback": msg.feedback or "none",
+                "LatencyMS": msg.latency_ms,
+                "LLMProvider": msg.llm_provider_used,
+                "CitationsCount": len(msg.source_citations),
+                "ConfidenceScore": round(float(msg.confidence_score), 3)
+            })
+        return data
+
+    # CSV Format for Power BI
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "SessionID", "Timestamp", "CustomerEmail", "Channel", "Sender",
+        "MessageContent", "IsAnswered", "Topic", "Sentiment", "Feedback",
+        "LatencyMS", "LLMProvider", "CitationsCount", "ConfidenceScore"
+    ])
+
+    for msg, cust_email, channel in records:
+        writer.writerow([
+            msg.session_id,
+            msg.created_at.strftime("%Y-%m-%d %H:%M:%S"),
+            cust_email or "anonymous",
+            channel,
+            msg.sender,
+            msg.content.replace("\n", " ").replace("\r", " "),
+            "Yes" if msg.is_answered else "No",
+            msg.topic or topic_analyzer.classify(msg.content),
+            msg.sentiment or sentiment_analyzer.analyze(msg.content, msg.feedback)[0],
+            msg.feedback or "none",
+            msg.latency_ms,
+            msg.llm_provider_used,
+            len(msg.source_citations),
+            round(float(msg.confidence_score), 3)
+        ])
+
+    csv_data = output.getvalue()
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename=idevify_powerbi_dataset_{datetime.utcnow().strftime('%Y%m%d')}.csv"
+        }
+    )
 
 @router.post("/playground", response_model=PlaygroundTestResponse)
 async def test_playground_query(

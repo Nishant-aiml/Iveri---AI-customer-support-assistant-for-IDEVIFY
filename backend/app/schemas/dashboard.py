@@ -62,7 +62,52 @@ class ChatSessionSummary(BaseModel):
     session_id: str
     channel: str
     customer_email: Optional[str] = None
+    sentiment: str = "neutral"
+    primary_topic: str = "general"
+    share_url: Optional[str] = None
     started_at: datetime
     message_count: int
     has_downvote: bool
     messages: List[ChatMessageResponse] = []
+
+class SentimentBreakdown(BaseModel):
+    positive: int = 0
+    neutral: int = 0
+    negative: int = 0
+    positive_pct: float = 0.0
+    neutral_pct: float = 0.0
+    negative_pct: float = 0.0
+
+class TopicCount(BaseModel):
+    topic: str
+    count: int
+    percentage: float
+
+class DailyTrendItem(BaseModel):
+    date: str
+    total_queries: int = 0
+    answered: int = 0
+    unanswered: int = 0
+    positive: int = 0
+    negative: int = 0
+
+class ResolutionFunnel(BaseModel):
+    total_sessions: int = 0
+    total_queries: int = 0
+    ai_resolved: int = 0
+    human_followup_needed: int = 0
+    resolution_rate: float = 0.0
+
+class LatencySummary(BaseModel):
+    avg_ms: float = 0.0
+    min_ms: int = 0
+    max_ms: int = 0
+    sub_second_pct: float = 0.0
+
+class BusinessAnalyticsResponse(BaseModel):
+    total_queries: int = 0
+    sentiment_breakdown: SentimentBreakdown
+    top_topics: List[TopicCount] = []
+    daily_trend: List[DailyTrendItem] = []
+    funnel: ResolutionFunnel
+    latency_metrics: LatencySummary
