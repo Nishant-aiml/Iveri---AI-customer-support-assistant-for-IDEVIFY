@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iveri - AI Customer Support Assistant Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .tab-active { border-color: #3b82f6; color: #1d4ed8; font-weight: 600; }
+    .badge-success { background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .badge-warning { background-color: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    .badge-danger { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-md shadow-blue-500/20">
+          I
+        </div>
+        <div>
+          <span class="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">Iveri Assistant</span>
+          <span class="ml-2 text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full font-medium">Owner Portal</span>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        <div id="biz-header-badge" class="hidden sm:flex items-center space-x-2 text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span id="biz-header-name">Loading Business...</span>
+        </div>
+        <button onclick="openPublicChat()" class="px-3.5 py-1.5 text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition flex items-center gap-1.5">
+          <span>🚀 View Public Chat</span>
+        </button>
+        <button id="auth-action-btn" onclick="toggleAuthModal()" class="px-3.5 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-900 text-white rounded-lg transition">
+          Sign In
+        </button>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 overflow-x-auto text-sm border-t border-slate-100">
+      <button onclick="switchTab('overview')" id="tab-overview" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 tab-active">Overview</button>
+      <button onclick="switchTab('documents')" id="tab-documents" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800">Documents</button>
+      <button onclick="switchTab('unanswered')" id="tab-unanswered" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5">
+        <span>Unanswered Questions</span>
+        <span id="unanswered-badge-count" class="hidden px-1.5 py-0.5 text-[10px] bg-rose-100 text-rose-700 rounded-full font-bold">0</span>
+      </button>
+      <button onclick="switchTab('chats')" id="tab-chats" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800">Chat History</button>
+      <button onclick="switchTab('playground')" id="tab-playground" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800">RAG Playground</button>
+      <button onclick="switchTab('settings')" id="tab-settings" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800">Widget & Settings</button>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- 1. OVERVIEW TAB -->
+    <section id="view-overview" class="space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Performance Analytics</h2>
+          <p class="text-sm text-slate-500">Live operational metrics for your AI customer support assistant.</p>
+        </div>
+        <button onclick="loadDashboardData()" class="self-start sm:self-auto px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-xs font-semibold rounded-lg text-slate-700 shadow-xs flex items-center gap-1.5">
+          <span>🔄 Refresh Data</span>
+        </button>
+      </div>
+
+      <!-- Metric Cards Grid -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Customer Chats</span>
+          <div class="flex items-baseline justify-between">
+            <span id="stat-total-chats" class="text-3xl font-extrabold text-slate-900">0</span>
+            <span class="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">Sessions</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Questions Asked</span>
+          <div class="flex items-baseline justify-between">
+            <span id="stat-total-questions" class="text-3xl font-extrabold text-slate-900">0</span>
+            <span class="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded font-medium">Inquiries</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Resolution Rate</span>
+          <div class="flex items-baseline justify-between">
+            <span id="stat-resolution-rate" class="text-3xl font-extrabold text-emerald-600">100%</span>
+            <span id="stat-answered-ratio" class="text-xs text-slate-500">0 answered</span>
+          </div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Customer Feedback</span>
+          <div class="flex items-baseline justify-between">
+            <div class="flex items-center space-x-3">
+              <span class="text-lg font-bold text-emerald-600">👍 <span id="stat-thumbs-up">0</span></span>
+              <span class="text-lg font-bold text-rose-600">👎 <span id="stat-thumbs-down">0</span></span>
+            </div>
+            <span class="text-xs text-slate-400">Total votes</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary Metrics -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Unanswered Inquiries</span>
+          <div class="flex items-center justify-between">
+            <span id="stat-unanswered" class="text-2xl font-bold text-rose-600">0</span>
+            <button onclick="switchTab('unanswered')" class="text-xs text-blue-600 hover:underline">Review & Resolve &rarr;</button>
+          </div>
+          <p class="text-xs text-slate-500">Queries where documents lacked information.</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Knowledge Base Volume</span>
+          <div class="flex items-center justify-between">
+            <span id="stat-documents" class="text-2xl font-bold text-slate-900">0 docs</span>
+            <span id="stat-chunks" class="text-xs text-slate-500">0 indexed chunks</span>
+          </div>
+          <p class="text-xs text-slate-500">Vectorized via ChromaDB & BM25Plus.</p>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Average RAG Latency</span>
+          <div class="flex items-center justify-between">
+            <span id="stat-latency" class="text-2xl font-bold text-slate-900">0 ms</span>
+            <span class="text-xs px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-mono">&lt; 10ms Circuit Breaker</span>
+          </div>
+          <p class="text-xs text-slate-500">LLM generation + hybrid search round-trip.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. DOCUMENTS TAB -->
+    <section id="view-documents" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Document Management</h2>
+          <p class="text-sm text-slate-500">Upload policies, product guides, and FAQs (PDF, DOCX, TXT).</p>
+        </div>
+        <button onclick="document.getElementById('doc-file-input').click()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2">
+          <span>📁 Upload Document</span>
+        </button>
+        <input type="file" id="doc-file-input" class="hidden" accept=".pdf,.docx,.txt" onchange="uploadDocumentFile(event)" />
+      </div>
+
+      <!-- Upload Drop Area -->
+      <div onclick="document.getElementById('doc-file-input').click()" class="border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-2xl p-8 text-center bg-white cursor-pointer transition">
+        <div class="w-12 h-12 mx-auto rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-3">
+          📄
+        </div>
+        <p class="text-sm font-semibold text-slate-700">Click to upload or drag files here</p>
+        <p class="text-xs text-slate-400 mt-1">Supported: PDF, DOCX, TXT (up to 20MB). Dual parsing: Sarvam AI + PyMuPDF fallback.</p>
+      </div>
+
+      <!-- Documents Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <h3 class="font-bold text-slate-800 text-sm">Indexed Documents</h3>
+          <span id="doc-table-count" class="text-xs text-slate-400">0 documents</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200">
+              <tr>
+                <th class="px-6 py-3">Filename</th>
+                <th class="px-6 py-3">Type</th>
+                <th class="px-6 py-3">Status</th>
+                <th class="px-6 py-3">Chunks</th>
+                <th class="px-6 py-3">Uploaded</th>
+                <th class="px-6 py-3 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="documents-tbody" class="divide-y divide-slate-200">
+              <tr>
+                <td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">No documents uploaded yet.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. UNANSWERED QUESTIONS TAB -->
+    <section id="view-unanswered" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Unanswered Questions & Closed-Loop Resolution</h2>
+          <p class="text-sm text-slate-500">Review questions where the AI had no grounded answers and provide authoritative answers to train the knowledge base.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <select id="unanswered-filter-select" onchange="loadUnansweredQuestions()" class="text-xs border border-slate-200 rounded-lg px-3 py-1.5 bg-white font-medium">
+            <option value="">All Statuses</option>
+            <option value="false" selected>Pending Unresolved</option>
+            <option value="true">Resolved</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Unanswered Table -->
+      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200">
+              <tr>
+                <th class="px-6 py-3">Customer Question</th>
+                <th class="px-6 py-3">Captured Lead</th>
+                <th class="px-6 py-3">Score</th>
+                <th class="px-6 py-3">Status</th>
+                <th class="px-6 py-3">Asked At</th>
+                <th class="px-6 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="unanswered-tbody" class="divide-y divide-slate-200">
+              <tr>
+                <td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">Loading unanswered inquiries...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. CHAT HISTORY TAB -->
+    <section id="view-chats" class="hidden space-y-6">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Conversation History & Quality Audit</h2>
+          <p class="text-sm text-slate-500">Inspect full customer conversation transcripts and filter for negative votes to improve responses.</p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <button id="filter-all-chats" onclick="loadChatHistory()" class="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg">All Chats</button>
+          <button id="filter-down-chats" onclick="loadChatHistory('down')" class="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-rose-700 rounded-lg flex items-center gap-1">
+            <span>👎 Downvoted Only</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Chats Accordion Container -->
+      <div id="chats-container" class="space-y-4">
+        <div class="bg-white p-8 text-center text-xs text-slate-400 rounded-2xl border border-slate-200">
+          Loading conversation history...
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. RAG PLAYGROUND TAB -->
+    <section id="view-playground" class="hidden space-y-6">
+      <div>
+        <h2 class="text-2xl font-bold text-slate-900">RAG Test Playground</h2>
+        <p class="text-sm text-slate-500">Test search retrieval and verify circuit-breaker thresholding before publishing to customers.</p>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div class="flex gap-2">
+          <input 
+            type="text" 
+            id="playground-query-input" 
+            placeholder="Type a sample customer question (e.g., 'What is your refund timeframe?')" 
+            class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            onkeydown="if(event.key==='Enter') runPlaygroundTest()"
+          />
+          <button onclick="runPlaygroundTest()" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-xs transition">
+            Run Test
+          </button>
+        </div>
+
+        <!-- Playground Output Area -->
+        <div id="playground-results" class="hidden space-y-4 pt-4 border-t border-slate-100">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase text-slate-400">Circuit Breaker Status</span>
+            <span id="pg-cb-badge" class="px-2.5 py-1 text-xs rounded-full font-bold">Passed</span>
+          </div>
+
+          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+            <span class="text-xs font-bold text-slate-500 uppercase">Assistant Answer Preview</span>
+            <p id="pg-answer-text" class="text-sm text-slate-800 leading-relaxed font-sans"></p>
+            <div class="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/60">
+              <span>Provider: <strong id="pg-provider" class="text-slate-600">Gemini Flash</strong></span>
+              <span>Round-trip Latency: <strong id="pg-latency" class="text-slate-600">0ms</strong></span>
+            </div>
+          </div>
+
+          <!-- Retrieved Chunks Breakdown -->
+          <div>
+            <span class="text-xs font-bold uppercase text-slate-400">Retrieved Grounding Chunks</span>
+            <div id="pg-chunks-list" class="mt-2 space-y-2"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. SETTINGS & WIDGET TAB -->
+    <section id="view-settings" class="hidden space-y-6">
+      <div>
+        <h2 class="text-2xl font-bold text-slate-900">Widget & Assistant Settings</h2>
+        <p class="text-sm text-slate-500">Configure assistant persona, fallback message, and embed the floating widget on your website.</p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Settings Form -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+          <h3 class="font-bold text-slate-800 text-sm">Assistant Customization</h3>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Business Name</label>
+            <input type="text" id="setting-name" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Tone of Voice</label>
+            <select id="setting-tone" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+              <option value="professional">Professional & Formal</option>
+              <option value="friendly">Warm & Friendly</option>
+              <option value="concise">Concise & Direct</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Fallback Message (when information is missing)</label>
+            <textarea id="setting-fallback" rows="3" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm"></textarea>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Primary Brand Color</label>
+            <input type="color" id="setting-color" class="h-9 w-20 border border-slate-200 rounded cursor-pointer" />
+          </div>
+          <button onclick="saveAssistantSettings()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition">
+            Save Settings
+          </button>
+        </div>
+
+        <!-- Shareable Link & Embed Snippet -->
+        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
+          <div>
+            <h3 class="font-bold text-slate-800 text-sm">Shareable Customer Chat Link</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Share this direct link with your customers via email or social bio.</p>
+            <div class="flex items-center gap-2 mt-2">
+              <input type="text" id="share-link-input" readonly class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-600" />
+              <button onclick="copyToClipboard('share-link-input')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">Copy</button>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-100 pt-4">
+            <h3 class="font-bold text-slate-800 text-sm">Embeddable Website Widget</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Paste this small snippet right before the &lt;/body&gt; tag of your website.</p>
+            <div class="mt-2 relative">
+              <textarea id="widget-snippet" readonly rows="5" class="w-full p-3 bg-slate-900 text-emerald-400 rounded-xl text-xs font-mono focus:outline-none"></textarea>
+              <button onclick="copyToClipboard('widget-snippet')" class="absolute top-2 right-2 px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold rounded">Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Resolve Question Modal -->
+  <div id="resolve-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b pb-2">
+        <h3 class="font-bold text-slate-800 text-base">Answer & Add to Knowledge Base</h3>
+        <button onclick="closeResolveModal()" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+      </div>
+      <div>
+        <span class="text-xs font-semibold text-slate-400 uppercase">Customer Asked</span>
+        <p id="resolve-modal-question" class="mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium text-slate-800"></p>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1">Authoritative Business Answer</label>
+        <textarea id="resolve-modal-answer" rows="4" placeholder="Enter the exact policy, detail, or answer. This will be vectorized into the knowledge base..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+      </div>
+      <div class="flex justify-end space-x-2 pt-2">
+        <button onclick="closeResolveModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Cancel</button>
+        <button onclick="submitResolution()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs">Train & Save Answer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sign In Modal -->
+  <div id="auth-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="text-center">
+        <h3 class="font-bold text-slate-900 text-lg">Owner Sign In</h3>
+        <p class="text-xs text-slate-400">Access your business AI support control center.</p>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Email</label>
+          <input type="email" id="auth-email" placeholder="owner@store.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+          <input type="password" id="auth-password" placeholder="••••••••" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+        </div>
+        <button onclick="performLogin()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition">
+          Sign In
+        </button>
+        <div class="text-center pt-2">
+          <button onclick="quickDemoLogin()" class="text-xs text-blue-600 hover:underline">
+            Quick Auto-Register & Demo Account
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let authToken = localStorage.getItem('iveri_token') || '';
+    let currentBusiness = null;
+    let activeResolvingId = null;
+
+    async function init() {
+      if (!authToken) {
+        toggleAuthModal();
+      } else {
+        await loadBusinessProfile();
+        loadDashboardData();
+      }
+    }
+
+    async function loadBusinessProfile() {
+      try {
+        const res = await fetch('/api/business/settings', {
+          headers: {'Authorization': `Bearer ${authToken}`}
+        });
+        if (res.ok) {
+          currentBusiness = await res.json();
+          document.getElementById('biz-header-name').innerText = currentBusiness.name;
+          document.getElementById('biz-header-badge').classList.remove('hidden');
+          document.getElementById('auth-action-btn').innerText = 'Signed In';
+          document.getElementById('auth-action-btn').onclick = logout;
+
+          // Populate settings
+          document.getElementById('setting-name').value = currentBusiness.name;
+          document.getElementById('setting-tone').value = currentBusiness.tone || 'professional';
+          document.getElementById('setting-fallback').value = currentBusiness.fallback_message || '';
+          document.getElementById('setting-color').value = currentBusiness.primary_color || '#3b82f6';
+
+          const shareUrl = `${window.location.origin}/chat/${currentBusiness.slug}`;
+          document.getElementById('share-link-input').value = shareUrl;
+
+          document.getElementById('widget-snippet').value = 
+`<script 
+  src="${window.location.origin}/widget.js" 
+  data-business="${currentBusiness.slug}">
+<\/script>`;
+        } else {
+          // Token invalid or expired
+          logout();
+        }
+      } catch (e) {
+        console.error("Profile load failed:", e);
+      }
+    }
+
+    async function loadDashboardData() {
+      if (!authToken) return;
+      try {
+        const res = await fetch('/api/dashboard/stats', {
+          headers: {'Authorization': `Bearer ${authToken}`}
+        });
+        if (res.ok) {
+          const stats = await res.json();
+          document.getElementById('stat-total-chats').innerText = stats.total_chats;
+          document.getElementById('stat-total-questions').innerText = stats.total_questions;
+          document.getElementById('stat-resolution-rate').innerText = `${stats.resolution_rate}%`;
+          document.getElementById('stat-answered-ratio').innerText = `${stats.answered_count} answered`;
+          document.getElementById('stat-thumbs-up').innerText = stats.thumbs_up_count;
+          document.getElementById('stat-thumbs-down').innerText = stats.thumbs_down_count;
+          document.getElementById('stat-unanswered').innerText = stats.unanswered_count;
+          document.getElementById('stat-documents').innerText = `${stats.total_documents} docs`;
+          document.getElementById('stat-chunks').innerText = `${stats.indexed_chunks} chunks`;
+          document.getElementById('stat-latency').innerText = `${stats.avg_latency_ms} ms`;
+
+          if (stats.unanswered_count > 0) {
+            const badge = document.getElementById('unanswered-badge-count');
+            badge.innerText = stats.unanswered_count;
+            badge.classList.remove('hidden');
+          }
+        }
+      } catch (e) {
+        console.error("Stats load failed:", e);
+      }
+    }
+
+    async function loadDocuments() {
+      if (!authToken) return;
+      try {
+        const res = await fetch('/api/documents', {
+          headers: {'Authorization': `Bearer ${authToken}`}
+        });
+        if (res.ok) {
+          const docs = await res.json();
+          document.getElementById('doc-table-count').innerText = `${docs.length} documents`;
+          const tbody = document.getElementById('documents-tbody');
+          if (docs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">No documents uploaded yet.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = docs.map(d => `
+            <tr>
+              <td class="px-6 py-3 font-semibold text-slate-800">${escapeHtml(d.filename)}</td>
+              <td class="px-6 py-3 uppercase text-xs font-mono text-slate-500">${escapeHtml(d.file_type)}</td>
+              <td class="px-6 py-3">
+                <span class="px-2 py-0.5 text-[11px] rounded-full font-bold ${d.status==='indexed'?'badge-success':(d.status==='processing'?'badge-warning':'badge-danger')}">
+                  ${d.status}
+                </span>
+              </td>
+              <td class="px-6 py-3 font-mono text-xs">${d.chunk_count}</td>
+              <td class="px-6 py-3 text-xs text-slate-400">${new Date(d.created_at).toLocaleDateString()}</td>
+              <td class="px-6 py-3 text-right">
+                <button onclick="deleteDoc('${d.id}')" class="text-rose-600 hover:text-rose-800 text-xs font-semibold">Delete</button>
+              </td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {
+        console.error("Docs load error:", e);
+      }
+    }
+
+    async function uploadDocumentFile(event) {
+      const file = event.target.files[0];
+      if (!file || !authToken) return;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const res = await fetch('/api/documents/upload', {
+          method: 'POST',
+          headers: {'Authorization': `Bearer ${authToken}`},
+          body: formData
+        });
+        if (res.ok) {
+          alert("Document uploaded successfully! Queued for background parsing & hybrid indexing.");
+          loadDocuments();
+          loadDashboardData();
+        } else {
+          alert("Upload failed.");
+        }
+      } catch (e) {
+        console.error("Upload error:", e);
+      }
+    }
+
+    async function deleteDoc(docId) {
+      if (!confirm("Are you sure you want to delete this document?")) return;
+      try {
+        const res = await fetch(`/api/documents/${docId}`, {
+          method: 'DELETE',
+          headers: {'Authorization': `Bearer ${authToken}`}
+        });
+        if (res.ok) {
+          loadDocuments();
+          loadDashboardData();
+        }
+      } catch (e) {
+        console.error("Delete error:", e);
+      }
+    }
+
+    async function loadUnansweredQuestions() {
+      if (!authToken) return;
+      const filterVal = document.getElementById('unanswered-filter-select').value;
+      const url = filterVal ? `/api/dashboard/unanswered?is_resolved=${filterVal}` : '/api/dashboard/unanswered';
+      try {
+        const res = await fetch(url, {
+          headers: {'Authorization': `Bearer ${authToken}`}
+        });
+        if (res.ok) {
+          const items = await res.json();
+          const tbody = document.getElementById('unanswered-tbody');
+          if (items.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">No unanswered questions in this category.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = items.map(u => `
+            <tr>
+              <td class="px-6 py-3 font-medium text-slate-800 max-w-xs break-words">${escapeHtml(u.question_text)}</td>
+              <td class="px-6 py-3 text-xs text-slate-500">${u.customer_email ? `<span class="text-blue-600 font-semibold">${escapeHtml(u.customer_email)}</span>` : '<span class="text-slate-300">None</span>'}</td>
+              <td class="px-6 py-3 font-mono text-xs">${u.top_retrieval_score.toFixed(3)}</td>
+              <td class="px-6 py-3">
+                <span class="px-2 py-0.5 text-[11px] rounded-full font-bold ${u.is_resolved ? 'badge-success' : 'badge-warning'}">
+                  ${u.is_resolved ? 'Resolved' : 'Pending'}
+                </span>
+              </td>
+              <td class="px-6 py-3 text-xs text-slate-400">${new Date(u.created_at).toLocaleDateString()}</td>
+              <td class="px-6 py-3 text-right">
+                ${!u.is_resolved ? `
+                  <button onclick="openResolveModal('${u.id}', '${escapeHtml(u.question_text).replace(/'/g, "\\'")}')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold">
+                    Resolve & Train
+                  </button>
+                ` : `
+                  <span class="text-xs text-slate-400">Learned ✓</span>
+                `}
+              </td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {
+        console.error("Unanswered fetch error:", e);
+      }
+    }
+
+    function openResolveModal(id, questionText) {
+      activeResolvingId = id;
+      document.getElementById('resolve-modal-question').innerText = questionText;
+      document.getElementById('resolve-modal-answer').value = '';
+      document.getElementById('resolve-modal').classList.remove('hidden');
+    }
+
+    function closeResolveModal() {
+      document.getElementById('resolve-modal').classList.add('hidden');
+      activeResolvingId = null;
+    }
+
+    async function submitResolution() {
+      const answer = document.getElementById('resolve-modal-answer').value.trim();
+      if (!answer || !activeResolvingId) return;
+
+      try {
+        const res = await fetch(`/api/dashboard/unanswered/${activeResolvingId}/resolve`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ answer_text: answer })
+        });
+        if (res.ok) {
+          closeResolveModal();
+          alert("Answer indexed into knowledge base! The assistant will now answer future inquiries with this resolution.");
+          loadUnansweredQuestions();
+          loadDashboardData();
+        } else {
+          alert("Failed to submit resolution.");
+        }
+      } catch (e) {
+        console.error("Resolution submit error:", e);
+      }
+    }
+
+    async function loadChatHistory(feedback = null) {
+      if (!authToken) return;
+      const url = feedback ? `/api/dashboard/chats?feedback=${feedback}` : '/api/dashboard/chats';
+      try {
+        const res = await fetch(url, {
+          headers: {'Authorization': `Bearer ${authToken}`}
+        });
+        if (res.ok) {
+          const sessions = await res.json();
+          const container = document.getElementById('chats-container');
+          if (sessions.length === 0) {
+            container.innerHTML = '<div class="bg-white p-8 text-center text-xs text-slate-400 rounded-2xl border border-slate-200">No conversations found.</div>';
+            return;
+          }
+          container.innerHTML = sessions.map(s => `
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+              <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+                <div class="flex items-center space-x-3">
+                  <span class="font-bold text-slate-700">Session #${s.session_id.substring(0, 8)}</span>
+                  <span class="text-slate-400">Channel: ${s.channel}</span>
+                  ${s.customer_email ? `<span class="text-blue-600 font-semibold">Lead: ${escapeHtml(s.customer_email)}</span>` : ''}
+                </div>
+                <div class="flex items-center space-x-2">
+                  ${s.has_downvote ? '<span class="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full font-bold">👎 Contains Downvote</span>' : ''}
+                  <span class="text-slate-400">${new Date(s.started_at).toLocaleString()}</span>
+                </div>
+              </div>
+              <div class="p-4 space-y-3">
+                ${s.messages.map(m => `
+                  <div class="text-xs space-y-1">
+                    <span class="font-bold ${m.sender==='customer'?'text-blue-600':'text-indigo-600'} uppercase">${m.sender}:</span>
+                    <p class="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-slate-800">${escapeHtml(m.content)}</p>
+                    ${m.citations && m.citations.length > 0 ? `
+                      <div class="text-[10px] text-slate-400 flex gap-2">
+                        <span>Citations:</span>
+                        ${m.citations.map(c => `<span>[${escapeHtml(c.document_name)}, p.${c.page_number}]</span>`).join('')}
+                      </div>
+                    ` : ''}
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('');
+        }
+      } catch (e) {
+        console.error("Chats load error:", e);
+      }
+    }
+
+    async function runPlaygroundTest() {
+      const query = document.getElementById('playground-query-input').value.trim();
+      if (!query || !authToken) return;
+
+      try {
+        const res = await fetch('/api/dashboard/playground', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ query })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('playground-results').classList.remove('hidden');
+
+          const cbBadge = document.getElementById('pg-cb-badge');
+          if (data.circuit_breaker_passed) {
+            cbBadge.className = 'px-2.5 py-1 text-xs rounded-full font-bold badge-success';
+            cbBadge.innerText = 'Allowed (Sufficient Confidence)';
+          } else {
+            cbBadge.className = 'px-2.5 py-1 text-xs rounded-full font-bold badge-danger';
+            cbBadge.innerText = 'Blocked by Circuit Breaker (Zero Hallucination)';
+          }
+
+          document.getElementById('pg-answer-text').innerText = data.generated_answer;
+          document.getElementById('pg-provider').innerText = data.llm_provider;
+          document.getElementById('pg-latency').innerText = `${data.latency_ms}ms`;
+
+          const cList = document.getElementById('pg-chunks-list');
+          cList.innerHTML = data.retrieved_chunks.map(c => `
+            <div class="p-3 bg-white border border-slate-200 rounded-xl text-xs space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-blue-700">${escapeHtml(c.document_name)} (p.${c.page_number})</span>
+                <span class="px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-mono text-[10px]">${c.retrieval_type} • Score: ${c.score}</span>
+              </div>
+              <p class="text-slate-600 font-mono text-[11px]">${escapeHtml(c.text_excerpt)}</p>
+            </div>
+          `).join('');
+        }
+      } catch (e) {
+        console.error("Playground test error:", e);
+      }
+    }
+
+    async function saveAssistantSettings() {
+      if (!authToken) return;
+      const body = {
+        name: document.getElementById('setting-name').value,
+        tone: document.getElementById('setting-tone').value,
+        fallback_message: document.getElementById('setting-fallback').value,
+        primary_color: document.getElementById('setting-color').value
+      };
+      try {
+        const res = await fetch('/api/business/settings', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify(body)
+        });
+        if (res.ok) {
+          alert("Settings updated successfully!");
+          loadBusinessProfile();
+        }
+      } catch (e) {
+        console.error("Settings save error:", e);
+      }
+    }
+
+    function switchTab(tabId) {
+      ['overview', 'documents', 'unanswered', 'chats', 'playground', 'settings'].forEach(t => {
+        document.getElementById(`view-${t}`).classList.add('hidden');
+        document.getElementById(`tab-${t}`).classList.remove('tab-active');
+      });
+      document.getElementById(`view-${tabId}`).classList.remove('hidden');
+      document.getElementById(`tab-${tabId}`).classList.add('tab-active');
+
+      if (tabId === 'documents') loadDocuments();
+      if (tabId === 'unanswered') loadUnansweredQuestions();
+      if (tabId === 'chats') loadChatHistory();
+    }
+
+    function toggleAuthModal() {
+      document.getElementById('auth-modal').classList.toggle('hidden');
+    }
+
+    async function performLogin() {
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ email, password })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          authToken = data.access_token;
+          localStorage.setItem('iveri_token', authToken);
+          toggleAuthModal();
+          init();
+        } else {
+          alert("Invalid email or password.");
+        }
+      } catch (e) {
+        console.error("Login error:", e);
+      }
+    }
+
+    async function quickDemoLogin() {
+      const demoEmail = `owner_${Date.now()}@iveri-demo.com`;
+      const demoPass = "IveriDemo123!";
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            email: demoEmail,
+            password: demoPass,
+            business_name: "Iveri Electronics & Apparel Store"
+          })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          authToken = data.access_token;
+          localStorage.setItem('iveri_token', authToken);
+          toggleAuthModal();
+          init();
+        }
+      } catch (e) {
+        console.error("Quick demo login error:", e);
+      }
+    }
+
+    function logout() {
+      authToken = '';
+      localStorage.removeItem('iveri_token');
+      location.reload();
+    }
+
+    function openPublicChat() {
+      if (currentBusiness && currentBusiness.slug) {
+        window.open(`/chat/${currentBusiness.slug}`, '_blank');
+      } else {
+        alert("Please sign in first.");
+      }
+    }
+
+    function copyToClipboard(elementId) {
+      const el = document.getElementById(elementId);
+      el.select();
+      document.execCommand('copy');
+      alert("Copied to clipboard!");
+    }
+
+    function escapeHtml(text) {
+      return (text || '').replace(/[&<>"']/g, function(m) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m];
+      });
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>

@@ -6,7 +6,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, business, documents, chat
+from app.routers import auth, business, documents, chat, dashboard
 from app.services.ingestion_queue import ingestion_queue
 
 logging.basicConfig(
@@ -47,6 +47,7 @@ app.include_router(auth.router)
 app.include_router(business.router)
 app.include_router(documents.router)
 app.include_router(chat.router)
+app.include_router(dashboard.router)
 
 @app.get("/api/health", tags=["Health"])
 async def health_check():
@@ -66,3 +67,16 @@ async def serve_widget_script():
     """Serves the standalone embeddable chat widget script."""
     widget_path = os.path.join(os.path.dirname(__file__), "static", "widget.js")
     return FileResponse(widget_path, media_type="application/javascript")
+
+@app.get("/dashboard", tags=["UI"])
+@app.get("/", tags=["UI"])
+async def serve_dashboard_ui():
+    """Serves the Business Owner Analytics and Management Portal."""
+    index_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
+    return FileResponse(index_path, media_type="text/html")
+
+@app.get("/chat/{slug}", tags=["UI"])
+async def serve_customer_chat_ui(slug: str):
+    """Serves the Customer Support Chat Web Application."""
+    chat_path = os.path.join(os.path.dirname(__file__), "static", "chat.html")
+    return FileResponse(chat_path, media_type="text/html")
