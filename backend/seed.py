@@ -1,6 +1,5 @@
 import os
 import sys
-import uuid
 import asyncio
 import logging
 from datetime import datetime, timedelta
@@ -8,9 +7,7 @@ from datetime import datetime, timedelta
 # Ensure backend directory is in python path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__))))
 
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import delete
 
 from app.database import AsyncSessionLocal, init_db
 from app.models.business import Business

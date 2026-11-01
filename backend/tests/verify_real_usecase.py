@@ -7,7 +7,6 @@ import httpx
 sys.path.insert(0, os.path.abspath("backend"))
 
 from app.main import app, lifespan
-from app.services.ingestion_queue import ingestion_queue
 
 async def run_live_verification():
     async with lifespan(app):
