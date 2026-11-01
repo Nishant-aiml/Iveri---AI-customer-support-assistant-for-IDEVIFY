@@ -1,59 +1,146 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Iveri - AI Customer Support Assistant Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <title>Iveri - AI Customer Support Assistant Console</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "background": "#090A0F",
+            "surface": "#0D0F17",
+            "surface-container": "#131622",
+            "surface-container-high": "#1E2438",
+            "surface-bright": "#282E46",
+            "outline-variant": "#1F2438",
+            "primary": "#6366F1",
+            "primary-hover": "#4F46E5",
+            "secondary": "#8B5CF6",
+            "tertiary": "#10B981",
+            "on-surface": "#E2E1ED",
+            "on-surface-variant": "#94A3B8",
+            "card-border": "#1F2438"
+          },
+          fontFamily: {
+            sans: ["Geist", "sans-serif"],
+            mono: ["JetBrains Mono", "monospace"]
+          }
+        }
+      }
+    };
+  </script>
   <style>
-    body { font-family: 'Inter', sans-serif; }
-    .tab-active { border-color: #3b82f6; color: #1d4ed8; font-weight: 600; }
-    .badge-success { background-color: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-    .badge-warning { background-color: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
-    .badge-danger { background-color: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+    body {
+      background-color: #090A0F;
+      color: #E2E1ED;
+      font-family: 'Geist', sans-serif;
+    }
+    .glass-card {
+      background-color: #131622;
+      border: 1px solid #1F2438;
+      box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    }
+    .tab-active {
+      border-color: #6366F1 !important;
+      color: #FFFFFF !important;
+      font-weight: 600;
+    }
+    .badge-success {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: #10B981;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .badge-warning {
+      background-color: rgba(245, 158, 11, 0.1);
+      color: #F59E0B;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    .badge-danger {
+      background-color: rgba(244, 63, 94, 0.1);
+      color: #F43F5E;
+      border: 1px solid rgba(244, 63, 94, 0.25);
+    }
   </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-800">
+<body class="bg-background min-h-screen text-on-surface antialiased selection:bg-primary/30 selection:text-white">
 
-  <!-- Top Navigation Bar -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+  <!-- Top Navigation Bar (Obsidian Kinetic) -->
+  <header class="bg-surface/90 border-b border-outline-variant sticky top-0 z-40 backdrop-blur-md">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Logo and Brand -->
       <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white font-black text-xl shadow-md shadow-blue-500/20">
-          I
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-primary to-secondary flex items-center justify-center text-white font-bold text-lg shadow-[0_0_20px_rgba(99,102,241,0.3)]">
+          <span class="material-symbols-outlined text-[20px]">smart_toy</span>
         </div>
         <div>
-          <span class="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-700 bg-clip-text text-transparent">Iveri Assistant</span>
-          <span class="ml-2 text-xs px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full font-medium">Owner Portal</span>
+          <div class="flex items-center gap-2">
+            <span class="text-base font-bold text-white tracking-tight">Iveri Console</span>
+            <span class="px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/25 text-[10px] font-mono font-medium">Owner Portal</span>
+          </div>
+          <span class="text-[11px] text-on-surface-variant font-mono">Owner Management Suite</span>
         </div>
       </div>
 
-      <div class="flex items-center space-x-4">
-        <div id="biz-header-badge" class="hidden sm:flex items-center space-x-2 text-xs text-slate-500 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span id="biz-header-name">Loading Business...</span>
-        </div>
-        <button onclick="openPublicChat()" class="px-3.5 py-1.5 text-xs font-semibold bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg transition flex items-center gap-1.5">
-          <span>🚀 View Public Chat</span>
+      <!-- Center Status / Tenant Pill -->
+      <div id="biz-header-badge" class="hidden sm:flex items-center space-x-2 text-xs font-mono text-on-surface-variant bg-surface-container px-3.5 py-1.5 rounded-full border border-outline-variant">
+        <span class="relative flex h-2 w-2">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-tertiary opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2 w-2 bg-tertiary"></span>
+        </span>
+        <span class="text-on-surface-variant">BUSINESS:</span>
+        <span id="biz-header-name" class="text-white font-medium">Loading...</span>
+        <span class="text-outline-variant">•</span>
+        <span class="text-tertiary">142ms Hybrid Top-K</span>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="flex items-center space-x-3">
+        <button onclick="openPublicChat()" class="px-3.5 py-1.5 text-xs font-medium bg-surface-container hover:bg-surface-container-high text-white border border-outline-variant hover:border-primary/50 rounded-lg transition-all flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[15px] text-primary">open_in_new</span>
+          <span>View Public Chat</span>
         </button>
-        <button id="auth-action-btn" onclick="toggleAuthModal()" class="px-3.5 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-900 text-white rounded-lg transition">
+        <button id="auth-action-btn" onclick="toggleAuthModal()" class="px-4 py-1.5 text-xs font-medium bg-primary hover:bg-primary-hover text-white rounded-lg transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
           Sign In
         </button>
       </div>
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 overflow-x-auto text-sm border-t border-slate-100">
-      <button onclick="switchTab('overview')" id="tab-overview" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 tab-active">Overview</button>
-      <button onclick="switchTab('documents')" id="tab-documents" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800">Documents</button>
-      <button onclick="switchTab('unanswered')" id="tab-unanswered" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800 flex items-center gap-1.5">
-        <span>Unanswered Questions</span>
-        <span id="unanswered-badge-count" class="hidden px-1.5 py-0.5 text-[10px] bg-rose-100 text-rose-700 rounded-full font-bold">0</span>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 overflow-x-auto text-xs border-t border-outline-variant/60 font-mono">
+      <button onclick="switchTab('overview')" id="tab-overview" class="py-3 px-1 border-b-2 border-transparent text-on-surface-variant hover:text-white transition tab-active flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[16px]">dashboard</span>
+        <span>Overview</span>
       </button>
-      <button onclick="switchTab('chats')" id="tab-chats" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800">Chat History</button>
-      <button onclick="switchTab('playground')" id="tab-playground" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800">RAG Playground</button>
-      <button onclick="switchTab('settings')" id="tab-settings" class="py-3 px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-800">Widget & Settings</button>
+      <button onclick="switchTab('documents')" id="tab-documents" class="py-3 px-1 border-b-2 border-transparent text-on-surface-variant hover:text-white transition flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[16px]">folder</span>
+        <span>Documents</span>
+      </button>
+      <button onclick="switchTab('unanswered')" id="tab-unanswered" class="py-3 px-1 border-b-2 border-transparent text-on-surface-variant hover:text-white transition flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[16px]">help_outline</span>
+        <span>Unanswered Queue</span>
+        <span id="unanswered-badge-count" class="hidden px-1.5 py-0.2 text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-full font-bold">0</span>
+      </button>
+      <button onclick="switchTab('chats')" id="tab-chats" class="py-3 px-1 border-b-2 border-transparent text-on-surface-variant hover:text-white transition flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[16px]">chat</span>
+        <span>Chat History</span>
+      </button>
+      <button onclick="switchTab('playground')" id="tab-playground" class="py-3 px-1 border-b-2 border-transparent text-on-surface-variant hover:text-white transition flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[16px]">science</span>
+        <span>RAG Playground</span>
+      </button>
+      <button onclick="switchTab('settings')" id="tab-settings" class="py-3 px-1 border-b-2 border-transparent text-on-surface-variant hover:text-white transition flex items-center gap-1.5">
+        <span class="material-symbols-outlined text-[16px]">settings</span>
+        <span>Widget & Settings</span>
+      </button>
     </div>
   </header>
 
@@ -64,126 +151,137 @@
     <section id="view-overview" class="space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 class="text-2xl font-bold text-slate-900">Performance Analytics</h2>
-          <p class="text-sm text-slate-500">Live operational metrics for your AI customer support assistant.</p>
+          <h2 class="text-xl font-bold text-white tracking-tight">Performance Analytics & Grounding Telemetry</h2>
+          <p class="text-xs text-on-surface-variant mt-0.5 font-mono">Live operational metrics for your multi-tenant AI customer support agent.</p>
         </div>
-        <button onclick="loadDashboardData()" class="self-start sm:self-auto px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-xs font-semibold rounded-lg text-slate-700 shadow-xs flex items-center gap-1.5">
-          <span>🔄 Refresh Data</span>
+        <button onclick="loadDashboardData()" class="self-start sm:self-auto px-3.5 py-1.5 bg-surface-container border border-outline-variant hover:border-primary/50 text-xs font-mono font-medium rounded-lg text-white transition flex items-center gap-1.5 shadow-xs">
+          <span class="material-symbols-outlined text-[15px] text-primary">sync</span>
+          <span>Refresh Data</span>
         </button>
       </div>
 
       <!-- Metric Cards Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Customer Chats</span>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        
+        <!-- Total Customer Chats -->
+        <div class="glass-card p-5 rounded-2xl space-y-2">
+          <div class="flex justify-between items-center text-[11px] font-mono text-on-surface-variant uppercase tracking-wider">
+            <span>Customer Chats</span>
+            <span class="material-symbols-outlined text-[16px] text-primary">forum</span>
+          </div>
           <div class="flex items-baseline justify-between">
-            <span id="stat-total-chats" class="text-3xl font-extrabold text-slate-900">0</span>
-            <span class="text-xs px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">Sessions</span>
+            <span id="stat-total-chats" class="text-2xl font-bold font-mono text-white">0</span>
+            <span class="text-[10px] font-mono px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded">Sessions</span>
           </div>
+          <p class="text-[10px] text-on-surface-variant/70 font-mono">Live customer sessions</p>
         </div>
 
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Questions Asked</span>
+        <!-- Total Questions Asked -->
+        <div class="glass-card p-5 rounded-2xl space-y-2">
+          <div class="flex justify-between items-center text-[11px] font-mono text-on-surface-variant uppercase tracking-wider">
+            <span>Total Questions</span>
+            <span class="material-symbols-outlined text-[16px] text-secondary">help</span>
+          </div>
           <div class="flex items-baseline justify-between">
-            <span id="stat-total-questions" class="text-3xl font-extrabold text-slate-900">0</span>
-            <span class="text-xs px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded font-medium">Inquiries</span>
+            <span id="stat-total-questions" class="text-2xl font-bold font-mono text-white">0</span>
+            <span class="text-[10px] font-mono px-2 py-0.5 bg-secondary/10 text-secondary border border-secondary/20 rounded">Queries</span>
           </div>
+          <p class="text-[10px] text-on-surface-variant/70 font-mono">Customer inquiries</p>
         </div>
 
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Resolution Rate</span>
+        <!-- Resolution Rate -->
+        <div class="glass-card p-5 rounded-2xl space-y-2">
+          <div class="flex justify-between items-center text-[11px] font-mono text-on-surface-variant uppercase tracking-wider">
+            <span>Resolution Rate</span>
+            <span class="material-symbols-outlined text-[16px] text-tertiary">check_circle</span>
+          </div>
           <div class="flex items-baseline justify-between">
-            <span id="stat-resolution-rate" class="text-3xl font-extrabold text-emerald-600">100%</span>
-            <span id="stat-answered-ratio" class="text-xs text-slate-500">0 answered</span>
+            <span id="stat-resolution-rate" class="text-2xl font-bold font-mono text-tertiary">100%</span>
+            <span id="stat-answered-ratio" class="text-[10px] font-mono text-on-surface-variant">0 answered</span>
           </div>
+          <p class="text-[10px] text-on-surface-variant/70 font-mono">Grounded resolution</p>
         </div>
 
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-2">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Customer Feedback</span>
+        <!-- Unanswered Questions -->
+        <div class="glass-card p-5 rounded-2xl space-y-2">
+          <div class="flex justify-between items-center text-[11px] font-mono text-on-surface-variant uppercase tracking-wider">
+            <span>Unanswered</span>
+            <span class="material-symbols-outlined text-[16px] text-amber-400">warning</span>
+          </div>
           <div class="flex items-baseline justify-between">
-            <div class="flex items-center space-x-3">
-              <span class="text-lg font-bold text-emerald-600">👍 <span id="stat-thumbs-up">0</span></span>
-              <span class="text-lg font-bold text-rose-600">👎 <span id="stat-thumbs-down">0</span></span>
-            </div>
-            <span class="text-xs text-slate-400">Total votes</span>
+            <span id="stat-unanswered" class="text-2xl font-bold font-mono text-amber-400">0</span>
+            <span class="text-[10px] font-mono px-2 py-0.5 bg-amber-500/10 text-amber-300 border border-amber-500/20 rounded">Gaps</span>
           </div>
-        </div>
-      </div>
-
-      <!-- Secondary Metrics -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Unanswered Inquiries</span>
-          <div class="flex items-center justify-between">
-            <span id="stat-unanswered" class="text-2xl font-bold text-rose-600">0</span>
-            <button onclick="switchTab('unanswered')" class="text-xs text-blue-600 hover:underline">Review & Resolve &rarr;</button>
-          </div>
-          <p class="text-xs text-slate-500">Queries where documents lacked information.</p>
+          <p class="text-[10px] text-on-surface-variant/70 font-mono">Requires knowledge update</p>
         </div>
 
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Knowledge Base Volume</span>
-          <div class="flex items-center justify-between">
-            <span id="stat-documents" class="text-2xl font-bold text-slate-900">0 docs</span>
-            <span id="stat-chunks" class="text-xs text-slate-500">0 indexed chunks</span>
+        <!-- Latency & Index Chunks -->
+        <div class="glass-card p-5 rounded-2xl space-y-2">
+          <div class="flex justify-between items-center text-[11px] font-mono text-on-surface-variant uppercase tracking-wider">
+            <span>RAG Telemetry</span>
+            <span class="material-symbols-outlined text-[16px] text-primary">speed</span>
           </div>
-          <p class="text-xs text-slate-500">Vectorized via ChromaDB & BM25Plus.</p>
+          <div class="flex items-baseline justify-between">
+            <span id="stat-latency" class="text-xl font-bold font-mono text-white">0 ms</span>
+            <span id="stat-chunks" class="text-[10px] font-mono px-2 py-0.5 bg-surface text-on-surface-variant border border-outline-variant rounded">0 chunks</span>
+          </div>
+          <div class="flex items-center justify-between text-[10px] font-mono text-on-surface-variant/70 pt-0.5">
+            <span id="stat-documents">0 docs</span>
+            <span class="text-tertiary">Thumbs: <span id="stat-thumbs-up" class="text-tertiary">0</span>👍 <span id="stat-thumbs-down" class="text-rose-400">0</span>👎</span>
+          </div>
         </div>
 
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Average RAG Latency</span>
-          <div class="flex items-center justify-between">
-            <span id="stat-latency" class="text-2xl font-bold text-slate-900">0 ms</span>
-            <span class="text-xs px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-mono">&lt; 10ms Circuit Breaker</span>
-          </div>
-          <p class="text-xs text-slate-500">LLM generation + hybrid search round-trip.</p>
-        </div>
       </div>
     </section>
 
-    <!-- 2. DOCUMENTS TAB -->
+    <!-- 2. DOCUMENTS & KNOWLEDGE BASE TAB -->
     <section id="view-documents" class="hidden space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 class="text-2xl font-bold text-slate-900">Document Management</h2>
-          <p class="text-sm text-slate-500">Upload policies, product guides, and FAQs (PDF, DOCX, TXT).</p>
+          <h2 class="text-xl font-bold text-white tracking-tight">Knowledge Base & Ingestion Pipeline</h2>
+          <p class="text-xs text-on-surface-variant font-mono">Dual-Engine Ingestion (Sarvam Doc AI + PyMuPDF) with dynamic hybrid indexing (ChromaDB + BM25).</p>
         </div>
-        <button onclick="document.getElementById('doc-file-input').click()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm transition flex items-center gap-2">
-          <span>📁 Upload Document</span>
-        </button>
-        <input type="file" id="doc-file-input" class="hidden" accept=".pdf,.docx,.txt" onchange="uploadDocumentFile(event)" />
+        <span id="doc-table-count" class="text-xs font-mono px-3 py-1 bg-surface-container border border-outline-variant rounded-full text-on-surface-variant self-start sm:self-auto">0 documents</span>
       </div>
 
-      <!-- Upload Drop Area -->
-      <div onclick="document.getElementById('doc-file-input').click()" class="border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-2xl p-8 text-center bg-white cursor-pointer transition">
-        <div class="w-12 h-12 mx-auto rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-3">
-          📄
+      <!-- File Upload Dropzone -->
+      <div class="glass-card p-6 rounded-2xl border border-dashed border-outline-variant hover:border-primary/60 transition-all text-center">
+        <div class="max-w-md mx-auto space-y-3">
+          <div class="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 text-primary mx-auto flex items-center justify-center">
+            <span class="material-symbols-outlined text-[24px]">cloud_upload</span>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-white">Upload Knowledge Source</h3>
+            <p class="text-xs text-on-surface-variant mt-0.5">Supports PDF, DOCX, TXT files up to 25MB.</p>
+          </div>
+          <div class="pt-2">
+            <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-medium rounded-xl transition shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+              <span class="material-symbols-outlined text-[16px]">upload_file</span>
+              <span>Select File to Index</span>
+              <input type="file" id="doc-file-input" class="hidden" accept=".pdf,.docx,.txt" onchange="uploadDocumentFile(event)" />
+            </label>
+          </div>
+          <p class="text-[11px] font-mono text-on-surface-variant/70">Chunks are automatically extracted, normalized, vectorized, and registered in BM25 + ChromaDB.</p>
         </div>
-        <p class="text-sm font-semibold text-slate-700">Click to upload or drag files here</p>
-        <p class="text-xs text-slate-400 mt-1">Supported: PDF, DOCX, TXT (up to 20MB). Dual parsing: Sarvam AI + PyMuPDF fallback.</p>
       </div>
 
       <!-- Documents Table -->
-      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-        <div class="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h3 class="font-bold text-slate-800 text-sm">Indexed Documents</h3>
-          <span id="doc-table-count" class="text-xs text-slate-400">0 documents</span>
-        </div>
+      <div class="glass-card rounded-2xl overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-600">
-            <thead class="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-surface text-on-surface-variant uppercase tracking-wider font-mono border-b border-outline-variant">
               <tr>
-                <th class="px-6 py-3">Filename</th>
-                <th class="px-6 py-3">Type</th>
-                <th class="px-6 py-3">Status</th>
-                <th class="px-6 py-3">Chunks</th>
-                <th class="px-6 py-3">Uploaded</th>
-                <th class="px-6 py-3 text-right">Actions</th>
+                <th class="px-6 py-3.5">Filename</th>
+                <th class="px-6 py-3.5">Type</th>
+                <th class="px-6 py-3.5">Status</th>
+                <th class="px-6 py-3.5">Indexed Chunks</th>
+                <th class="px-6 py-3.5">Date Uploaded</th>
+                <th class="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody id="documents-tbody" class="divide-y divide-slate-200">
+            <tbody id="documents-tbody" class="divide-y divide-outline-variant font-mono">
               <tr>
-                <td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">No documents uploaded yet.</td>
+                <td colspan="6" class="px-6 py-8 text-center text-xs text-on-surface-variant">Loading knowledge documents...</td>
               </tr>
             </tbody>
           </table>
@@ -191,16 +289,16 @@
       </div>
     </section>
 
-    <!-- 3. UNANSWERED QUESTIONS TAB -->
+    <!-- 3. UNANSWERED QUESTIONS QUEUE TAB -->
     <section id="view-unanswered" class="hidden space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 class="text-2xl font-bold text-slate-900">Unanswered Questions & Closed-Loop Resolution</h2>
-          <p class="text-sm text-slate-500">Review questions where the AI had no grounded answers and provide authoritative answers to train the knowledge base.</p>
+          <h2 class="text-xl font-bold text-white tracking-tight">Unanswered Questions & Closed-Loop Resolution</h2>
+          <p class="text-xs text-on-surface-variant font-mono">Identify information gaps detected by RAG confidence filters and train new answers in one click.</p>
         </div>
         <div class="flex items-center space-x-2">
-          <select id="unanswered-filter-select" onchange="loadUnansweredQuestions()" class="text-xs border border-slate-200 rounded-lg px-3 py-1.5 bg-white font-medium">
-            <option value="">All Statuses</option>
+          <select id="unanswered-filter-select" onchange="loadUnansweredQuestions()" class="text-xs font-mono border border-outline-variant rounded-xl px-3 py-2 bg-surface text-white focus:outline-none focus:border-primary">
+            <option value="">All Questions</option>
             <option value="false" selected>Pending Unresolved</option>
             <option value="true">Resolved</option>
           </select>
@@ -208,22 +306,22 @@
       </div>
 
       <!-- Unanswered Table -->
-      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+      <div class="glass-card rounded-2xl overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm text-slate-600">
-            <thead class="bg-slate-50 text-xs text-slate-500 uppercase tracking-wider border-b border-slate-200">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-surface text-on-surface-variant uppercase tracking-wider font-mono border-b border-outline-variant">
               <tr>
-                <th class="px-6 py-3">Customer Question</th>
-                <th class="px-6 py-3">Captured Lead</th>
-                <th class="px-6 py-3">Score</th>
-                <th class="px-6 py-3">Status</th>
-                <th class="px-6 py-3">Asked At</th>
-                <th class="px-6 py-3 text-right">Action</th>
+                <th class="px-6 py-3.5">Customer Inquiry</th>
+                <th class="px-6 py-3.5">Captured Lead</th>
+                <th class="px-6 py-3.5">RRF Score</th>
+                <th class="px-6 py-3.5">Status</th>
+                <th class="px-6 py-3.5">Asked At</th>
+                <th class="px-6 py-3.5 text-right">Action</th>
               </tr>
             </thead>
-            <tbody id="unanswered-tbody" class="divide-y divide-slate-200">
+            <tbody id="unanswered-tbody" class="divide-y divide-outline-variant font-mono">
               <tr>
-                <td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">Loading unanswered inquiries...</td>
+                <td colspan="6" class="px-6 py-8 text-center text-xs text-on-surface-variant">Loading unanswered inquiries...</td>
               </tr>
             </tbody>
           </table>
@@ -235,12 +333,12 @@
     <section id="view-chats" class="hidden space-y-6">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 class="text-2xl font-bold text-slate-900">Conversation History & Quality Audit</h2>
-          <p class="text-sm text-slate-500">Inspect full customer conversation transcripts and filter for negative votes to improve responses.</p>
+          <h2 class="text-xl font-bold text-white tracking-tight">Conversation Transcripts & Quality Audits</h2>
+          <p class="text-xs text-on-surface-variant font-mono">Inspect verified customer conversations, citations used, and filter for downvoted answers.</p>
         </div>
-        <div class="flex items-center space-x-2">
-          <button id="filter-all-chats" onclick="loadChatHistory()" class="px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg">All Chats</button>
-          <button id="filter-down-chats" onclick="loadChatHistory('down')" class="px-3 py-1.5 text-xs font-semibold bg-white border border-slate-200 hover:bg-slate-50 text-rose-700 rounded-lg flex items-center gap-1">
+        <div class="flex items-center space-x-2 font-mono">
+          <button id="filter-all-chats" onclick="loadChatHistory()" class="px-3 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-hover text-white rounded-lg transition">All Chats</button>
+          <button id="filter-down-chats" onclick="loadChatHistory('down')" class="px-3 py-1.5 text-xs font-semibold bg-surface border border-outline-variant hover:border-rose-500/50 text-rose-400 rounded-lg transition flex items-center gap-1.5">
             <span>👎 Downvoted Only</span>
           </button>
         </div>
@@ -248,7 +346,7 @@
 
       <!-- Chats Accordion Container -->
       <div id="chats-container" class="space-y-4">
-        <div class="bg-white p-8 text-center text-xs text-slate-400 rounded-2xl border border-slate-200">
+        <div class="glass-card p-8 text-center text-xs font-mono text-on-surface-variant rounded-2xl">
           Loading conversation history...
         </div>
       </div>
@@ -257,43 +355,44 @@
     <!-- 5. RAG PLAYGROUND TAB -->
     <section id="view-playground" class="hidden space-y-6">
       <div>
-        <h2 class="text-2xl font-bold text-slate-900">RAG Test Playground</h2>
-        <p class="text-sm text-slate-500">Test search retrieval and verify circuit-breaker thresholding before publishing to customers.</p>
+        <h2 class="text-xl font-bold text-white tracking-tight">RAG Retrieval Playground & Diagnostics</h2>
+        <p class="text-xs text-on-surface-variant font-mono">Test queries live, examine BM25 vs Dense ChromaDB scores, inspect RRF fusion ranks, and verify the circuit breaker.</p>
       </div>
 
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+      <div class="glass-card p-6 rounded-2xl space-y-4">
         <div class="flex gap-2">
           <input 
             type="text" 
             id="playground-query-input" 
-            placeholder="Type a sample customer question (e.g., 'What is your refund timeframe?')" 
-            class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" 
+            placeholder="Type a sample customer question (e.g., 'What is your return timeframe?')" 
+            class="flex-1 px-4 py-2.5 bg-surface border border-outline-variant rounded-xl text-sm text-white placeholder-on-surface-variant/50 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition" 
             onkeydown="if(event.key==='Enter') runPlaygroundTest()"
           />
-          <button onclick="runPlaygroundTest()" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl shadow-xs transition">
-            Run Test
+          <button onclick="runPlaygroundTest()" class="px-5 py-2.5 bg-primary hover:bg-primary-hover text-white font-medium text-xs font-mono rounded-xl transition shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[16px]">play_arrow</span>
+            <span>Run Query Test</span>
           </button>
         </div>
 
         <!-- Playground Output Area -->
-        <div id="playground-results" class="hidden space-y-4 pt-4 border-t border-slate-100">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase text-slate-400">Circuit Breaker Status</span>
-            <span id="pg-cb-badge" class="px-2.5 py-1 text-xs rounded-full font-bold">Passed</span>
+        <div id="playground-results" class="hidden space-y-4 pt-4 border-t border-outline-variant">
+          <div class="flex items-center justify-between font-mono text-xs">
+            <span class="text-on-surface-variant uppercase tracking-wider">Circuit Breaker Status</span>
+            <span id="pg-cb-badge" class="px-2.5 py-1 rounded-full font-bold">Passed</span>
           </div>
 
-          <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-            <span class="text-xs font-bold text-slate-500 uppercase">Assistant Answer Preview</span>
-            <p id="pg-answer-text" class="text-sm text-slate-800 leading-relaxed font-sans"></p>
-            <div class="text-[11px] text-slate-400 flex items-center justify-between pt-1 border-t border-slate-200/60">
-              <span>Provider: <strong id="pg-provider" class="text-slate-600">Gemini Flash</strong></span>
-              <span>Round-trip Latency: <strong id="pg-latency" class="text-slate-600">0ms</strong></span>
+          <div class="p-4 bg-surface rounded-xl border border-outline-variant space-y-2">
+            <span class="text-[11px] font-mono text-on-surface-variant uppercase tracking-wider">Assistant Answer Preview</span>
+            <p id="pg-answer-text" class="text-sm text-white leading-relaxed font-sans"></p>
+            <div class="text-[11px] font-mono text-on-surface-variant flex items-center justify-between pt-2 border-t border-outline-variant/60">
+              <span>Provider: <strong id="pg-provider" class="text-primary font-normal">Gemini Flash</strong></span>
+              <span>Round-trip Latency: <strong id="pg-latency" class="text-tertiary font-normal">0ms</strong></span>
             </div>
           </div>
 
           <!-- Retrieved Chunks Breakdown -->
           <div>
-            <span class="text-xs font-bold uppercase text-slate-400">Retrieved Grounding Chunks</span>
+            <span class="text-xs font-mono uppercase tracking-wider text-on-surface-variant">Retrieved Grounding Chunks & Score Fusion</span>
             <div id="pg-chunks-list" class="mt-2 space-y-2"></div>
           </div>
         </div>
@@ -303,107 +402,117 @@
     <!-- 6. SETTINGS & WIDGET TAB -->
     <section id="view-settings" class="hidden space-y-6">
       <div>
-        <h2 class="text-2xl font-bold text-slate-900">Widget & Assistant Settings</h2>
-        <p class="text-sm text-slate-500">Configure assistant persona, fallback message, and embed the floating widget on your website.</p>
+        <h2 class="text-xl font-bold text-white tracking-tight">Widget & Assistant Configuration</h2>
+        <p class="text-xs text-on-surface-variant font-mono">Customize persona tone, fallback message, and embed the floating widget on external client storefronts.</p>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
         <!-- Settings Form -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
-          <h3 class="font-bold text-slate-800 text-sm">Assistant Customization</h3>
+        <div class="glass-card p-6 rounded-2xl space-y-4">
+          <h3 class="font-bold text-white text-sm">Assistant Customization</h3>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Business Name</label>
-            <input type="text" id="setting-name" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm" />
+            <label class="block text-xs font-mono text-on-surface-variant mb-1">Business Name</label>
+            <input type="text" id="setting-name" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-sm text-white focus:outline-none focus:border-primary" />
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Tone of Voice</label>
-            <select id="setting-tone" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm">
+            <label class="block text-xs font-mono text-on-surface-variant mb-1">Tone of Voice</label>
+            <select id="setting-tone" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-sm text-white focus:outline-none focus:border-primary">
               <option value="professional">Professional & Formal</option>
               <option value="friendly">Warm & Friendly</option>
               <option value="concise">Concise & Direct</option>
             </select>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Fallback Message (when information is missing)</label>
-            <textarea id="setting-fallback" rows="3" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm"></textarea>
+            <label class="block text-xs font-mono text-on-surface-variant mb-1">Deterministic Fallback Message (Missing Information)</label>
+            <textarea id="setting-fallback" rows="3" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-sm text-white focus:outline-none focus:border-primary"></textarea>
           </div>
           <div>
-            <label class="block text-xs font-semibold text-slate-600 mb-1">Primary Brand Color</label>
-            <input type="color" id="setting-color" class="h-9 w-20 border border-slate-200 rounded cursor-pointer" />
+            <label class="block text-xs font-mono text-on-surface-variant mb-1">Brand Accent Color</label>
+            <input type="color" id="setting-color" class="h-9 w-20 border border-outline-variant rounded-lg cursor-pointer bg-surface" />
           </div>
-          <button onclick="saveAssistantSettings()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition">
-            Save Settings
+          <button onclick="saveAssistantSettings()" class="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-mono font-medium transition shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
+            Save Assistant Settings
           </button>
         </div>
 
         <!-- Shareable Link & Embed Snippet -->
-        <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs space-y-5">
+        <div class="glass-card p-6 rounded-2xl space-y-5">
           <div>
-            <h3 class="font-bold text-slate-800 text-sm">Shareable Customer Chat Link</h3>
-            <p class="text-xs text-slate-400 mt-0.5">Share this direct link with your customers via email or social bio.</p>
+            <h3 class="font-bold text-white text-sm">Public Shareable Chat Link</h3>
+            <p class="text-xs text-on-surface-variant font-mono mt-0.5">Direct chat URL for customers and support links.</p>
             <div class="flex items-center gap-2 mt-2">
-              <input type="text" id="share-link-input" readonly class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-600" />
-              <button onclick="copyToClipboard('share-link-input')" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg">Copy</button>
+              <input type="text" id="share-link-input" readonly class="flex-1 px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-primary" />
+              <button onclick="copyToClipboard('share-link-input')" class="px-3.5 py-2 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-white text-xs font-mono font-medium rounded-xl transition">Copy</button>
             </div>
           </div>
 
-          <div class="border-t border-slate-100 pt-4">
-            <h3 class="font-bold text-slate-800 text-sm">Embeddable Website Widget</h3>
-            <p class="text-xs text-slate-400 mt-0.5">Paste this small snippet right before the &lt;/body&gt; tag of your website.</p>
+          <div class="border-t border-outline-variant/60 pt-4">
+            <h3 class="font-bold text-white text-sm">Embeddable Website Widget</h3>
+            <p class="text-xs text-on-surface-variant font-mono mt-0.5">Embed the floating AI customer assistant into your website.</p>
             <div class="mt-2 relative">
-              <textarea id="widget-snippet" readonly rows="5" class="w-full p-3 bg-slate-900 text-emerald-400 rounded-xl text-xs font-mono focus:outline-none"></textarea>
-              <button onclick="copyToClipboard('widget-snippet')" class="absolute top-2 right-2 px-2.5 py-1 bg-white/20 hover:bg-white/30 text-white text-[10px] font-bold rounded">Copy</button>
+              <textarea id="widget-snippet" readonly rows="5" class="w-full p-3 bg-[#090A0F] text-tertiary border border-outline-variant rounded-xl text-xs font-mono focus:outline-none"></textarea>
+              <button onclick="copyToClipboard('widget-snippet')" class="absolute top-2 right-2 px-2.5 py-1 bg-surface-container hover:bg-surface-container-high border border-outline-variant text-white text-[10px] font-mono rounded">Copy</button>
             </div>
           </div>
         </div>
+
       </div>
     </section>
 
   </main>
 
   <!-- Resolve Question Modal -->
-  <div id="resolve-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-      <div class="flex items-center justify-between border-b pb-2">
-        <h3 class="font-bold text-slate-800 text-base">Answer & Add to Knowledge Base</h3>
-        <button onclick="closeResolveModal()" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+  <div id="resolve-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-[#131622] rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-outline-variant space-y-4">
+      <div class="flex items-center justify-between border-b border-outline-variant pb-3">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-tertiary text-lg">school</span>
+          <h3 class="font-bold text-white text-sm">Resolve Inquiry & Add to Knowledge Base</h3>
+        </div>
+        <button onclick="closeResolveModal()" class="w-7 h-7 rounded-lg bg-surface hover:bg-surface-container-high flex items-center justify-center text-on-surface-variant hover:text-white transition">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
       </div>
       <div>
-        <span class="text-xs font-semibold text-slate-400 uppercase">Customer Asked</span>
-        <p id="resolve-modal-question" class="mt-1 p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium text-slate-800"></p>
+        <span class="text-[11px] font-mono text-on-surface-variant uppercase">Customer Question</span>
+        <p id="resolve-modal-question" class="mt-1 p-3 bg-surface rounded-xl border border-outline-variant text-xs font-mono text-white"></p>
       </div>
       <div>
-        <label class="block text-xs font-semibold text-slate-600 mb-1">Authoritative Business Answer</label>
-        <textarea id="resolve-modal-answer" rows="4" placeholder="Enter the exact policy, detail, or answer. This will be vectorized into the knowledge base..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+        <label class="block text-[11px] font-mono text-on-surface-variant mb-1">Authoritative Business Answer</label>
+        <textarea id="resolve-modal-answer" rows="4" placeholder="Enter the exact answer or policy rule. This will be converted into a vectorized Q&A chunk and indexed immediately into ChromaDB + BM25..." class="w-full p-3 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-white placeholder-on-surface-variant/40 focus:outline-none focus:border-primary"></textarea>
       </div>
-      <div class="flex justify-end space-x-2 pt-2">
-        <button onclick="closeResolveModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold">Cancel</button>
-        <button onclick="submitResolution()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs">Train & Save Answer</button>
+      <div class="flex justify-end space-x-2 pt-2 border-t border-outline-variant/60">
+        <button onclick="closeResolveModal()" class="px-4 py-2 bg-surface hover:bg-surface-container-high border border-outline-variant text-on-surface-variant text-xs font-mono rounded-xl transition">Cancel</button>
+        <button onclick="submitResolution()" class="px-4 py-2 bg-tertiary hover:bg-emerald-600 text-white rounded-xl text-xs font-mono font-medium transition shadow-xs">Train & Save Answer</button>
       </div>
     </div>
   </div>
 
   <!-- Sign In Modal -->
-  <div id="auth-modal" class="hidden fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-      <div class="text-center">
-        <h3 class="font-bold text-slate-900 text-lg">Owner Sign In</h3>
-        <p class="text-xs text-slate-400">Access your business AI support control center.</p>
+  <div id="auth-modal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+    <div class="bg-[#131622] rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-outline-variant space-y-4">
+      <div class="text-center space-y-1">
+        <div class="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary mx-auto flex items-center justify-center">
+          <span class="material-symbols-outlined text-[20px]">lock</span>
+        </div>
+        <h3 class="font-bold text-white text-base">Owner Sign In</h3>
+        <p class="text-xs font-mono text-on-surface-variant">Access your business AI support console</p>
       </div>
       <div class="space-y-3">
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">Email</label>
-          <input type="email" id="auth-email" placeholder="owner@store.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+          <label class="block text-[11px] font-mono text-on-surface-variant mb-1">Email</label>
+          <input type="email" id="auth-email" placeholder="owner@store.com" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-white focus:outline-none focus:border-primary" />
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-          <input type="password" id="auth-password" placeholder="••••••••" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+          <label class="block text-[11px] font-mono text-on-surface-variant mb-1">Password</label>
+          <input type="password" id="auth-password" placeholder="••••••••" class="w-full px-3 py-2 bg-surface border border-outline-variant rounded-xl text-xs font-mono text-white focus:outline-none focus:border-primary" />
         </div>
-        <button onclick="performLogin()" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition">
+        <button onclick="performLogin()" class="w-full py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-mono font-medium transition shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]">
           Sign In
         </button>
         <div class="text-center pt-2">
-          <button onclick="quickDemoLogin()" class="text-xs text-blue-600 hover:underline">
+          <button onclick="quickDemoLogin()" class="text-xs font-mono text-primary hover:underline">
             Quick Auto-Register & Demo Account
           </button>
         </div>
@@ -434,14 +543,14 @@
           currentBusiness = await res.json();
           document.getElementById('biz-header-name').innerText = currentBusiness.name;
           document.getElementById('biz-header-badge').classList.remove('hidden');
-          document.getElementById('auth-action-btn').innerText = 'Signed In';
+          document.getElementById('auth-action-btn').innerText = 'Sign Out';
           document.getElementById('auth-action-btn').onclick = logout;
 
           // Populate settings
           document.getElementById('setting-name').value = currentBusiness.name;
           document.getElementById('setting-tone').value = currentBusiness.tone || 'professional';
           document.getElementById('setting-fallback').value = currentBusiness.fallback_message || '';
-          document.getElementById('setting-color').value = currentBusiness.primary_color || '#3b82f6';
+          document.getElementById('setting-color').value = currentBusiness.primary_color || '#6366F1';
 
           const shareUrl = `${window.location.origin}/chat/${currentBusiness.slug}`;
           document.getElementById('share-link-input').value = shareUrl;
@@ -452,7 +561,6 @@
   data-business="${currentBusiness.slug}">
 <\/script>`;
         } else {
-          // Token invalid or expired
           logout();
         }
       } catch (e) {
@@ -501,22 +609,22 @@
           document.getElementById('doc-table-count').innerText = `${docs.length} documents`;
           const tbody = document.getElementById('documents-tbody');
           if (docs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">No documents uploaded yet.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-on-surface-variant">No documents uploaded yet.</td></tr>';
             return;
           }
           tbody.innerHTML = docs.map(d => `
             <tr>
-              <td class="px-6 py-3 font-semibold text-slate-800">${escapeHtml(d.filename)}</td>
-              <td class="px-6 py-3 uppercase text-xs font-mono text-slate-500">${escapeHtml(d.file_type)}</td>
-              <td class="px-6 py-3">
-                <span class="px-2 py-0.5 text-[11px] rounded-full font-bold ${d.status==='indexed'?'badge-success':(d.status==='processing'?'badge-warning':'badge-danger')}">
+              <td class="px-6 py-3.5 font-medium text-white">${escapeHtml(d.filename)}</td>
+              <td class="px-6 py-3.5 uppercase text-xs font-mono text-on-surface-variant">${escapeHtml(d.file_type)}</td>
+              <td class="px-6 py-3.5">
+                <span class="px-2 py-0.5 text-[10px] rounded-full font-bold ${d.status==='indexed'?'badge-success':(d.status==='processing'?'badge-warning':'badge-danger')}">
                   ${d.status}
                 </span>
               </td>
-              <td class="px-6 py-3 font-mono text-xs">${d.chunk_count}</td>
-              <td class="px-6 py-3 text-xs text-slate-400">${new Date(d.created_at).toLocaleDateString()}</td>
-              <td class="px-6 py-3 text-right">
-                <button onclick="deleteDoc('${d.id}')" class="text-rose-600 hover:text-rose-800 text-xs font-semibold">Delete</button>
+              <td class="px-6 py-3.5 font-mono text-xs text-on-surface">${d.chunk_count}</td>
+              <td class="px-6 py-3.5 text-xs text-on-surface-variant">${new Date(d.created_at).toLocaleDateString()}</td>
+              <td class="px-6 py-3.5 text-right">
+                <button onclick="deleteDoc('${d.id}')" class="text-rose-400 hover:text-rose-300 text-xs font-medium">Delete</button>
               </td>
             </tr>
           `).join('');
@@ -579,27 +687,27 @@
           const items = await res.json();
           const tbody = document.getElementById('unanswered-tbody');
           if (items.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">No unanswered questions in this category.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-on-surface-variant">No unanswered questions in this category.</td></tr>';
             return;
           }
           tbody.innerHTML = items.map(u => `
             <tr>
-              <td class="px-6 py-3 font-medium text-slate-800 max-w-xs break-words">${escapeHtml(u.question_text)}</td>
-              <td class="px-6 py-3 text-xs text-slate-500">${u.customer_email ? `<span class="text-blue-600 font-semibold">${escapeHtml(u.customer_email)}</span>` : '<span class="text-slate-300">None</span>'}</td>
-              <td class="px-6 py-3 font-mono text-xs">${u.top_retrieval_score.toFixed(3)}</td>
-              <td class="px-6 py-3">
-                <span class="px-2 py-0.5 text-[11px] rounded-full font-bold ${u.is_resolved ? 'badge-success' : 'badge-warning'}">
+              <td class="px-6 py-3.5 font-medium text-white max-w-xs break-words">${escapeHtml(u.question_text)}</td>
+              <td class="px-6 py-3.5 text-xs text-on-surface-variant">${u.customer_email ? `<span class="text-primary font-semibold">${escapeHtml(u.customer_email)}</span>` : '<span class="text-on-surface-variant/40">None</span>'}</td>
+              <td class="px-6 py-3.5 font-mono text-xs text-on-surface">${u.top_retrieval_score.toFixed(3)}</td>
+              <td class="px-6 py-3.5">
+                <span class="px-2 py-0.5 text-[10px] rounded-full font-bold ${u.is_resolved ? 'badge-success' : 'badge-warning'}">
                   ${u.is_resolved ? 'Resolved' : 'Pending'}
                 </span>
               </td>
-              <td class="px-6 py-3 text-xs text-slate-400">${new Date(u.created_at).toLocaleDateString()}</td>
-              <td class="px-6 py-3 text-right">
+              <td class="px-6 py-3.5 text-xs text-on-surface-variant">${new Date(u.created_at).toLocaleDateString()}</td>
+              <td class="px-6 py-3.5 text-right">
                 ${!u.is_resolved ? `
-                  <button onclick="openResolveModal('${u.id}', '${escapeHtml(u.question_text).replace(/'/g, "\\'")}')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-xs font-semibold">
+                  <button onclick="openResolveModal('${u.id}', '${escapeHtml(u.question_text).replace(/'/g, "\\'")}')" class="px-3 py-1 bg-tertiary/10 hover:bg-tertiary/20 text-tertiary border border-tertiary/30 rounded-lg text-xs font-mono transition">
                     Resolve & Train
                   </button>
                 ` : `
-                  <span class="text-xs text-slate-400">Learned ✓</span>
+                  <span class="text-xs font-mono text-on-surface-variant/60">Learned ✓</span>
                 `}
               </td>
             </tr>
@@ -659,29 +767,29 @@
           const sessions = await res.json();
           const container = document.getElementById('chats-container');
           if (sessions.length === 0) {
-            container.innerHTML = '<div class="bg-white p-8 text-center text-xs text-slate-400 rounded-2xl border border-slate-200">No conversations found.</div>';
+            container.innerHTML = '<div class="glass-card p-8 text-center text-xs font-mono text-on-surface-variant rounded-2xl">No conversations found.</div>';
             return;
           }
           container.innerHTML = sessions.map(s => `
-            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
-              <div class="px-5 py-3.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+            <div class="glass-card rounded-2xl overflow-hidden">
+              <div class="px-5 py-3.5 bg-surface border-b border-outline-variant flex items-center justify-between text-xs font-mono">
                 <div class="flex items-center space-x-3">
-                  <span class="font-bold text-slate-700">Session #${s.session_id.substring(0, 8)}</span>
-                  <span class="text-slate-400">Channel: ${s.channel}</span>
-                  ${s.customer_email ? `<span class="text-blue-600 font-semibold">Lead: ${escapeHtml(s.customer_email)}</span>` : ''}
+                  <span class="font-bold text-white">Session #${s.session_id.substring(0, 8)}</span>
+                  <span class="text-on-surface-variant">Channel: ${s.channel}</span>
+                  ${s.customer_email ? `<span class="text-primary font-semibold">Lead: ${escapeHtml(s.customer_email)}</span>` : ''}
                 </div>
                 <div class="flex items-center space-x-2">
-                  ${s.has_downvote ? '<span class="px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full font-bold">👎 Contains Downvote</span>' : ''}
-                  <span class="text-slate-400">${new Date(s.started_at).toLocaleString()}</span>
+                  ${s.has_downvote ? '<span class="px-2 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/30 rounded-full font-bold">👎 Contains Downvote</span>' : ''}
+                  <span class="text-on-surface-variant">${new Date(s.started_at).toLocaleString()}</span>
                 </div>
               </div>
-              <div class="p-4 space-y-3">
+              <div class="p-4 space-y-3 font-mono">
                 ${s.messages.map(m => `
                   <div class="text-xs space-y-1">
-                    <span class="font-bold ${m.sender==='customer'?'text-blue-600':'text-indigo-600'} uppercase">${m.sender}:</span>
-                    <p class="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-slate-800">${escapeHtml(m.content)}</p>
+                    <span class="font-bold ${m.sender==='customer'?'text-primary':'text-secondary'} uppercase">${m.sender}:</span>
+                    <p class="p-3 rounded-xl bg-surface border border-outline-variant text-white font-sans">${escapeHtml(m.content)}</p>
                     ${m.citations && m.citations.length > 0 ? `
-                      <div class="text-[10px] text-slate-400 flex gap-2">
+                      <div class="text-[10px] text-tertiary flex gap-2 font-mono">
                         <span>Citations:</span>
                         ${m.citations.map(c => `<span>[${escapeHtml(c.document_name)}, p.${c.page_number}]</span>`).join('')}
                       </div>
@@ -729,12 +837,12 @@
 
           const cList = document.getElementById('pg-chunks-list');
           cList.innerHTML = data.retrieved_chunks.map(c => `
-            <div class="p-3 bg-white border border-slate-200 rounded-xl text-xs space-y-1">
+            <div class="p-3.5 bg-surface border border-outline-variant rounded-xl text-xs space-y-1.5 font-mono">
               <div class="flex items-center justify-between">
-                <span class="font-bold text-blue-700">${escapeHtml(c.document_name)} (p.${c.page_number})</span>
-                <span class="px-2 py-0.5 bg-slate-100 rounded text-slate-600 font-mono text-[10px]">${c.retrieval_type} • Score: ${c.score}</span>
+                <span class="font-bold text-primary">${escapeHtml(c.document_name)} (p.${c.page_number})</span>
+                <span class="px-2 py-0.5 bg-surface-container rounded text-on-surface-variant font-mono text-[10px] border border-outline-variant">${c.retrieval_type} • Score: ${c.score}</span>
               </div>
-              <p class="text-slate-600 font-mono text-[11px]">${escapeHtml(c.text_excerpt)}</p>
+              <p class="text-on-surface-variant text-[11px] leading-relaxed font-mono">${escapeHtml(c.text_excerpt)}</p>
             </div>
           `).join('');
         }
@@ -828,6 +936,8 @@
           localStorage.setItem('iveri_token', authToken);
           toggleAuthModal();
           init();
+        } else {
+          alert("Quick demo registration failed.");
         }
       } catch (e) {
         console.error("Quick demo login error:", e);
