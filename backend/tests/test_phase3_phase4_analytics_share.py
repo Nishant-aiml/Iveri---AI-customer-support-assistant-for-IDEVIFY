@@ -1,4 +1,3 @@
-import os
 import unittest
 import uuid
 from httpx import AsyncClient, ASGITransport
@@ -100,7 +99,7 @@ class TestPhase3Phase4AnalyticsAndShare(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         await self.client.aclose()
         async with AsyncSessionLocal() as db:
-            biz = (await db.execute(select_biz := Business.__table__.select().where(Business.id == self.business_id))).first()
+            biz = (await db.execute(Business.__table__.select().where(Business.id == self.business_id))).first()
             if biz:
                 u_del = User.__table__.delete().where(User.business_id == self.business_id)
                 await db.execute(u_del)
