@@ -1521,6 +1521,11 @@
           <span class="px-2 py-0.5 bg-white border border-slate-200 rounded text-[9px] text-slate-700 font-mono">${escapeHtml(c)}</span>
         `).join('');
       }
+
+      // Update snippet code highlights automatically
+      if (typeof updateEmbedSnippet === 'function') {
+        updateEmbedSnippet();
+      }
     }
 
     function setEmbedTab(platform) {
