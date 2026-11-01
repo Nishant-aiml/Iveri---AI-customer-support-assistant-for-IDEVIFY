@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: iveri-customer-support-assistant
+    runtime: docker
+    dockerfilePath: Dockerfile
+    dockerContext: .
+    plan: free
+    region: oregon
+    healthCheckPath: /api/health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        value: sqlite+aiosqlite:///./data/idevify.db
+      - key: JWT_SECRET
+        generateValue: true
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SARVAM_API_KEY
+        sync: false
+      - key: CHROMA_PERSIST_DIRECTORY
+        value: ./data/chroma_db
+      - key: UPLOAD_DIRECTORY
+        value: ./data/uploads
+    disk:
+      name: iveri-data
+      mountPath: /app/backend/data
+      sizeGB: 1
