@@ -101,7 +101,8 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
     biz_settings = {
         "name": business.name,
         "tone": business.tone,
-        "fallback_message": business.fallback_message
+        "fallback_message": business.fallback_message,
+        "custom_prompt": getattr(business, "custom_prompt", "") or ""
     }
     rag_result = await rag_engine.query(
         business_id=business.id,
@@ -264,7 +265,12 @@ async def stream_chat_message(session_id: str, message: str, db: AsyncSession = 
     rag_result = await rag_engine.query(
         business_id=business.id,
         user_query=message,
-        business_settings={"name": business.name, "tone": business.tone, "fallback_message": business.fallback_message}
+        business_settings={
+            "name": business.name,
+            "tone": business.tone,
+            "fallback_message": business.fallback_message,
+            "custom_prompt": getattr(business, "custom_prompt", "") or ""
+        }
     )
 
     full_text = rag_result["answer"]

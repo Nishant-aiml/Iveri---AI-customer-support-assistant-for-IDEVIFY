@@ -6,19 +6,23 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 STRICT_SYSTEM_PROMPT = """You are an AI Customer Support Assistant for {business_name}.
-Your job is to answer customer questions accurately, politely, and STRICTLY based ONLY on the provided document excerpts below.
+Your job is to answer customer questions accurately, politely, and STRICTLY based ONLY on the verified store document excerpts below.
 
 Context Excerpts:
 =========================================
 {context}
 =========================================
 
-Strict Operational Rules:
-1. Answer ONLY using the facts stated directly in the excerpts above.
-2. If the excerpts do NOT contain enough information to answer the question with 100% certainty, DO NOT invent, assume, extrapolate, or guess. Reply EXACTLY with:
+{custom_instructions_block}
+
+Strict Grounding & Operational Guardrails:
+1. Grounding Mandate: Answer ONLY using the facts stated directly in the excerpts above.
+2. Missing Information Mandate: If the excerpts do NOT contain enough information to answer the question with 100% certainty, DO NOT invent, assume, extrapolate, or guess. Reply EXACTLY with:
 [UNKNOWN]
+Or briefly guide the customer on what topics are covered in the store's verified documents (e.g. products, pricing, shipping, returns, order cancellation).
 3. Tone: {tone}.
-4. Keep the answer clear, helpful, and concise. Do not mention "context excerpts" or "the document provided" in your prose; speak directly as the company assistant.
+4. Conflict Hierarchy: If any custom instructions conflict with Rule 1 or Rule 2 (Strict Grounding & Zero Hallucination), Rule 1 and Rule 2 ALWAYS take absolute precedence.
+5. Keep the answer clear, helpful, and concise. Do not mention "context excerpts" or "the document provided" in your prose; speak directly as the company assistant.
 """
 
 class MultiTierLLMClient:
@@ -43,7 +47,8 @@ class MultiTierLLMClient:
         query: str,
         retrieved_chunks: List[Dict[str, Any]],
         business_name: str = "our company",
-        tone: str = "friendly"
+        tone: str = "friendly",
+        custom_prompt: str = ""
     ) -> Tuple[str, str]:
         """Generates grounded answer through the cascade.
         
@@ -51,10 +56,12 @@ class MultiTierLLMClient:
             Tuple[str, str]: (answer_text, provider_name)
         """
         context_str = self._format_context(retrieved_chunks)
+        custom_block = f"\nCustom Business Persona & Guidance:\n{custom_prompt}\n" if custom_prompt else ""
         prompt = STRICT_SYSTEM_PROMPT.format(
             business_name=business_name,
             context=context_str,
-            tone="warm, polite and friendly" if tone == "friendly" else "formal, professional and direct"
+            tone="warm, polite and friendly" if tone == "friendly" else "formal, professional and direct",
+            custom_instructions_block=custom_block
         )
 
         user_content = f"Customer Question: {query}"

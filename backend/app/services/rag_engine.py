@@ -145,7 +145,8 @@ class HybridRAGEngine:
             query=clean_query,
             retrieved_chunks=fused_chunks,
             business_name=business_name,
-            tone=tone
+            tone=tone,
+            custom_prompt=business_settings.get("custom_prompt", "")
         )
 
         # Step 5.5: Outbound Guardrail Check (Secret Leakage & Grounding Filter)

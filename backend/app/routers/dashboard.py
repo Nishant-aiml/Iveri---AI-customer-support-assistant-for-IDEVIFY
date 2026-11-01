@@ -13,7 +13,9 @@ from app.models.business import Business
 from app.models.document import Document, DocumentChunk
 from app.models.chat import ChatSession, ChatMessage
 from app.models.unanswered import UnansweredQuestion
-from app.utils.security import get_current_owner
+from app.utils.security import get_current_owner, decode_access_token, security_scheme
+from fastapi.security import HTTPAuthorizationCredentials
+from app.config import settings
 from app.schemas.chat import ChatMessageResponse, SourceCitation
 from app.schemas.dashboard import (
     DashboardStatsResponse, UnansweredQuestionItem,
@@ -265,10 +267,23 @@ async def list_chat_sessions(
         query = query.where(ChatSession.id.in_(subq))
 
     if sentiment:
-        query = query.where(ChatSession.sentiment == sentiment)
+        subq_sent = (
+            select(ChatMessage.session_id)
+            .where(
+                (ChatMessage.sentiment == sentiment) |
+                (ChatMessage.feedback == ("down" if sentiment == "negative" else "up" if sentiment == "positive" else None))
+            )
+            .distinct()
+        )
+        query = query.where((ChatSession.sentiment == sentiment) | (ChatSession.id.in_(subq_sent)))
 
     if topic:
-        query = query.where(ChatSession.primary_topic == topic)
+        subq_topic = (
+            select(ChatMessage.session_id)
+            .where(ChatMessage.topic == topic)
+            .distinct()
+        )
+        query = query.where((ChatSession.primary_topic == topic) | (ChatSession.id.in_(subq_topic)))
 
     if search:
         search_filter = f"%{search.strip().lower()}%"
@@ -294,18 +309,26 @@ async def list_chat_sessions(
         )
         messages = (await db.execute(msg_query)).scalars().all()
         has_downvote = any(m.feedback == "down" for m in messages)
+        has_negative_msg = any(m.sentiment == "negative" or m.feedback == "down" for m in messages)
+        has_positive_msg = any(m.sentiment == "positive" or m.feedback == "up" for m in messages)
 
-        # Infer topic or sentiment if not yet set
-        session_sentiment = s.sentiment or "neutral"
+        # Session sentiment hierarchy:
+        # Any frustrated message or downvote marks the session as negative
+        if has_negative_msg or s.sentiment == "negative":
+            session_sentiment = "negative"
+        elif has_positive_msg or s.sentiment == "positive":
+            session_sentiment = "positive"
+        elif s.sentiment and s.sentiment != "neutral":
+            session_sentiment = s.sentiment
+        else:
+            session_sentiment = "neutral"
+
         session_topic = s.primary_topic or "general"
-        if messages and (session_sentiment == "neutral" or session_topic == "general"):
+        if messages and session_topic == "general":
             customer_msgs = [m for m in messages if m.sender == "customer"]
             if customer_msgs:
                 latest_customer_text = customer_msgs[-1].content
-                if session_sentiment == "neutral":
-                    session_sentiment, _ = sentiment_analyzer.analyze(latest_customer_text)
-                if session_topic == "general":
-                    session_topic = topic_analyzer.classify(latest_customer_text)
+                session_topic = topic_analyzer.classify(latest_customer_text)
 
         msg_responses = [
             ChatMessageResponse(
@@ -361,6 +384,17 @@ async def get_chat_session_detail(
     )
     messages = (await db.execute(msg_query)).scalars().all()
     has_downvote = any(m.feedback == "down" for m in messages)
+    has_negative_msg = any(m.sentiment == "negative" or m.feedback == "down" for m in messages)
+    has_positive_msg = any(m.sentiment == "positive" or m.feedback == "up" for m in messages)
+
+    if has_negative_msg or session.sentiment == "negative":
+        effective_sentiment = "negative"
+    elif has_positive_msg or session.sentiment == "positive":
+        effective_sentiment = "positive"
+    elif session.sentiment:
+        effective_sentiment = session.sentiment
+    else:
+        effective_sentiment = "neutral"
 
     msg_responses = [
         ChatMessageResponse(
@@ -370,7 +404,7 @@ async def get_chat_session_detail(
             content=m.content,
             is_answered=m.is_answered,
             feedback=m.feedback,
-            sentiment=m.sentiment or session.sentiment or "neutral",
+            sentiment=m.sentiment or effective_sentiment,
             topic=m.topic or session.primary_topic or "general",
             confidence_score=m.confidence_score,
             latency_ms=m.latency_ms,
@@ -385,7 +419,7 @@ async def get_chat_session_detail(
         session_id=session.id,
         channel=session.channel,
         customer_email=session.customer_email,
-        sentiment=session.sentiment or "neutral",
+        sentiment=effective_sentiment,
         primary_topic=session.primary_topic or "general",
         share_url=f"/share/{session.id}",
         started_at=session.created_at,
@@ -538,13 +572,44 @@ async def get_business_analytics(
 @router.get("/export/powerbi")
 async def export_powerbi_dataset(
     format: str = Query("csv", pattern="^(csv|json)$"),
-    owner: User = Depends(get_current_owner),
+    token: Optional[str] = Query(None),
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Exports a clean, flattened tabular dataset formatted specifically for
     Power BI / Excel / Tableau customer sentiment and support analytics.
+    Accepts authentication via Authorization header or ?token= query parameter.
+    In development mode, seamlessly defaults to the active store owner.
     """
+    owner = None
+    raw_token = None
+    if auth and auth.credentials:
+        raw_token = auth.credentials
+    elif token:
+        raw_token = token
+
+    if raw_token:
+        payload = decode_access_token(raw_token)
+        if payload and "sub" in payload:
+            user_id = payload.get("sub")
+            user_res = await db.execute(select(User).where(User.id == user_id))
+            u = user_res.scalar_one_or_none()
+            if u and u.role == "owner":
+                owner = u
+
+    # In local development mode, seamlessly resolve default store owner if accessed directly from browser URL
+    if not owner:
+        if settings.ENVIRONMENT == "development":
+            dev_res = await db.execute(select(User).where(User.role == "owner").limit(1))
+            owner = dev_res.scalar_one_or_none()
+
+        if not owner:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Authentication credentials were not provided. Pass Bearer token or ?token= in the URL."
+            )
+
     biz_id = owner.business_id
 
     query = (
@@ -633,7 +698,8 @@ async def test_playground_query(
     biz_settings = {
         "name": biz.name if biz else "Business",
         "tone": biz.tone if biz else "professional",
-        "fallback_message": fallback_msg
+        "fallback_message": fallback_msg,
+        "custom_prompt": getattr(biz, "custom_prompt", "") if biz else ""
     }
 
     # 2. Retrieve BM25 sparse results
