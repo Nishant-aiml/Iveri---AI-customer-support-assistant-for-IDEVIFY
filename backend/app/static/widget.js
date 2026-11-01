@@ -16,60 +16,60 @@
   let sessionId = null;
   let businessData = {
     name: 'Customer Support',
-    brand_color: '#6366F1',
+    brand_color: '#4F46E5',
     starter_questions: []
   };
 
-  // Inject Obsidian Kinetic CSS Styles
+  // Inject Pure Lumina Light CSS Styles
   const style = document.createElement('style');
   style.innerHTML = `
-    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
     
     .iveri-widget-bubble {
       position: fixed;
       bottom: 24px;
       right: 24px;
-      width: 58px;
-      height: 58px;
+      width: 56px;
+      height: 56px;
       border-radius: 50%;
-      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.4), inset 0 1px 0 rgba(255,255,255,0.2);
+      box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4), 0 4px 6px -2px rgba(79, 70, 229, 0.2);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 999999;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      background-color: #6366F1;
+      transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+      background-color: #4F46E5;
       color: white;
     }
     .iveri-widget-bubble:hover {
-      transform: scale(1.08);
-      box-shadow: 0 8px 25px rgba(99, 102, 241, 0.55);
+      transform: scale(1.06);
+      box-shadow: 0 14px 28px -5px rgba(79, 70, 229, 0.5);
     }
     .iveri-widget-window {
       position: fixed;
-      bottom: 96px;
+      bottom: 92px;
       right: 24px;
       width: 380px;
       height: 580px;
       max-width: calc(100vw - 32px);
-      max-height: calc(100vh - 120px);
-      background: #131622;
-      border: 1px solid #1F2438;
-      border-radius: 18px;
-      box-shadow: 0 16px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.06);
+      max-height: calc(100vh - 110px);
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 20px;
+      box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.15), 0 8px 16px -4px rgba(15, 23, 42, 0.08);
       display: none;
       flex-direction: column;
       overflow: hidden;
       z-index: 999999;
       font-family: 'Geist', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      color: #E2E1ED;
+      color: #0F172A;
     }
     .iveri-widget-header {
       padding: 14px 18px;
-      background: #0D0F17;
-      border-bottom: 1px solid #1F2438;
-      color: white;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E2E8F0;
+      color: #0F172A;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -78,50 +78,53 @@
       flex: 1;
       padding: 16px;
       overflow-y: auto;
-      background: #090A0F;
+      background: #F8FAFC;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
     .iveri-msg {
-      max-width: 84%;
+      max-width: 86%;
       padding: 10px 14px;
       border-radius: 14px;
       font-size: 13.5px;
-      line-height: 1.45;
+      line-height: 1.5;
       word-break: break-word;
     }
     .iveri-msg-user {
       align-self: flex-end;
-      background: #1A1E2E;
-      color: #F8FAFC;
-      border: 1px solid #2B334E;
+      background: #4F46E5;
+      color: #FFFFFF;
+      border: none;
       border-bottom-right-radius: 4px;
+      box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
     }
     .iveri-msg-assistant {
       align-self: flex-start;
-      background: #131622;
-      color: #E2E1ED;
-      border: 1px solid #1F2438;
+      background: #FFFFFF;
+      color: #0F172A;
+      border: 1px solid #E2E8F0;
       border-bottom-left-radius: 4px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
     }
     .iveri-citation-badge {
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
       margin-top: 6px;
       padding: 3px 8px;
-      background: rgba(16, 185, 129, 0.1);
-      color: #10B981;
+      background: #ECFDF5;
+      color: #047857;
       border-radius: 6px;
       font-size: 11px;
       font-family: 'JetBrains Mono', monospace;
       font-weight: 500;
-      border: 1px solid rgba(16, 185, 129, 0.25);
+      border: 1px solid #A7F3D0;
       cursor: pointer;
       transition: background 0.15s;
     }
     .iveri-citation-badge:hover {
-      background: rgba(16, 185, 129, 0.2);
+      background: #D1FAE5;
     }
     .iveri-feedback-row {
       display: flex;
@@ -130,18 +133,19 @@
       align-items: center;
     }
     .iveri-feedback-btn {
-      background: #0D0F17;
-      border: 1px solid #1F2438;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
       border-radius: 4px;
       cursor: pointer;
       font-size: 12px;
-      padding: 3px 6px;
-      color: #94A3B8;
+      padding: 2px 6px;
+      color: #64748B;
       transition: all 0.15s;
     }
     .iveri-feedback-btn:hover {
-      color: #E2E1ED;
-      border-color: #6366F1;
+      color: #0F172A;
+      border-color: #CBD5E1;
+      background: #F1F5F9;
     }
     .iveri-starters {
       display: flex;
@@ -150,55 +154,58 @@
       margin-top: 8px;
     }
     .iveri-starter-pill {
-      background: #0D0F17;
-      border: 1px solid #1F2438;
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
       border-radius: 8px;
-      padding: 6px 10px;
+      padding: 5px 10px;
       font-size: 12px;
-      color: #94A3B8;
+      color: #334155;
       cursor: pointer;
       transition: all 0.15s;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
     }
     .iveri-starter-pill:hover {
-      background: #1A1E2E;
-      border-color: #6366F1;
-      color: white;
+      background: #F8FAFC;
+      border-color: #4F46E5;
+      color: #4F46E5;
     }
     .iveri-input-box {
       padding: 12px 14px;
-      background: #0D0F17;
-      border-top: 1px solid #1F2438;
+      background: #FFFFFF;
+      border-top: 1px solid #E2E8F0;
       display: flex;
       gap: 8px;
     }
     .iveri-input {
       flex: 1;
-      background: #090A0F;
-      color: white;
-      border: 1px solid #1F2438;
+      background: #F8FAFC;
+      color: #0F172A;
+      border: 1px solid #CBD5E1;
       border-radius: 8px;
       padding: 8px 12px;
       font-size: 13.5px;
       outline: none;
-      transition: border 0.15s;
+      transition: border 0.15s, background 0.15s;
     }
     .iveri-input:focus {
-      border-color: #6366F1;
+      background: #FFFFFF;
+      border-color: #4F46E5;
+      box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
     }
     .iveri-send-btn {
-      background: #6366F1;
+      background: #4F46E5;
       color: white;
       border: none;
       border-radius: 8px;
       padding: 8px 14px;
       cursor: pointer;
-      font-weight: 500;
+      font-weight: 600;
       font-size: 13px;
       transition: background 0.15s;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+      box-shadow: 0 1px 2px rgba(79, 70, 229, 0.2);
     }
     .iveri-send-btn:hover {
-      background: #4F46E5;
+      background: #4338CA;
     }
   `;
   document.head.appendChild(style);
@@ -207,7 +214,7 @@
   const bubble = document.createElement('div');
   bubble.className = 'iveri-widget-bubble';
   bubble.innerHTML = `
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
     </svg>
   `;
@@ -217,17 +224,17 @@
   chatWindow.innerHTML = `
     <div class="iveri-widget-header" id="iveri-header">
       <div style="display:flex; align-items:center; gap:8px;">
-        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10B981;"></span>
+        <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#059669;"></span>
         <div>
-          <div style="font-weight: 600; font-size: 14px;" id="iveri-biz-name">Support Assistant</div>
-          <div style="font-size: 10px; font-family:'JetBrains Mono', monospace; opacity: 0.75;">Grounded RAG • Online</div>
+          <div style="font-weight: 600; font-size: 14px; color: #0F172A;" id="iveri-biz-name">Support Assistant</div>
+          <div style="font-size: 11px; font-family:'JetBrains Mono', monospace; color: #64748B;">Grounded RAG • Verified</div>
         </div>
       </div>
-      <button style="background:none; border:none; color:#94A3B8; font-size:20px; cursor:pointer;" id="iveri-close">×</button>
+      <button style="background:none; border:none; color:#64748B; font-size:20px; cursor:pointer; padding:2px;" id="iveri-close">×</button>
     </div>
     <div class="iveri-widget-messages" id="iveri-msgs">
       <div class="iveri-msg iveri-msg-assistant">
-        Hello! How can I assist you today?
+        Hello! How can I assist you today with store policies, orders, or products?
         <div class="iveri-starters" id="iveri-starter-container"></div>
       </div>
     </div>
@@ -258,7 +265,7 @@
     .then(r => r.json())
     .then(data => {
       businessData = data;
-      if (data.brand_color && data.brand_color !== '#2563eb') {
+      if (data.brand_color && data.brand_color !== '#2563eb' && data.brand_color !== '#6366F1') {
         bubble.style.backgroundColor = data.brand_color;
         document.getElementById('iveri-send').style.backgroundColor = data.brand_color;
       }
@@ -294,6 +301,19 @@
       .catch(e => console.error('[Iveri Widget] Session init failed:', e));
   }
 
+  // Helper to format content
+  function formatContent(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/^• (.*$)/gm, '<div style="margin-left: 8px;">• $1</div>')
+      .replace(/^- (.*$)/gm, '<div style="margin-left: 8px;">• $1</div>')
+      .replace(/\n\n/g, '<div style="height:6px;"></div>')
+      .replace(/\n/g, '<br/>');
+  }
+
   // Send Message
   function sendMessage(text) {
     if (!text || (typeof text === 'string' && !text.trim())) return;
@@ -321,11 +341,15 @@
     })
       .then(r => r.json())
       .then(data => {
-        botBubble.innerHTML = `<div>${data.content}</div>`;
+        botBubble.innerHTML = `<div>${formatContent(data.content)}</div>`;
 
         // Citations
         if (data.citations && data.citations.length > 0) {
           const citeRow = document.createElement('div');
+          citeRow.style.marginTop = '4px';
+          citeRow.style.display = 'flex';
+          citeRow.style.flexWrap = 'wrap';
+          citeRow.style.gap = '4px';
           data.citations.forEach(c => {
             const badge = document.createElement('span');
             badge.className = 'iveri-citation-badge';
@@ -343,7 +367,7 @@
         feedbackRow.innerHTML = `
           <button class="iveri-feedback-btn" title="Helpful">👍</button>
           <button class="iveri-feedback-btn" title="Not helpful">👎</button>
-          <span style="font-size:10px; font-family:'JetBrains Mono',monospace; color:#64748B; margin-left:auto;">${data.latency_ms}ms</span>
+          <span style="font-size:10.5px; font-family:'JetBrains Mono',monospace; color:#94A3B8; margin-left:auto;">${data.latency_ms}ms</span>
         `;
         const buttons = feedbackRow.querySelectorAll('button');
         buttons[0].onclick = () => sendFeedback(data.id, 'up', feedbackRow);
@@ -354,15 +378,15 @@
         if (!data.is_answered) {
           const leadBox = document.createElement('div');
           leadBox.style.marginTop = '8px';
-          leadBox.style.padding = '8px';
-          leadBox.style.background = '#1A1811';
-          leadBox.style.border = '1px solid rgba(245,158,11,0.3)';
+          leadBox.style.padding = '8px 10px';
+          leadBox.style.background = '#FFFBEB';
+          leadBox.style.border = '1px solid #FDE68A';
           leadBox.style.borderRadius = '8px';
           leadBox.innerHTML = `
-            <div style="font-size:11.5px; color:#FBBF24; margin-bottom:4px;">Need team follow-up?</div>
+            <div style="font-size:11.5px; color:#92400E; font-weight:500; margin-bottom:4px;">Need team follow-up?</div>
             <div style="display:flex; gap:6px;">
-              <input type="email" placeholder="your@email.com" style="flex:1; padding:4px 8px; font-size:11.5px; background:#090A0F; color:white; border:1px solid #1F2438; border-radius:4px;" />
-              <button style="padding:4px 8px; font-size:11.5px; background:#D97706; color:white; border:none; border-radius:4px; cursor:pointer;">Send</button>
+              <input type="email" placeholder="your@email.com" style="flex:1; padding:4px 8px; font-size:11.5px; background:#FFFFFF; color:#0F172A; border:1px solid #CBD5E1; border-radius:4px;" />
+              <button style="padding:4px 8px; font-size:11.5px; background:#D97706; color:white; border:none; border-radius:4px; font-weight:600; cursor:pointer;">Send</button>
             </div>
           `;
           const btn = leadBox.querySelector('button');
@@ -373,7 +397,7 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email: inp.value })
-              }).then(() => { leadBox.innerHTML = '<span style="font-size:11.5px; color:#10B981;">✓ Email recorded! Team will reach out.</span>'; });
+              }).then(() => { leadBox.innerHTML = '<span style="font-size:11.5px; color:#059669; font-weight:500;">✓ Email recorded! Team will reach out.</span>'; });
             }
           };
           botBubble.appendChild(leadBox);
@@ -392,7 +416,7 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ feedback: vote })
     }).then(() => {
-      rowEl.innerHTML = `<span style="font-size:11px; font-family:'JetBrains Mono',monospace; color:${vote==='up'?'#10B981':'#F43F5E'};">Feedback recorded (${vote === 'up' ? '✓' : '✕'})</span>`;
+      rowEl.innerHTML = `<span style="font-size:11px; font-family:'JetBrains Mono',monospace; color:${vote==='up'?'#059669':'#DC2626'}; font-weight:500;">Feedback recorded (${vote === 'up' ? '✓' : '✕'})</span>`;
     });
   }
 
