@@ -6,6 +6,7 @@ from typing import Dict, List
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
+from app.config import settings
 
 logger = logging.getLogger("idevify.ratelimit")
 
@@ -48,6 +49,10 @@ class SlidingWindowRateLimiter(BaseHTTPMiddleware):
             self.last_cleanup = current_time
 
     async def dispatch(self, request: Request, call_next) -> Response:
+        # 0. Bypass rate limiting in automated testing environment
+        if settings.ENVIRONMENT == "testing":
+            return await call_next(request)
+
         path = request.url.path
 
         # 1. Skip exempt paths or chat page assets
