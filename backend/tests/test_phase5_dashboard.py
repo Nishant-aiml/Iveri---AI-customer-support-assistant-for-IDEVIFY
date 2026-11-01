@@ -117,7 +117,8 @@ class TestPhase5Dashboard(unittest.IsolatedAsyncioTestCase):
         assert unans_res.status_code == 200
         items = unans_res.json()
         assert len(items) >= 1
-        unanswered_id = items[0]["id"]
+        target_item = next((i for i in items if "flight" in i["question_text"].lower()), items[0])
+        unanswered_id = target_item["id"]
 
         # Resolve the question by providing authoritative business knowledge
         resolve_res = await self.client.post(
