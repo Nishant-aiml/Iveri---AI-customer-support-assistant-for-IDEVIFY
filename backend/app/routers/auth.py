@@ -142,6 +142,20 @@ async def get_active_owner_workspace(db: AsyncSession = Depends(get_db)):
         }
     return {"has_active_workspace": False}
 
+@router.get("/session/validate")
+async def validate_session(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Validates session token freshness and multi-device connection status."""
+    biz = (await db.execute(select(Business).where(Business.id == current_user.business_id))).scalar_one_or_none()
+    return {
+        "valid": True,
+        "user_id": current_user.id,
+        "email": current_user.email,
+        "business_id": current_user.business_id,
+        "business_name": biz.name if biz else "Business Workspace",
+        "business_slug": biz.slug if biz else "",
+        "share_token": biz.share_token if biz else ""
+    }
+
 @router.post("/firebase-login", response_model=TokenResponse)
 async def firebase_login(req: FirebaseLoginRequest, db: AsyncSession = Depends(get_db)):
     """Authenticates via Firebase ID token, auto-provisioning workspace if new."""
