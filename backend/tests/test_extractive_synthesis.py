@@ -1,5 +1,4 @@
 import re
-import difflib
 from typing import List, Dict, Any
 
 def clean_and_format_section(raw_text: str) -> str:
@@ -88,16 +87,16 @@ def extract_intelligent_passage(query: str, chunks: List[Dict[str, Any]]) -> str
                     
                     # Clean up bullet symbols (like replacement char \ufffd)
                     section_text = section_text.replace("\ufffd", "- ").replace("\u2022", "- ")
-                    lines = [l.strip() for l in section_text.split("\n") if l.strip()]
+                    lines = [line_item.strip() for line_item in section_text.split("\n") if line_item.strip()]
                     # Ensure bullets are formatted
                     formatted_lines = []
-                    for l in lines:
-                        if l.startswith("•"):
-                            formatted_lines.append(l)
+                    for line_item in lines:
+                        if line_item.startswith("•"):
+                            formatted_lines.append(line_item)
                         elif formatted_lines and not formatted_lines[-1].endswith("."):
-                            formatted_lines[-1] += " " + l
+                            formatted_lines[-1] += " " + line_item
                         else:
-                            formatted_lines.append(l)
+                            formatted_lines.append(line_item)
                     return "\n".join(formatted_lines[:8]).strip()
 
     # 3. Returns & Refunds Intent
