@@ -1,0 +1,180 @@
+import json
+import asyncio
+from datetime import datetime
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import desc
+from app.database import get_db
+from app.models.business import Business
+from app.models.chat import ChatSession, ChatMessage
+from app.models.unanswered import UnansweredQuestion
+from app.schemas.chat import (
+    ChatSessionCreateRequest, ChatSessionResponse,
+    ChatMessageRequest, ChatMessageResponse, SourceCitation
+)
+from app.services.rag_engine import rag_engine
+
+router = APIRouter(prefix="/api/chat", tags=["Customer Chat"])
+
+@router.post("/session", response_model=ChatSessionResponse, status_code=status.HTTP_201_CREATED)
+async def create_chat_session(req: ChatSessionCreateRequest, db: AsyncSession = Depends(get_db)):
+    """Initializes a new customer chat session using the business slug or share token."""
+    biz_query = select(Business).where(
+        (Business.slug == req.business_slug_or_token) | (Business.share_token == req.business_slug_or_token)
+    )
+    business = (await db.execute(biz_query)).scalar_one_or_none()
+    if not business:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Business assistant not found."
+        )
+
+    session = ChatSession(
+        business_id=business.id,
+        channel=req.channel,
+        customer_email=str(req.customer_email) if req.customer_email else None
+    )
+    db.add(session)
+    await db.commit()
+    await db.refresh(session)
+
+    return ChatSessionResponse(
+        id=session.id,
+        business_id=business.id,
+        business_name=business.name,
+        business_slug=business.slug,
+        channel=session.channel,
+        started_at=session.created_at,
+        last_message_at=session.last_message_at
+    )
+
+@router.post("/message", response_model=ChatMessageResponse)
+async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(get_db)):
+    """Sends a question in an active chat session, runs Hybrid RAG, and saves the conversation."""
+    # 1. Fetch Session & Business
+    session_query = select(ChatSession).where(ChatSession.id == req.session_id)
+    session = (await db.execute(session_query)).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found.")
+
+    biz_query = select(Business).where(Business.id == session.business_id)
+    business = (await db.execute(biz_query)).scalar_one_or_none()
+    if not business:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
+
+    # 2. Record Customer Message
+    user_msg = ChatMessage(
+        session_id=session.id,
+        sender="customer",
+        content=req.message.strip(),
+        is_answered=True
+    )
+    db.add(user_msg)
+    session.last_message_at = datetime.utcnow()
+    await db.flush()
+
+    # 3. Retrieve Rolling History (last 4 message pairs)
+    hist_query = select(ChatMessage).where(
+        ChatMessage.session_id == session.id
+    ).order_by(desc(ChatMessage.created_at)).limit(8)
+    hist_results = (await db.execute(hist_query)).scalars().all()
+    rolling_history = [
+        {"role": m.sender, "content": m.content}
+        for m in reversed(hist_results)
+    ]
+
+    # 4. Execute Multi-Hybrid RAG Pipeline
+    biz_settings = {
+        "name": business.name,
+        "tone": business.tone,
+        "fallback_message": business.fallback_message
+    }
+    rag_result = await rag_engine.query(
+        business_id=business.id,
+        user_query=req.message.strip(),
+        business_settings=biz_settings,
+        chat_history=rolling_history
+    )
+
+    # 5. Format Citations
+    citation_objs = [
+        SourceCitation(
+            document_name=c.get("document_name", "Document"),
+            page_number=c.get("page_number", 1),
+            chunk_id=c.get("chunk_id", ""),
+            excerpt=c.get("excerpt", "")
+        )
+        for c in rag_result.get("citations", [])
+    ]
+
+    # 6. Record Assistant Message
+    assistant_msg = ChatMessage(
+        session_id=session.id,
+        sender="assistant",
+        content=rag_result["answer"],
+        is_answered=rag_result["is_answered"],
+        confidence_score=rag_result["confidence_score"],
+        latency_ms=rag_result["latency_ms"],
+        llm_provider_used=rag_result["llm_provider"],
+        source_citations=[c.model_dump() for c in citation_objs]
+    )
+    db.add(assistant_msg)
+    await db.flush()
+
+    # 7. If Unknown Question: Log to Unanswered Questions for Owner Review
+    if not rag_result["is_answered"]:
+        unanswered_entry = UnansweredQuestion(
+            business_id=business.id,
+            session_id=session.id,
+            message_id=assistant_msg.id,
+            question_text=req.message.strip(),
+            customer_email=session.customer_email,
+            top_retrieval_score=rag_result["confidence_score"]
+        )
+        db.add(unanswered_entry)
+
+    await db.commit()
+    await db.refresh(assistant_msg)
+
+    return ChatMessageResponse(
+        id=assistant_msg.id,
+        session_id=session.id,
+        sender=assistant_msg.sender,
+        content=assistant_msg.content,
+        is_answered=assistant_msg.is_answered,
+        feedback=assistant_msg.feedback,
+        confidence_score=assistant_msg.confidence_score,
+        latency_ms=assistant_msg.latency_ms,
+        llm_provider_used=assistant_msg.llm_provider_used,
+        citations=citation_objs,
+        created_at=assistant_msg.created_at
+    )
+
+@router.get("/session/{session_id}/history", response_model=List[ChatMessageResponse])
+async def get_session_history(session_id: str, db: AsyncSession = Depends(get_db)):
+    """Retrieves chronological conversation history for a chat session."""
+    query = select(ChatMessage).where(
+        ChatMessage.session_id == session_id
+    ).order_by(ChatMessage.created_at)
+    
+    result = await db.execute(query)
+    messages = result.scalars().all()
+
+    return [
+        ChatMessageResponse(
+            id=m.id,
+            session_id=m.session_id,
+            sender=m.sender,
+            content=m.content,
+            is_answered=m.is_answered,
+            feedback=m.feedback,
+            confidence_score=m.confidence_score,
+            latency_ms=m.latency_ms,
+            llm_provider_used=m.llm_provider_used,
+            citations=[SourceCitation(**c) for c in m.source_citations],
+            created_at=m.created_at
+        )
+        for m in messages
+    ]
