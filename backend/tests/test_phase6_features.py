@@ -119,3 +119,11 @@ class TestPhase6Features(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(filtered_res.status_code, 200)
         filtered_ids = [s["session_id"] for s in filtered_res.json()]
         self.assertIn(session_id, filtered_ids)
+
+    async def test_05_session_token_validation(self):
+        res = await self.client.get("/api/auth/session/validate", headers=self.headers)
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertTrue(data["valid"])
+        self.assertEqual(data["email"], self.email)
+        self.assertEqual(data["business_slug"], self.slug)
