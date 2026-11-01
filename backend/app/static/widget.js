@@ -5,8 +5,17 @@
     return scripts[scripts.length - 1];
   })();
 
-  const businessSlug = currentScript.getAttribute('data-business') || '';
-  const apiBaseUrl = currentScript.getAttribute('data-api') || window.location.origin;
+  const businessSlug = currentScript ? (currentScript.getAttribute('data-business') || '') : '';
+  
+  // Auto-detect backend API origin from script source URL if not explicitly provided
+  let scriptOrigin = window.location.origin;
+  try {
+    if (currentScript && currentScript.src) {
+      scriptOrigin = new URL(currentScript.src, window.location.href).origin;
+    }
+  } catch(e) {}
+
+  const apiBaseUrl = (currentScript && currentScript.getAttribute('data-api')) || scriptOrigin;
 
   if (!businessSlug) {
     console.error('[Iveri Widget] Missing data-business attribute.');

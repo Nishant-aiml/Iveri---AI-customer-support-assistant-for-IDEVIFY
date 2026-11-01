@@ -1382,13 +1382,13 @@
       const area = document.getElementById('embed-code-area');
 
       if (platform === 'shopify') {
-        area.value = `<!-- Paste right before </body> in theme.liquid -->\n<script src="${origin}/widget.js" data-business="${slug}" defer><\/script>`;
+        area.value = `<!-- Paste right before </body> in theme.liquid -->\n<script src="${origin}/widget.js" data-business="${slug}" data-api="${origin}" defer><\/script>`;
       } else if (platform === 'wordpress') {
-        area.value = `// Paste into header.php or WPCode plugin:\nwp_enqueue_script('iveri-widget', '${origin}/widget.js', array(), null, true);\n// data-business: ${slug}`;
+        area.value = `// Paste into header.php or WPCode plugin:\nwp_enqueue_script('iveri-widget', '${origin}/widget.js', array(), null, true);\n// data-business: ${slug}\n// data-api: ${origin}`;
       } else if (platform === 'react') {
-        area.value = `import Script from 'next/script';\n\n<Script src="${origin}/widget.js" data-business="${slug}" strategy="lazyOnload" />`;
+        area.value = `import Script from 'next/script';\n\n<Script src="${origin}/widget.js" data-business="${slug}" data-api="${origin}" strategy="lazyOnload" />`;
       } else {
-        area.value = `<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  defer>\n<\/script>`;
+        area.value = `<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
       }
     }
 
