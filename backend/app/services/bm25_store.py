@@ -112,4 +112,47 @@ class BM25StoreService:
 
         return results
 
+    def get_vocabulary(self, business_id: str) -> set:
+        """Returns set of unique words in business corpus for query typo correction."""
+        if business_id not in self._corpus:
+            return set()
+        words = set()
+        for c in self._corpus[business_id]:
+            for w in re.findall(r"[a-zA-Z]{3,}", c.get("content", "").lower()):
+                words.add(w)
+        return words
+
+    async def warmup_from_db(self):
+        """Hydrates in-memory BM25Plus models from relational database on server startup."""
+        try:
+            from app.database import AsyncSessionLocal
+            from app.models.document import DocumentChunk
+            from sqlalchemy.future import select
+
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(select(DocumentChunk))
+                chunks = result.scalars().all()
+
+            biz_map: Dict[str, List[Dict[str, Any]]] = {}
+            for c in chunks:
+                bid = c.business_id
+                if bid not in biz_map:
+                    biz_map[bid] = []
+                biz_map[bid].append({
+                    "id": c.id,
+                    "content": c.content,
+                    "metadata": {
+                        "document_id": c.document_id,
+                        "chunk_index": c.chunk_index,
+                        "page_number": c.page_number
+                    }
+                })
+
+            for bid, c_list in biz_map.items():
+                self.add_chunks(bid, c_list)
+
+            logger.info(f"BM25StoreService warmed up {len(chunks)} chunks across {len(biz_map)} businesses from database.")
+        except Exception as e:
+            logger.warning(f"BM25StoreService warmup failed: {str(e)}")
+
 bm25_store_service = BM25StoreService()

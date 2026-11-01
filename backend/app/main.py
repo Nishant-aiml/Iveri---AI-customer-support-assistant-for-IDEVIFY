@@ -1,5 +1,10 @@
 import os
+import sys
 import logging
+
+# Ensure backend directory is in sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
@@ -8,6 +13,7 @@ from app.config import settings
 from app.database import init_db
 from app.routers import auth, business, documents, chat, dashboard
 from app.services.ingestion_queue import ingestion_queue
+from app.services.bm25_store import bm25_store_service
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,6 +26,7 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting up Iveri AI Customer Support Assistant backend...")
     await init_db()
+    await bm25_store_service.warmup_from_db()
     ingestion_queue.start()
     yield
     # Shutdown
