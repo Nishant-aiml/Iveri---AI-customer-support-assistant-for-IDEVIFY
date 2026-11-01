@@ -128,16 +128,53 @@ class MultiTierLLMClient:
                 logger.warning(f"Tier 2 (Groq) encountered error: {str(e)}.")
 
         # -----------------------------------------------------------------
-        # TIER 3: Local Extractive Fallback (Zero-API / Offline Mode)
+        # TIER 3: OpenAI (GPT-4o-mini / GPT-3.5-turbo)
         # -----------------------------------------------------------------
-        logger.info("Using Tier 3 deterministic extractive synthesis...")
+        if settings.OPENAI_API_KEY:
+            try:
+                url = "https://api.openai.com/v1/chat/completions"
+                headers = {
+                    "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {"role": "system", "content": prompt},
+                        {"role": "user", "content": user_content}
+                    ],
+                    "temperature": 0.1,
+                    "max_tokens": 600
+                }
+                async with httpx.AsyncClient(timeout=15.0) as client:
+                    resp = await client.post(url, headers=headers, json=payload)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        choices = data.get("choices", [])
+                        if choices and "message" in choices[0]:
+                            text = choices[0]["message"].get("content", "").strip()
+                            logger.info("Answer generated successfully via Tier 3 (OpenAI).")
+                            return text, "openai"
+                    logger.warning(f"Tier 3 (OpenAI) returned HTTP {resp.status_code}.")
+            except Exception as e:
+                logger.warning(f"Tier 3 (OpenAI) encountered error: {str(e)}.")
+
+        # -----------------------------------------------------------------
+        # TIER 4: Local Extractive Synthesis (Zero-API / Deterministic Grounding)
+        # -----------------------------------------------------------------
+        logger.info("Using Tier 4 deterministic extractive synthesis from grounded chunks...")
         if retrieved_chunks:
             top = retrieved_chunks[0]
-            excerpt = top["content"].strip()
-            # Clean preview
-            summary = excerpt[:400] + ("..." if len(excerpt) > 400 else "")
-            doc_name = top.get("metadata", {}).get("document_name", "our documents")
-            return f"According to {doc_name}: {summary}", "extractive_fallback"
+            content = top["content"].strip()
+            
+            # If Q&A chunk format
+            if "Answer:" in content:
+                ans_part = content.split("Answer:", 1)[1].strip()
+                return ans_part, "extractive_synthesis"
+
+            # Direct grounded passage from document
+            clean_text = content[:600].strip()
+            return clean_text, "extractive_synthesis"
 
         return "[UNKNOWN]", "none"
 

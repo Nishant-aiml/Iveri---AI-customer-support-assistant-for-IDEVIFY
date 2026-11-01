@@ -60,8 +60,16 @@ class VectorStoreService:
             except Exception as e:
                 logger.warning(f"Gemini embedding call failed ({str(e)}). Using fallback embedding...")
 
-        # 2. Local Deterministic 384-dimensional Hash Embedding Fallback
-        # Zero RAM overhead on Render, 100% reliable for local testing & development
+        # 2. Local Semantic ONNX all-MiniLM-L6-v2 Embeddings (True Cosine Similarity)
+        try:
+            from chromadb.utils import embedding_functions
+            default_ef = embedding_functions.DefaultEmbeddingFunction()
+            embeddings = default_ef(texts)
+            return [list(map(float, emb)) for emb in embeddings]
+        except Exception as e:
+            logger.warning(f"Chroma ONNX embedding failed ({str(e)}). Using deterministic fallback...")
+
+        # 3. Local Deterministic 384-dimensional Hash Embedding Fallback
         fallback_embeddings: List[List[float]] = []
         for text in texts:
             vec = [0.0] * 384
