@@ -115,7 +115,7 @@ class IngestionWorkerQueue:
                             chunk_index=chunk_index,
                             page_number=page_num,
                             content=text,
-                            metadata=meta
+                            payload=meta
                         )
                         db.add(db_chunk)
                         all_chunks.append({

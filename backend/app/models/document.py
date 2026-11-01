@@ -30,20 +30,20 @@ class DocumentChunk(Base, TimestampMixin):
     chunk_index = Column(Integer, nullable=False)
     page_number = Column(Integer, default=1, nullable=False)
     content = Column(Text, nullable=False)
-    _metadata = Column("metadata", Text, default="{}", nullable=False)
+    metadata_payload = Column(Text, default="{}", nullable=False)
 
     document = relationship("Document", back_populates="chunks")
 
     @property
-    def metadata(self):
+    def payload(self):
         try:
-            return json.loads(self._metadata) if self._metadata else {}
+            return json.loads(self.metadata_payload) if self.metadata_payload else {}
         except Exception:
             return {}
 
-    @metadata.setter
-    def metadata(self, value):
+    @payload.setter
+    def payload(self, value):
         if isinstance(value, dict):
-            self._metadata = json.dumps(value)
+            self.metadata_payload = json.dumps(value)
         else:
-            self._metadata = json.dumps({})
+            self.metadata_payload = json.dumps({})

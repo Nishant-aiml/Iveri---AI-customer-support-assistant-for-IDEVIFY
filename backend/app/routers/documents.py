@@ -128,7 +128,7 @@ async def create_manual_qa(
         chunk_index=0,
         page_number=1,
         content=formatted_content,
-        metadata=meta
+        payload=meta
     )
     db.add(chunk)
     await db.flush()
