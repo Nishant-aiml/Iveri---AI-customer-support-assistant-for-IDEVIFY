@@ -17,7 +17,7 @@
   let businessData = {
     name: 'Customer Support',
     brand_color: '#6366F1',
-    starter_questions: ['What are your hours?', 'What is your refund policy?']
+    starter_questions: []
   };
 
   // Inject Obsidian Kinetic CSS Styles
@@ -266,13 +266,18 @@
       
       const starterContainer = document.getElementById('iveri-starter-container');
       starterContainer.innerHTML = '';
-      (data.starter_questions || []).forEach(q => {
-        const pill = document.createElement('button');
-        pill.className = 'iveri-starter-pill';
-        pill.innerText = q;
-        pill.onclick = () => sendMessage(q);
-        starterContainer.appendChild(pill);
-      });
+      if (data.starter_questions && data.starter_questions.length > 0) {
+        starterContainer.style.display = 'flex';
+        data.starter_questions.forEach(q => {
+          const pill = document.createElement('button');
+          pill.className = 'iveri-starter-pill';
+          pill.innerText = q;
+          pill.onclick = () => sendMessage(q);
+          starterContainer.appendChild(pill);
+        });
+      } else {
+        starterContainer.style.display = 'none';
+      }
     })
     .catch(err => console.warn('[Iveri Widget] Failed to load business branding:', err));
 
