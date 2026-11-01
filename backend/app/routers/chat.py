@@ -3,6 +3,7 @@ import asyncio
 from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc
@@ -178,3 +179,36 @@ async def get_session_history(session_id: str, db: AsyncSession = Depends(get_db
         )
         for m in messages
     ]
+
+@router.get("/stream")
+async def stream_chat_message(session_id: str, message: str, db: AsyncSession = Depends(get_db)):
+    """Server-Sent Events (SSE) streaming endpoint returning answer tokens in real-time."""
+    session_query = select(ChatSession).where(ChatSession.id == session_id)
+    session = (await db.execute(session_query)).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found.")
+
+    biz_query = select(Business).where(Business.id == session.business_id)
+    business = (await db.execute(biz_query)).scalar_one_or_none()
+    if not business:
+        raise HTTPException(status_code=404, detail="Business not found.")
+
+    rag_result = await rag_engine.query(
+        business_id=business.id,
+        user_query=message,
+        business_settings={"name": business.name, "tone": business.tone, "fallback_message": business.fallback_message}
+    )
+
+    full_text = rag_result["answer"]
+    tokens = full_text.split(" ")
+
+    async def event_generator():
+        for token in tokens:
+            yield f"data: {json.dumps({'token': token + ' '})}\n\n"
+            await asyncio.sleep(0.04)
+        
+        # Final metadata event
+        yield f"data: {json.dumps({'done': True, 'citations': rag_result['citations'], 'is_answered': rag_result['is_answered']})}\n\n"
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
