@@ -685,7 +685,9 @@ async def export_powerbi_dataset(
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "Access-Control-Allow-Origin": "*",
-            "Cache-Control": "no-cache, no-store, must-revalidate"
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "X-Dataset-Rows": str(len(records)),
+            "X-Dataset-Schema-Version": "1.2"
         }
     )
 
