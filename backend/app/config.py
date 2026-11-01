@@ -46,8 +46,8 @@ class Settings(BaseSettings):
     RRF_K: int = 60
     TOP_K_CHUNKS: int = 4
     
-    # CORS
-    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173"
+    # CORS (set to * or comma-separated origins)
+    ALLOWED_ORIGINS: str = "*"
     
     @property
     def cors_origins(self) -> List[str]:

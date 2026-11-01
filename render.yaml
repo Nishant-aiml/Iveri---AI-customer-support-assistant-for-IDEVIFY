@@ -24,6 +24,8 @@ services:
         value: ./data/chroma_db
       - key: UPLOAD_DIRECTORY
         value: ./data/uploads
+      - key: ALLOWED_ORIGINS
+        value: "*"
     disk:
       name: iveri-data
       mountPath: /app/backend/data

@@ -47,14 +47,24 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_origins or ["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# CORS Middleware (supports wildcard origin reflection for cross-origin widget embeds)
+_allow_all = "*" in settings.cors_origins or len(settings.cors_origins) == 0
+if _allow_all:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origin_regex=r"https?://.*",
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # HTTP Security Headers Middleware
 app.add_middleware(SecurityHeadersMiddleware)
