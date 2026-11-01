@@ -343,3 +343,17 @@ gantt
 | **Phase 4** | Customer chat API, SSE streaming, **Answer Feedback (👍/👎)**, **Lead Capture form**, **Source chunk preview**, **Embeddable Widget** | `Ishwari Bhoyar <ishwaribhoyar2@gmail.com>` & `Nishant Datta` |
 | **Phase 5** | Analytics Dashboard, **Resolve Unanswered Questions into Knowledge Base**, Downvote filter, **Test Playground** | `Nishant Datta <dattanishant2@gmail.com>` |
 | **Phase 6** | Sample business seeder (`seed.py`), 4-point Idevify evaluation verification suite, Render deployment configuration | Joint Final Release |
+
+---
+
+## 8. Multi-Device Authentication & Analytics Telemetry Specs
+
+### 8.1 Cross-Device Identity Synchronization
+- Seamless workspace recovery via `/api/auth/active-owner` and `/api/auth/session/validate`.
+- Case-insensitive email normalization across registration and sign-in handlers.
+- Auto-redirect and session persistence preventing data fragmentation across mobile and desktop devices.
+
+### 8.2 Power BI / Excel Live Connector Architecture
+- Direct streaming `/api/dashboard/export/powerbi?format=csv` with UTF-8 BOM (`\ufeff`) compatibility.
+- Transparent query token authentication (`?token=...`) supporting automated enterprise scheduled refreshes.
+- Response headers `X-Dataset-Rows` and `X-Dataset-Schema-Version` for ETL ingestion pipelines.
