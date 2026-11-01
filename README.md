@@ -162,10 +162,10 @@ In accordance with group project guidelines, commit authoring and signing are st
 
 | Engineer | Focus Areas | Phases | Commits |
 | :--- | :--- | :--- | :--- |
-| **Nishant Datta** ([@dattanishant2](https://github.com/dattanishant2)) | System Architecture, BRD/PRD Specs, Owner Dashboard API & Analytics | Phase 0 & Phase 5 | **8 commits** |
-| **Ishwari Bhoyar** ([@ishwaribhoyar](https://github.com/ishwaribhoyar)) | Document Intelligence, Dual Ingestion Queue, Multi-Hybrid RAG & Grounding | Phase 2 & Phase 3 | **8 commits** |
-| **Nazish Khan** ([@nazishkhan10](https://github.com/nazishkhan10)) | Customer Chat Engine, Citations, Feedback Voting & Embeddable Widget | Phase 4 | **7 commits** |
-| **Gunjan Nandeshwar** ([@gunjannan2005](https://github.com/gunjannan2005)) | Core Multi-Tenancy Models, Auth RBAC, E2E Verification & Docker | Phase 1 & Phase 6 | **7 commits** |
+| **Ishwari Bhoyar** ([@ishwaribhoyar](https://github.com/ishwaribhoyar)) | Document Intelligence, Dual Ingestion Queue, Multi-Hybrid RAG, Grounding & Circuit Breaker | Phase 2 & Phase 3 | **22 commits** |
+| **Nishant Datta** ([@Nishant-aiml](https://github.com/Nishant-aiml)) | System Architecture, BRD/PRD Specs, Owner Dashboard API, Analytics & Auth Sync | Phase 0 & Phase 5 | **17 commits** |
+| **Gunjan Nandeshwar** ([@gunjannan2005](https://github.com/gunjannan2005)) | Core Multi-Tenancy Models, Auth RBAC, E2E Verification, Docker & PowerBI Export | Phase 1 & Phase 6 | **16 commits** |
+| **Nazish Khan** ([@nazishkhan10](https://github.com/nazishkhan10)) | Customer Chat Engine, Citations, Feedback Voting, Embeddable Widget & Mobile UI | Phase 4 | **16 commits** |
 
 ---
 
