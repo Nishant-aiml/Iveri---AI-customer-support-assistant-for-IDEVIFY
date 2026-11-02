@@ -424,10 +424,15 @@ async def delete_chat_session(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found.")
 
     from app.models.ticket import Ticket
+    from app.models.chat import ChatMessage
+    from app.models.unanswered import UnansweredQuestion
+
+    # 1. Unlink tickets
     await db.execute(
         update(Ticket).where(Ticket.session_id == session.id).values(session_id=None, message_id=None)
     )
 
+    # 2. Delete unanswered questions linked to this session
     await db.execute(
         delete(UnansweredQuestion).where(
             UnansweredQuestion.session_id == session.id,
@@ -435,6 +440,12 @@ async def delete_chat_session(
         )
     )
 
+    # 3. Explicitly delete all chat messages for this session to prevent FK constraint failures
+    await db.execute(
+        delete(ChatMessage).where(ChatMessage.session_id == session.id)
+    )
+
+    # 4. Delete the session
     await db.delete(session)
     await db.commit()
     return {"status": "success", "message": "Conversation session deleted successfully."}

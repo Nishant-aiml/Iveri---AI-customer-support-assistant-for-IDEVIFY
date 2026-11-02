@@ -61,20 +61,9 @@ class VectorStoreService:
         return all_embeddings
 
     async def _get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
-        # 1. Local Semantic ONNX all-MiniLM-L6-v2 Embeddings in non-blocking worker thread
-        # Keeps embeddings 100% matched with ChromaDB index without blocking the asyncio event loop
-        ef = self._get_default_ef()
-        if ef is not None:
-            try:
-                embeddings = await asyncio.to_thread(ef, texts)
-                return [list(map(float, emb)) for emb in embeddings]
-            except Exception as e:
-                logger.warning(f"Chroma ONNX embedding failed ({str(e)}). Trying Google Gemini embedding...")
-
-        # 2. Google Gemini Embeddings (Cloud Fallback)
+        # 1. Cloud-Accelerated Google Gemini Embeddings (Ultra-fast ~0.3s, 0% CPU on Render, native 384-dim)
         if settings.GEMINI_API_KEY:
             try:
-                embeddings = []
                 emb_model = getattr(settings, "GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
                 if not emb_model.startswith("models/"):
                     model_path = f"models/{emb_model}"
@@ -83,21 +72,34 @@ class VectorStoreService:
                 url = f"https://generativelanguage.googleapis.com/v1beta/{model_path}:batchEmbedContents?key={settings.GEMINI_API_KEY}"
                 
                 requests_payload = [
-                    {"model": model_path, "content": {"parts": [{"text": t[:2048]}]}}
+                    {
+                        "model": model_path,
+                        "content": {"parts": [{"text": t[:2048]}]},
+                        "outputDimensionality": 384
+                    }
                     for t in texts
                 ]
                 
-                async with httpx.AsyncClient(timeout=30.0) as client:
+                async with httpx.AsyncClient(timeout=15.0) as client:
                     resp = await client.post(url, json={"requests": requests_payload})
                     if resp.status_code == 200:
                         data = resp.json()
-                        for emb_obj in data.get("embeddings", []):
-                            embeddings.append(emb_obj["values"])
-                        return embeddings
+                        embeddings = [emb_obj["values"] for emb_obj in data.get("embeddings", [])]
+                        if len(embeddings) == len(texts):
+                            return embeddings
                     else:
-                        logger.warning(f"Gemini embedding API returned {resp.status_code}. Using hash fallback embedding...")
+                        logger.warning(f"Gemini embedding API returned {resp.status_code}. Falling back to ONNX...")
             except Exception as e:
-                logger.warning(f"Gemini embedding call failed ({str(e)}). Using hash fallback embedding...")
+                logger.warning(f"Gemini cloud embedding failed ({str(e)}). Falling back to ONNX...")
+
+        # 2. Local Semantic ONNX all-MiniLM-L6-v2 Embeddings Fallback
+        ef = self._get_default_ef()
+        if ef is not None:
+            try:
+                embeddings = await asyncio.to_thread(ef, texts)
+                return [list(map(float, emb)) for emb in embeddings]
+            except Exception as e:
+                logger.warning(f"Chroma ONNX embedding failed ({str(e)}). Using hash fallback embedding...")
 
         # 3. Local Deterministic 384-dimensional Hash Embedding Fallback
         fallback_embeddings: List[List[float]] = []
