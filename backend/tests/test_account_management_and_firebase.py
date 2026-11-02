@@ -211,3 +211,54 @@ class TestAccountManagementAndFirebase(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(user_check, "Associated user must be deleted.")
             self.assertIsNone(doc_check, "Associated documents must be cascade deleted.")
             self.assertIsNone(tick_check, "Associated tickets must be cascade deleted.")
+
+    async def test_05_firebase_duplicate_email_and_case_insensitive_linking(self):
+        """Verifies that signing in with Google Firebase when an account already exists (even with differing case)
+
+        links the user smoothly without UniqueViolationError or duplicate key errors.
+        """
+        # 1. Existing local user with uppercase/mixed email
+        test_email = f"GoogleUser_{self.suffix}@example.com"
+        async with AsyncSessionLocal() as db:
+            biz = Business(name=f"Existing Biz {self.suffix}", slug=f"exist-biz-{self.suffix}")
+            db.add(biz)
+            await db.flush()
+            existing_user = User(
+                business_id=biz.id,
+                email=test_email.lower(),
+                password_hash=hash_password("Pass123!"),
+                role="owner"
+            )
+            db.add(existing_user)
+            await db.commit()
+
+        # 2. Firebase login token with mixed case email
+        token_str = f"test_fb_token:google_uid_{self.suffix}:{test_email}:Google Brand"
+        res = await self.client.post(
+            "/api/auth/firebase-login",
+            json={"id_token": token_str, "business_name": "New Google Name"}
+        )
+        self.assertEqual(res.status_code, 200, f"Google login must succeed without UniqueViolationError: {res.text}")
+        data = res.json()
+        self.assertTrue(data["access_token"])
+        self.assertEqual(data["business_id"], biz.id)
+
+        # 3. Clean up
+        async with AsyncSessionLocal() as db:
+            await db.execute(User.__table__.delete().where(User.business_id == biz.id))
+            await db.execute(Business.__table__.delete().where(Business.id == biz.id))
+            await db.commit()
+
+    def test_06_pwa_native_prompt_contracts(self):
+        """Verifies that index.html handles native deferredPrompt for direct 1-tap Chrome install."""
+        html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "static", "index.html"))
+        with open(html_path, "r", encoding="utf-8") as f:
+            html = f.read()
+
+        self.assertIn("deferredPrompt.prompt()", html)
+        self.assertIn("installPWA", html)
+        self.assertIn("isFirebaseSyncing", html)
+        self.assertIn("window.firebaseAuth.signOut()", html)
+        self.assertIn("window.firebaseSignOut", html)
+        self.assertIn("prompt: 'select_account'", html)
+        self.assertNotIn("onAuthStateChanged(auth, async (user) => {", html)

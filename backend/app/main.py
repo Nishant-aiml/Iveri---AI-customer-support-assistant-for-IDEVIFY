@@ -134,7 +134,11 @@ async def serve_pwa_manifest():
 @app.get("/sw.js", tags=["PWA"])
 async def serve_pwa_service_worker():
     """Serves the Progressive Web App Service Worker."""
-    return FileResponse(os.path.join(_static_dir, "sw.js"), media_type="application/javascript")
+    return FileResponse(
+        os.path.join(_static_dir, "sw.js"),
+        media_type="application/javascript",
+        headers={"Service-Worker-Allowed": "/"}
+    )
 
 @app.get("/widget.js", tags=["Widget"])
 async def serve_widget_script():

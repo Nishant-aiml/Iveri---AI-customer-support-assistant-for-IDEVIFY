@@ -31,7 +31,7 @@
   <!-- Firebase 10 Web SDK with Google Auth -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCuSu2rb9kOxAU6khZ19W8YpsaE-o4iy9U",
@@ -55,11 +55,15 @@
       window.firebaseSignInWithPopup = signInWithPopup;
       window.firebaseSignInWithRedirect = signInWithRedirect;
       window.firebaseGetRedirectResult = getRedirectResult;
+      window.firebaseSignOut = () => signOut(auth);
       console.log("[Iveri Firebase] Google Auth SDK initialized successfully.");
+
+      let isFirebaseSyncing = false;
 
       // Helper to finalize Firebase token exchange with Iveri backend
       async function completeFirebaseSignIn(user) {
-        if (!user) return;
+        if (!user || isFirebaseSyncing) return;
+        isFirebaseSyncing = true;
         const loadingBox = document.getElementById('auth-google-loading');
         const loadingTitle = document.getElementById('auth-google-loading-title');
         const loadingDesc = document.getElementById('auth-google-loading-desc');
@@ -100,40 +104,49 @@
             const err = await res.json().catch(() => ({}));
             if (loadingBox) loadingBox.classList.add('hidden');
             console.error("[Iveri Firebase] Backend rejection:", err);
-            alert("Backend Authentication Error: " + (err.detail || "Authentication token rejected by server"));
+            const errDetail = err.detail || "Authentication token rejected by server";
+            if (typeof window.showToast === 'function') {
+              window.showToast("Sign-in error: " + errDetail, "error");
+            } else {
+              alert("Backend Authentication Error: " + errDetail);
+            }
           }
         } catch (syncErr) {
           console.error("[Iveri Firebase] Sync error:", syncErr);
           if (loadingBox) loadingBox.classList.add('hidden');
-          alert("Network or verification error: " + (syncErr.message || syncErr));
+          if (typeof window.showToast === 'function') {
+            window.showToast("Verification error: " + (syncErr.message || syncErr), "error");
+          } else {
+            alert("Network or verification error: " + (syncErr.message || syncErr));
+          }
+        } finally {
+          isFirebaseSyncing = false;
+          if (loadingBox) loadingBox.classList.add('hidden');
+          const btnLabel = document.getElementById('google-auth-btn-label');
+          if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
         }
       }
       window.completeFirebaseSignIn = completeFirebaseSignIn;
 
-      // Automatically handle mobile redirect auth result
+      // Automatically handle mobile redirect auth result (only when user initiated redirect flow)
       getRedirectResult(auth).then(async (result) => {
-        if (result && result.user) {
+        if (result && result.user && !isFirebaseSyncing) {
           console.log("[Iveri Firebase] Redirect sign-in success:", result.user.email);
           await completeFirebaseSignIn(result.user);
         }
       }).catch((err) => {
         console.error("[Iveri Firebase] Redirect result error:", err);
-        if (err.code === 'auth/unauthorized-domain') {
+        if (err && err.code === 'auth/unauthorized-domain') {
           if (typeof window.showFirebaseDomainHelper === 'function') {
             window.showFirebaseDomainHelper();
-          } else {
-            alert("Firebase Domain Error: Please add 'iveri-ai-support.onrender.com' in Firebase Console > Authentication > Settings > Authorized Domains.");
           }
-        } else {
-          alert("Google Sign-In notice: " + (err.message || err));
         }
       });
 
-      // Listen for authenticated user state (survives page reloads & redirects)
-      onAuthStateChanged(auth, async (user) => {
-        if (user && !localStorage.getItem('iveri_token')) {
-          console.log("[Iveri Firebase] Active user detected without session:", user.email);
-          await completeFirebaseSignIn(user);
+      // Observer for Firebase auth state (NEVER auto-sign-in without explicit user button click)
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          console.log("[Iveri Firebase] Cached Google session detected (awaiting user action):", user.email);
         }
       });
 
@@ -1967,6 +1980,7 @@
       await loadBusinessProfile();
       loadDashboardData();
       loadAnalyticsCharts();
+      if (typeof loadDocuments === 'function') loadDocuments();
       if (typeof loadNotifications === 'function') {
         loadNotifications();
         setInterval(loadNotifications, 15000);
@@ -2038,7 +2052,7 @@
           updateWidgetPreview();
           updateEmbedCode('html');
         } else {
-          logout();
+          console.warn("Failed to load business profile (status: " + res.status + "). Preserving active session.");
         }
       } catch (e) {
         console.error("Profile load failed:", e);
@@ -3675,6 +3689,10 @@
       modal.classList.toggle('hidden');
 
       if (isOpening) {
+        document.getElementById('auth-google-loading')?.classList.add('hidden');
+        const btnLabel = document.getElementById('google-auth-btn-label');
+        if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
+
         // Detect existing active workspace to streamline cross-device login
         try {
           const res = await fetch('/api/auth/active-owner');
@@ -3800,8 +3818,20 @@
       }
     }
 
-    function logout() {
+    async function logout() {
       window.applyAuthToken('');
+      localStorage.removeItem('iveri_token');
+      try {
+        if (typeof window.firebaseSignOut === 'function') {
+          await window.firebaseSignOut();
+          console.log("[Iveri Firebase] Firebase auth signed out via modular SDK.");
+        } else if (window.firebaseAuth && typeof window.firebaseAuth.signOut === 'function') {
+          await window.firebaseAuth.signOut();
+          console.log("[Iveri Firebase] Firebase auth signed out.");
+        }
+      } catch (e) {
+        console.warn("[Iveri Firebase] Signout warning:", e);
+      }
       location.reload();
     }
 
@@ -3896,8 +3926,27 @@
       });
     }
 
-    function installPWA() {
-      // Opens the modern responsive install modal with one-click direct prompt or device guides
+    async function installPWA() {
+      // Direct Chrome native 1-click install prompt if available
+      if (deferredPrompt) {
+        try {
+          deferredPrompt.prompt();
+          const choiceResult = await deferredPrompt.userChoice;
+          console.log('[Iveri PWA] Native install prompt outcome:', choiceResult.outcome);
+          if (choiceResult.outcome === 'accepted') {
+            document.getElementById('pwa-install-btn')?.classList.add('hidden');
+            document.getElementById('pwa-mobile-banner')?.classList.add('hidden');
+            if (typeof showToast === 'function') {
+              showToast("🎉 Iveri App successfully added to your device!", "success");
+            }
+          }
+          deferredPrompt = null;
+          return;
+        } catch (err) {
+          console.warn('[Iveri PWA] Native prompt trigger warning:', err);
+        }
+      }
+      // If browser does not expose beforeinstallprompt (e.g. iOS Safari), show the manual installation guide
       openPwaInstallModal();
     }
 

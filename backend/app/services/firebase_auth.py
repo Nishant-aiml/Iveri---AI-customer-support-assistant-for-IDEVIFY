@@ -3,7 +3,8 @@ import logging
 import os
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, or_, func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -127,32 +128,52 @@ class FirebaseAuthService:
         """Validates token, links or provisions user and business, and issues JWT access token."""
         decoded = self.verify_token(id_token)
         uid = decoded.get("uid")
-        email = decoded.get("email")
+        raw_email = decoded.get("email")
 
-        if not email:
+        if not raw_email:
             raise ValueError("Firebase token payload does not contain an email address.")
 
-        # 1. Check if user exists by firebase_uid or email
+        clean_email = raw_email.strip().lower()
+
+        # 1. Check if user exists by firebase_uid or case-insensitive email
         user_query = await db.execute(
-            select(User).where((User.firebase_uid == uid) | (User.email == email))
+            select(User).where(
+                or_(
+                    User.firebase_uid == uid,
+                    func.lower(User.email) == clean_email
+                )
+            )
         )
         user = user_query.scalar_one_or_none()
 
         if user:
-            # Update firebase UID if not set
+            # Update firebase UID if not set or update provider
             if not user.firebase_uid:
                 user.firebase_uid = uid
-                user.auth_provider = "firebase"
+            user.auth_provider = "firebase"
+            user.email = clean_email
             await db.commit()
 
             # Load business
             biz_query = await db.execute(select(Business).where(Business.id == user.business_id))
-            business = biz_query.scalar_one()
+            business = biz_query.scalar_one_or_none()
+            if not business:
+                import re
+                import uuid
+                clean_name = business_name or decoded.get("name") or clean_email.split("@")[0].capitalize() + " Store"
+                clean_slug = re.sub(r"[^\w\s-]", "", clean_name).strip().lower()
+                slug = re.sub(r"[-\s]+", "-", clean_slug) or "business"
+                slug = f"{slug}-{uuid.uuid4().hex[:6]}"
+                business = Business(name=clean_name, slug=slug, share_token=str(uuid.uuid4()), tone="friendly")
+                db.add(business)
+                await db.flush()
+                user.business_id = business.id
+                await db.commit()
         else:
-            # 2. Auto-provision new Business and User
+            # 2. Auto-provision new Business and User with atomic race recovery
             import re
             import uuid
-            clean_name = business_name or decoded.get("name") or email.split("@")[0].capitalize() + " Store"
+            clean_name = business_name or decoded.get("name") or clean_email.split("@")[0].capitalize() + " Store"
             clean_slug = re.sub(r"[^\w\s-]", "", clean_name).strip().lower()
             slug = re.sub(r"[-\s]+", "-", clean_slug)
             if not slug:
@@ -170,15 +191,30 @@ class FirebaseAuthService:
 
             user = User(
                 business_id=business.id,
-                email=email,
+                email=clean_email,
                 password_hash="firebase_managed_auth",
                 role="owner",
                 auth_provider="firebase",
                 firebase_uid=uid
             )
             db.add(user)
-            await db.flush()
-            await db.commit()
+            try:
+                await db.flush()
+                await db.commit()
+            except IntegrityError as ie:
+                logger.warning(f"Concurrent Google signup collision for {clean_email}, recovering gracefully: {ie}")
+                await db.rollback()
+                recovery_query = await db.execute(
+                    select(User).where(func.lower(User.email) == clean_email)
+                )
+                user = recovery_query.scalar_one_or_none()
+                if not user:
+                    raise ie
+                user.firebase_uid = uid
+                user.auth_provider = "firebase"
+                await db.commit()
+                biz_query = await db.execute(select(Business).where(Business.id == user.business_id))
+                business = biz_query.scalar_one_or_none()
 
         # Generate internal access token for session persistence
         token_payload = {
