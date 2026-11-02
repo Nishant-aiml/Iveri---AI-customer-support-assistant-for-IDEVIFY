@@ -1,3 +1,10 @@
+databases:
+  - name: idevify-db
+    databaseName: idevify_db
+    user: idevify
+    plan: free
+    region: oregon
+
 services:
   - type: web
     name: iveri-customer-support-assistant
@@ -11,7 +18,9 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: DATABASE_URL
-        value: sqlite+aiosqlite:///./data/idevify.db
+        fromDatabase:
+          name: idevify-db
+          property: connectionString
       - key: JWT_SECRET
         generateValue: true
       - key: GEMINI_API_KEY
@@ -21,12 +30,8 @@ services:
       - key: SARVAM_API_KEY
         sync: false
       - key: CHROMA_PERSIST_DIRECTORY
-        value: ./data/chroma_db
+        value: ./chroma_db
       - key: UPLOAD_DIRECTORY
-        value: ./data/uploads
+        value: ./uploads
       - key: ALLOWED_ORIGINS
         value: "*"
-    disk:
-      name: iveri-data
-      mountPath: /app/backend/data
-      sizeGB: 1

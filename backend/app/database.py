@@ -19,6 +19,11 @@ elif database_url.startswith("postgresql://") and not database_url.startswith("p
 elif database_url.startswith("sqlite:///") and not database_url.startswith("sqlite+aiosqlite:///"):
     database_url = database_url.replace("sqlite:///", "sqlite+aiosqlite:///", 1)
 
+# Normalize SSL parameters for cloud PostgreSQL (Render, Neon, Supabase, AWS RDS)
+# asyncpg accepts ssl=require / ssl=prefer / ssl=verify-full
+if "postgresql+asyncpg" in database_url and "sslmode=" in database_url:
+    database_url = database_url.replace("sslmode=require", "ssl=require").replace("sslmode=prefer", "ssl=prefer").replace("sslmode=verify-full", "ssl=verify-full")
+
 # Configure Engine according to database backend
 if "sqlite" in database_url:
     # High-concurrency SQLite setup: WAL mode + busy_timeout
@@ -42,7 +47,11 @@ if "sqlite" in database_url:
 
     logger.info("Database configured with SQLite (WAL mode enabled for concurrent read/write throughput).")
 else:
-    # Enterprise PostgreSQL setup with asyncpg connection pool
+    # Enterprise PostgreSQL setup with asyncpg connection pool & auto-reconnect
+    pg_connect_args = {}
+    if "ssl=require" in database_url or "sslmode=require" in settings.DATABASE_URL:
+        pg_connect_args["ssl"] = True
+
     engine = create_async_engine(
         database_url,
         echo=False,
@@ -51,7 +60,8 @@ else:
         max_overflow=settings.DB_MAX_OVERFLOW,
         pool_timeout=settings.DB_POOL_TIMEOUT,
         pool_recycle=settings.DB_POOL_RECYCLE,
-        pool_pre_ping=True
+        pool_pre_ping=True,
+        connect_args=pg_connect_args if pg_connect_args else {}
     )
     logger.info(
         f"Database configured with PostgreSQL asyncpg connection pool "
@@ -120,6 +130,26 @@ async def init_db():
                 # chat_sessions migrations
                 await add_column_if_missing("chat_sessions", "sentiment", "VARCHAR(20) DEFAULT 'neutral'")
                 await add_column_if_missing("chat_sessions", "primary_topic", "VARCHAR(50) DEFAULT 'general'")
+            else:
+                # PostgreSQL native ADD COLUMN IF NOT EXISTS (supported on all modern PostgreSQL engines)
+                pg_migrations = [
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS firebase_uid VARCHAR(128)",
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS auth_provider VARCHAR(50) DEFAULT 'local'",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS total_pages INTEGER DEFAULT 0",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processed_pages INTEGER DEFAULT 0",
+                    "ALTER TABLE documents ADD COLUMN IF NOT EXISTS processing_progress INTEGER DEFAULT 0",
+                    "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(512) DEFAULT ''",
+                    "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS widget_position VARCHAR(20) DEFAULT 'bottom-right'",
+                    "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_message TEXT DEFAULT 'Hello! How can I help you today?'",
+                    "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS custom_prompt TEXT DEFAULT ''",
+                    "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20) DEFAULT 'neutral'",
+                    "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS topic VARCHAR(50) DEFAULT 'general'",
+                    "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20) DEFAULT 'neutral'",
+                    "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS primary_topic VARCHAR(50) DEFAULT 'general'"
+                ]
+                for stmt in pg_migrations:
+                    await conn.execute(text(stmt))
+                logger.info("PostgreSQL cloud schema verified and auto-migrated.")
         except Exception as e:
             logger.warning(f"Column migration check note: {e}")
 
