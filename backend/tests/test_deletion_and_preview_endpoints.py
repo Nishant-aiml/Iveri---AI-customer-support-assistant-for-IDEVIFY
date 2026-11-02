@@ -204,5 +204,12 @@ class TestDeletionAndPreviewEndpoints(unittest.IsolatedAsyncioTestCase):
             msgs = (await self.db.execute(select(ChatMessage).where(ChatMessage.session_id == self.session_id))).scalars().all()
             self.assertEqual(len(msgs), 0)
 
+    async def test_05_unauthorized_document_file_preview_rejected(self):
+        """Ensures that unauthenticated requests to view document files are strictly rejected."""
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            res = await ac.get(f"/api/documents/{self.doc_id}/file")
+            self.assertEqual(res.status_code, 401)
+
 if __name__ == "__main__":
     unittest.main()
