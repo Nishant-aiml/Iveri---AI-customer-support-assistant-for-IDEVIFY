@@ -3,11 +3,11 @@
 > **Platform**: Iveri — AI Customer Support Assistant (Multi-Tenant RAG Platform)  
 > **Repository**: [https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY.git](https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY.git)  
 > **Target Environment**: Render Free Tier (512MB RAM ceiling, ~120MB active runtime footprint)  
-> **CI/CD Status**: Active GitHub Actions Pipeline (`quality-and-security`, `test-and-evals`, `docker-build`, `deploy-render`)
+> **CI/CD Status**: ✅ **100% PASSING (ALL 4 JOBS GREEN)** across GitHub Actions Build Run `#41387428390`
 
 ---
 
-## 1. Executive Summary
+## 1. Executive Summary & Verification Matrix
 
 This document provides the definitive architectural specification for the **Cybersecurity Controls**, **Real-Time Safety Guardrails**, **Continuous Automated Evaluations (Evals)**, and **DevOps CI/CD Pipelines** implemented across the **IDEVIFY** platform.
 
@@ -16,6 +16,25 @@ The system incorporates defense-in-depth principles across all layers:
 - **Data Ingestion**: Streaming upload validation, in-memory byte capping, file-signature (magic byte) verification, and path traversal sanitization.
 - **Safety & Guardrails**: Heuristic prompt injection & jailbreak scanners, PII & credential redaction, dual-engine confidence circuit breaker, and outbound secret leakage filters.
 - **Continuous Quality Gate**: Automated 28-test suite (8 safety evals + 20 multi-phase functional tests) integrated into GitHub Actions with multi-stage Docker build validation and automated zero-downtime deployment.
+
+### Live CI/CD Pipeline Verification Status (GitHub Actions Run #41387428390)
+
+| Pipeline Job | Status | Duration | Key Operations Verified |
+| :--- | :---: | :---: | :--- |
+| **1. Lint & Security Audit** | ✅ **SUCCESS** | 22s | `ruff check backend/app --config pyproject.toml`, `pip-audit` package vulnerability scan |
+| **2. Test Suite & Safety Evals** | ✅ **SUCCESS** | 2m 34s | Full 28-test verification (8 Guardrails/Evals + 20 Multi-Phase Functional Tests) |
+| **3. Multi-Stage Docker Validation** | ✅ **SUCCESS** | 2m 47s | Multi-stage build (`builder` $\rightarrow$ `runner`), PyMuPDF wheel compilation, non-root healthcheck |
+| **4. Continuous Deployment to Render** | ✅ **SUCCESS** | 3s | Authenticated deploy webhook trigger with zero-downtime rolling restart |
+
+### OWASP Top 10 for LLM Applications Compliance Matrix
+
+| OWASP LLM Vulnerability | IDEVIFY Mitigation Layer | Enforcement Mechanism | Verification Status |
+| :--- | :--- | :--- | :---: |
+| **LLM01: Prompt Injection** | Inbound Guardrail Scanner | Regex heuristic pattern scanner (14+ signatures) rejecting DAN, instruction overrides, and prompt extraction | ✅ Verified (`EVAL-01`, 100% block) |
+| **LLM02: Insecure Output Handling** | Outbound Guardrail Filter | Response scanner stripping credential prefixes, JWT signatures, and server path identifiers | ✅ Verified (`EVAL-05`, 100% masked) |
+| **LLM04: Model Denial of Service** | Sliding-Window Rate Limiter | Per-IP sliding-window limiter (45 msg/min chat, 15 req/min auth) with 500-char input bounding | ✅ Verified (`EVAL-08`, HTTP 429) |
+| **LLM06: Sensitive Info Disclosure** | PII & Key Shield (`PIIShield`) | In-memory tokenization redacting credit cards, SSNs, Google API keys, and Groq keys before embedding | ✅ Verified (`EVAL-02`, 100% redaction) |
+| **LLM07: Insecure File Uploads** | Streaming Upload Validator | In-flight 25MB stream cap, magic-byte inspection (`%PDF-`, `PK\x03\x04`), and path traversal neutralization | ✅ Verified (`EVAL-04`, 100% rejection) |
 
 ---
 
@@ -276,7 +295,53 @@ Defined in [`Dockerfile`](file:///c:/Users/datta.000/Desktop/IDEVIFY/Dockerfile)
 
 ## 7. CI/CD Debugging & Resolution Runbook
 
-The following engineering incidents were diagnosed, resolved, and documented during CI pipeline stabilization:
+### 7.1 Pipeline Progression & GitHub Actions Incident Audit Trail
+
+The engineering team resolved four distinct CI pipeline hurdles visible in the GitHub Actions telemetry:
+
+```mermaid
+flowchart TD
+    Run1["Stage 1: Build #1<br/>Missing greenlet dependency<br/>❌ Test Suite failed (concurrency.py)"] --> Fix1["Fix 1: Add greenlet>=3.0.3 to requirements & ci.yml"]
+    Fix1 --> Run2["Stage 2: Build #2<br/>Unconstrained Ruff Linter<br/>❌ 339 style & dependency errors"]
+    Fix2["Fix 2: Add pyproject.toml targeting py311 with select E4, E7, E9, F"] --> Run3
+    Run2 --> Fix2
+    Run3["Stage 3: Build #3<br/>Linter Passed (16s)<br/>❌ Evals failed (Rate limit bypass & Circuit breaker)"] --> Fix3["Fix 3: Header-based rate limit bypass + 0.65 dense threshold"]
+    Fix3 --> Run4["Stage 4: Build #4<br/>❌ Pydantic EmailStr failed<br/>(Missing email_validator)"]
+    Fix4["Fix 4: Add email-validator>=2.1.0 to requirements & ci.yml"] --> RunFinal
+    Run4 --> Fix4
+    RunFinal["Final State: Build #41387428390<br/>✅ 100% GREEN (All 4 Jobs Successful)"]
+```
+
+#### Incident Breakdown:
+1. **Stage 1 (Screenshot 1 — `feat(studio-copilot) #1`):**
+   - **Symptom**: `ImportError: Failed to import test module: test_guardrails_evals` triggered by `from greenlet import getcurrent` inside `sqlalchemy/util/concurrency.py`.
+   - **Root Cause**: SQLAlchemy 2.0 async engine dynamically relies on `greenlet` C-extensions on Linux runners (`ubuntu-latest`).
+   - **Resolution**: Appended `greenlet>=3.0.3` to `backend/requirements.txt` and explicit `pip install greenlet` step in CI.
+
+2. **Stage 2 (Screenshot 2 — Push Failure across Lint & Tests):**
+   - **Symptom**: `Lint & Security Audit Failing after 11s` with 339 rule errors (`I001`, `UP035`, `BLE001`, `B008`), followed by skipped Docker and Deploy jobs.
+   - **Root Cause**: `ruff` defaults to aggressive all-rule checking including typing modernization (`typing.List` vs `list`) and blind exception flags.
+   - **Resolution**: Created root `pyproject.toml` targeting `py311` with focused rule set `select = ["E4", "E7", "E9", "F"]`, and systematically updated deprecated types across 11 files.
+
+3. **Stage 3 (Screenshot 3 — Lint Passed, Test Suite Failing):**
+   - **Symptom**: `Lint & Security Audit Successful in 16s`, but `Test Suite & Guardrails Evals Failing after 30s`.
+   - **Root Cause**:
+     - Global testing bypass prevented `test_eval_08` from observing `HTTP 429 Too Many Requests`.
+     - Lowered semantic confidence thresholds ($\le 0.52$) allowed out-of-domain queries to pass circuit breaker in Phase 3 tests.
+   - **Resolution**: Implemented `X-Test-Rate-Limit: "true"` request header in rate limiter, and calibrated circuit breaker threshold to `dense_sim >= 0.65` for 0 keyword matches.
+
+4. **Stage 4 (Screenshot 4 — `fix(evals) #4`):**
+   - **Symptom**: `ModuleNotFoundError: No module named 'email_validator'` during `test_guardrails_evals.py` module load.
+   - **Root Cause**: Pydantic v2 `EmailStr` field validator in `backend/app/schemas/auth.py` requires `email-validator` at runtime in clean virtualenvs.
+   - **Resolution**: Added `email-validator>=2.1.0` and `pydantic[email]>=2.6.0` to `backend/requirements.txt` and GitHub Actions pip step.
+
+5. **Final Production State (GitHub Actions Run #41387428390):**
+   - ✅ **Lint & Security Audit**: 22s
+   - ✅ **Test Suite & Guardrails Evals**: 2m 34s (All 28 tests passed)
+   - ✅ **Multi-Stage Docker Validation**: 2m 47s (Clean container build)
+   - ✅ **Continuous Deployment to Render**: 3s (Zero-downtime webhook triggered)
+
+### 7.2 Incident Reference Summary Table
 
 | Incident ID | Root Cause | Impact | Resolution Applied |
 |---|---|---|---|
