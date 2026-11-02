@@ -3,7 +3,11 @@ import re
 
 from fastapi import HTTPException, UploadFile, status
 
-ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}
+ALLOWED_EXTENSIONS = {
+    ".pdf", ".docx", ".txt", ".md",
+    ".xlsx", ".xls",
+    ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff"
+}
 
 def sanitize_filename(filename: str) -> str:
     """Sanitizes filename against path traversal and special characters."""
@@ -34,9 +38,22 @@ def verify_file_signature(header: bytes, ext: str) -> bool:
 
     if ext == ".pdf":
         return header.startswith(b"%PDF-")
-    elif ext == ".docx":
-        # DOCX files are ZIP packages starting with PK\x03\x04
+    elif ext in [".docx", ".xlsx"]:
+        # DOCX and XLSX files are ZIP packages starting with PK\x03\x04
         return header.startswith(b"PK\x03\x04")
+    elif ext == ".xls":
+        # Legacy Excel 97-2003 OLE2 compound document
+        return header.startswith(b"\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
+    elif ext == ".png":
+        return header.startswith(b"\x89PNG\r\n\x1a\n")
+    elif ext in [".jpg", ".jpeg"]:
+        return header.startswith(b"\xFF\xD8\xFF")
+    elif ext == ".webp":
+        return header.startswith(b"RIFF") and b"WEBP" in header[:16]
+    elif ext == ".bmp":
+        return header.startswith(b"BM")
+    elif ext == ".tiff":
+        return header.startswith(b"II*\x00") or header.startswith(b"MM\x00*")
     elif ext in [".txt", ".md"]:
         # Text files shouldn't contain null bytes
         if b"\x00" in header:
@@ -69,7 +86,7 @@ async def read_and_validate_upload(file: UploadFile, max_bytes: int) -> tuple[by
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unsupported file format '{ext}'. Supported formats are: PDF, DOCX, TXT, MD."
+            detail=f"Unsupported file format '{ext}'. Supported formats: PDF, DOCX, TXT, MD, XLSX, XLS, PNG, JPG, JPEG, WEBP, BMP, TIFF."
         )
 
     # Read in controlled chunks to prevent memory/disk exhaustion

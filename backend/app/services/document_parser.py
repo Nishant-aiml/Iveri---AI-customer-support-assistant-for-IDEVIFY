@@ -2,16 +2,29 @@ import os
 import logging
 from typing import List, Dict, Any, Tuple
 from app.services.sarvam_parser import SarvamDocumentIntelligenceClient
-from app.services.fallback_parser import PyMuPDFFallbackParser, DocxParser, PlainTextParser
+from app.services.fallback_parser import (
+    PyMuPDFFallbackParser,
+    DocxParser,
+    PlainTextParser,
+    ExcelParser,
+    ImageOCRParser,
+    DoclingParser
+)
 
 logger = logging.getLogger(__name__)
+
+IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff"}
+EXCEL_EXTENSIONS = {".xlsx", ".xls"}
 
 class UnifiedDocumentParserService:
     """Unified document parsing service implementing:
     
     1. Primary: Sarvam Document Intelligence API (complex tables, layout, multilingual)
-    2. Fallback: Local PyMuPDF (fitz) for PDF
-    3. Dedicated parsers for DOCX and TXT
+    2. Docling Engine: High-fidelity layout preservation, tables, and AI OCR
+    3. Tesseract OCR: Fast local optical character recognition for images
+    4. openpyxl & pandas: Tabular Excel spreadsheet parser (.xlsx, .xls)
+    5. PyMuPDF (fitz): High-speed streamed PDF parser (1,000+ pages)
+    6. Dedicated DOCX and TXT parsers
     """
 
     def __init__(self):
@@ -30,7 +43,7 @@ class UnifiedDocumentParserService:
         ext = os.path.splitext(file_name)[1].lower()
 
         if ext == ".pdf":
-            # Attempt 1: Sarvam Document Intelligence API
+            # Tier 1: Sarvam Document Intelligence API
             if self.sarvam_client.is_configured:
                 try:
                     pages = await self.sarvam_client.parse_document(file_path, file_name)
@@ -38,23 +51,43 @@ class UnifiedDocumentParserService:
                 except Exception as e:
                     logger.warning(
                         f"Sarvam Document Intelligence failed ({str(e)}). "
-                        f"Engaging local PyMuPDF fallback parser immediately..."
+                        f"Attempting Docling / PyMuPDF fallback..."
                     )
             
-            # Attempt 2: PyMuPDF local fallback
+            # Tier 2: Docling document parser
+            try:
+                pages = DoclingParser.parse(file_path)
+                return pages, "docling"
+            except Exception as e:
+                logger.info(f"Docling PDF parsing skipped ({e}). Engaging PyMuPDF...")
+
+            # Tier 3: PyMuPDF local fallback
             pages = PyMuPDFFallbackParser.parse(file_path)
             return pages, "pymupdf"
 
         elif ext == ".docx":
+            try:
+                pages = DoclingParser.parse(file_path)
+                return pages, "docling"
+            except Exception:
+                pass
             pages = DocxParser.parse(file_path)
             return pages, "docx"
+
+        elif ext in EXCEL_EXTENSIONS:
+            pages = ExcelParser.parse(file_path)
+            return pages, "excel_openpyxl"
+
+        elif ext in IMAGE_EXTENSIONS:
+            pages = ImageOCRParser.parse(file_path)
+            return pages, "ocr_engine"
 
         elif ext in (".txt", ".md"):
             pages = PlainTextParser.parse(file_path)
             return pages, "txt"
 
         else:
-            raise ValueError(f"Unsupported file format '{ext}'. Only PDF, DOCX, and TXT are supported.")
+            raise ValueError(f"Unsupported file format '{ext}'.")
 
     def stream_parse(self, file_path: str, file_name: str, batch_size: int = 25):
         """Streams document pages in memory-efficient batches to support 1,000+ page documents.
@@ -71,10 +104,16 @@ class UnifiedDocumentParserService:
         elif ext == ".docx":
             pages = DocxParser.parse(file_path)
             yield pages, len(pages), len(pages), "docx"
+        elif ext in EXCEL_EXTENSIONS:
+            for batch, processed, total in ExcelParser.stream_pages(file_path, batch_size=batch_size):
+                yield batch, processed, total, "excel_openpyxl"
+        elif ext in IMAGE_EXTENSIONS:
+            for batch, processed, total in ImageOCRParser.stream_pages(file_path, batch_size=batch_size):
+                yield batch, processed, total, "ocr_engine"
         elif ext in (".txt", ".md"):
             pages = PlainTextParser.parse(file_path)
             yield pages, len(pages), len(pages), "txt"
         else:
-            raise ValueError(f"Unsupported file format '{ext}'. Only PDF, DOCX, and TXT are supported.")
+            raise ValueError(f"Unsupported file format '{ext}'.")
 
 document_parser_service = UnifiedDocumentParserService()

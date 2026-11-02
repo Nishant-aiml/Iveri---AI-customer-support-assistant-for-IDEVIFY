@@ -1,6 +1,6 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 
 class DocumentResponse(BaseModel):
     id: str
@@ -18,11 +18,19 @@ class DocumentResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-class DocumentUploadResponse(BaseModel):
+class DocumentUploadItem(BaseModel):
     document_id: str
     file_name: str
     status: str
     message: str
+
+class DocumentUploadResponse(BaseModel):
+    document_id: Optional[str] = None
+    file_name: Optional[str] = None
+    status: str
+    message: str
+    uploaded_files: Optional[List[DocumentUploadItem]] = None
+    total_queued: int = 1
 
 class ManualQACreateRequest(BaseModel):
     question: str = Field(..., min_length=3, max_length=500, description="The customer question")
