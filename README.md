@@ -66,6 +66,42 @@ flowchart LR
 
 ---
 
+## 📸 Production Interface & Visual Tour
+
+Iveri provides a high-density, real-time executive dashboard engineered for store owners, operations managers, and customer support leads. Below is an end-to-end visual walkthrough of the production platform:
+
+### 1. Executive Telemetry & Real-Time Performance Analytics
+Live customer inquiry analytics, sentiment breakdown (positive, neutral, negative), response latency percentiles, circuit breaker trip frequency, and continuous feedback loop telemetry.
+<p align="center">
+  <img src="docs/assets/screenshots/01_executive_dashboard_analytics.png" alt="Executive Telemetry and Performance Analytics" width="95%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+</p>
+
+### 2. Streamed Multi-Document Ingestion & In-Line Cross-Verification
+Batch document ingestion supporting 1,000+ page PDFs, DOCX, TXT, Excel (.xlsx), and image OCR. Business owners can inspect indexed chunk counts, cross-verify source text in the built-in PDF viewer modal, and manage active knowledge bases.
+<p align="center">
+  <img src="docs/assets/screenshots/03_multi_doc_streamed_ingestion.png" alt="Streamed Document Ingestion and Scale" width="95%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+</p>
+
+### 3. RAG Retrieval Playground & Pipeline Diagnostics
+Live interactive retrieval inspection embedded directly within Settings. Test real customer queries against the Laya ModernBERT intent router, inspect dense ChromaDB cosine similarity vs. sparse BM25 scores, and audit Reciprocal Rank Fusion (RRF k=60) candidates before LLM invocation.
+<p align="center">
+  <img src="docs/assets/screenshots/02_rag_playground_diagnostics.png" alt="RAG Retrieval Playground and Pipeline Diagnostics" width="95%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+</p>
+
+### 4. Grounded Customer Support Chat with Page-Level Citations
+Customer-facing embeddable widget with millisecond response streaming, verified source document badges, page-level attribution links, and automated customer callback request integration.
+<p align="center">
+  <img src="docs/assets/screenshots/04_grounded_chat_citations.png" alt="Grounded Customer Support Chat with Citations" width="95%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+</p>
+
+### 5. Closed-Loop Knowledge Self-Healing & AI Training
+Unanswered and circuit-breaker-tripped inquiries automatically generate human review tickets. Once the business owner enters the authoritative answer, the system immediately vectorizes the resolution into ChromaDB and BM25, teaching the AI permanently.
+<p align="center">
+  <img src="docs/assets/screenshots/05_closed_loop_ai_training.png" alt="Closed-Loop Self-Healing AI Training" width="95%" style="border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);" />
+</p>
+
+---
+
 ## 🏗️ System Architecture
 
 Iveri implements a layered, resilient architecture separating edge ingestion, perimeter defense, neural intent routing, hybrid vector/lexical retrieval, and multi-tier LLM generation.
@@ -213,7 +249,7 @@ Following Kahneman's cognitive framework, Iveri separates fast intuitive filteri
 ### 2. Reciprocal Rank Fusion (RRF) Hybrid Search
 Vector search alone fails on exact SKU codes, numerical pricing, and technical acronyms. Keyword search alone fails on conversational paraphrasing. Iveri fuses both using Reciprocal Rank Fusion ($k=60$):
 
-$$\text{RRF\_Score}(d) = \sum_{m \in \{\text{dense}, \text{sparse}\}} \frac{1}{k + \text{rank}_m(d)}$$
+$$\mathrm{Score}_{\mathrm{RRF}}(d) = \sum_{m \in \{\mathrm{dense},\, \mathrm{sparse}\}} \frac{1}{k + r_m(d)}$$
 
 - **Dense Semantic Layer**: Local ChromaDB collection computing cosine distance on normalized embeddings.
 - **Sparse Lexical Layer**: In-memory `rank-bm25` index enhanced with domain-specific synonym expansion (e.g., `equipment` $\rightarrow$ `router, modem, ONT, cables`; `pricing` $\rightarrow$ `plans, tariffs, rates`).
@@ -238,6 +274,39 @@ Iveri seamlessly switches between local zero-setup development and production cl
 - **Local Dev**: SQLite in Write-Ahead Logging (WAL) mode for immediate local testing.
 - **Production Cloud**: Managed PostgreSQL (Render, Neon, Supabase) with asynchronous connection pooling (`pool_size=20`, `max_overflow=40`), SSL mode normalization (`ssl=require`), and idempotent database schema self-healing (`ADD COLUMN IF NOT EXISTS`).
 
+### 6. In-Line Document Inspection & Chunk Verification Modal
+To guarantee complete transparency and regulatory cross-verification, business owners can verify uploaded knowledge in real time:
+- **Dual-Pane Document Modal**: Clicking "Verify Document" launches an interactive inspection modal with two synchronized tabs:
+  1. **📄 Document File**: Streams the authentic, byte-verified source PDF directly inside a secure sandbox iframe via `GET /api/documents/{document_id}/file?token=...` with ephemeral auth tokens.
+  2. **🧠 Indexed Chunks**: Calls `GET /api/documents/{document_id}/chunks` to display every vectorized chunk, exact page bounds, character spans, and preview text parsed by Docling and PyMuPDF.
+
+### 7. Omnichannel Session & Support Ticket Lifecycle Controls
+Full CRUD control over customer conversations and support escalations:
+- **Permanent Session Deletion**: Business administrators can permanently delete customer chat histories via `DELETE /api/dashboard/chats/{session_id}`. The backend safely cascades deletion across all messages while decoupling referenced tickets.
+- **Support Ticket Resolution & Deletion**: Support staff can resolve tickets with closed-loop AI learning or permanently purge resolved tickets via `DELETE /api/tickets/{ticket_id}`, automatically cleaning up orphaned notifications and reconciling badge counters.
+
+### 8. Firebase 10 Google OAuth & Account Governance Suite
+Enterprise identity management and self-service account lifecycle:
+- **Firebase 10 Web SDK**: 1-click Google Sign-In and Registration powered by the modern modular Firebase 10 SDK (`GoogleAuthProvider`, `signInWithPopup`, `getIdToken`).
+- **Cryptographic Backend Verification**: `POST /api/auth/google-login` validates Google ID tokens against Google's OAuth2 certs, auto-provisions multi-tenant workspaces, and issues isolated tenant JWTs.
+- **Self-Service Governance**: Business owners can rename their organization (`PUT /api/auth/profile`), rotate passwords (`PUT /api/auth/change-password`), and execute permanent account deletion (`DELETE /api/auth/account`) which purges all relational records and wipes tenant vectors from ChromaDB in compliance with GDPR.
+
+### 9. Modular Settings Architecture & Embedded Testing RAG Suite
+Settings & Studio is organized into three specialized, high-productivity sub-tabs:
+1. **🎨 Widget Studio**: Live styling, business avatar upload, brand accent colors, customer callback toggle, and custom prompt/fallback configuration.
+2. **🔒 Account & Security**: Profile management, credential rotation, Google OAuth connection state, and danger zone account deletion.
+3. **🔬 Testing RAG**: Dedicated diagnostic suite embedded directly within Settings—eliminating navbar clutter while allowing engineers to test real queries against the Laya ModernBERT neural router, inspect dense ChromaDB cosine similarity vs. sparse BM25 scores, and audit Reciprocal Rank Fusion ($k=60$) candidate rankings.
+
+### 10. Twilio WhatsApp Omnichannel Gateway & Production Upgrade Notice
+The platform features an end-to-end, two-way WhatsApp customer support gateway (`/api/chat/twilio/webhook` and `/api/chat/twilio/{slug}/webhook`) backed by Twilio's Messaging API:
+- **Inbound AI RAG Responses**: Customers messaging the business on WhatsApp receive immediate, grounded answers synthesized directly from verified business documents.
+- **Outbound Ticket Notifications**: When an inquiry is escalated or an owner marks a ticket as "Resolved & Trained", the customer automatically receives an outbound WhatsApp message containing the verified answer.
+- **Verified Codebase Implementation**: The entire pipeline is implemented and verified with automated test suites in `backend/tests/test_tickets_notifications_twilio.py`.
+
+> [!IMPORTANT]
+> **Production Notice on WhatsApp Deployment**:  
+> In compliance with Meta and Twilio carrier policies, public inbound/outbound WhatsApp messaging to arbitrary phone numbers requires an **upgraded/paid Twilio Business Account** with an approved WhatsApp Business Profile and dedicated number (free trial sandbox numbers are restricted by Twilio to manually joined test devices). The entire codebase, webhook infrastructure, and dispatcher are 100% complete and production-ready—they function seamlessly for all users immediately upon connecting a paid Twilio production sender with zero code changes.
+
 ---
 
 ## ⚡ Platform Feature Matrix
@@ -256,6 +325,11 @@ Iveri seamlessly switches between local zero-setup development and production cl
 | 🎨 **Widget Studio** | Custom business avatar upload, brand accent colors, custom persona instructions | Matches each business's unique visual identity and hospitality tone. |
 | 🌐 **Universal Embed** | 6 one-click integration codes (HTML widget, Iframe, Link, Shopify, WP, React) | Enables deployment on any website or e-commerce platform in seconds. |
 | 📊 **Power BI Connector** | Live streaming CSV/JSON telemetry endpoint (`/export/powerbi`) with token auth | Delivers enterprise BI drill-downs into inquiries, latency, and sentiment. |
+| 📄 **Document Cross-Verification** | Inline PDF streaming viewer (`/api/documents/{id}/file`) & chunk inspector (`/api/documents/{id}/chunks`) | Enables owners to visually audit uploaded PDFs and chunk boundary allocations. |
+| 🗑️ **Permanent Lifecycle Deletion** | Cascade deletion for sessions (`DELETE /api/dashboard/chats/{id}`) & tickets (`DELETE /api/tickets/{id}`) | Guarantees compliance and clean workspace hygiene with real-time counter reconciliation. |
+| 🔑 **Firebase 10 Google OAuth** | Modular Firebase 10 Google Sign-In & token verification (`/api/auth/google-login`) | Instant 1-click authentication and automated multi-tenant workspace provisioning. |
+| 📲 **WhatsApp Gateway** | Two-way Twilio webhook (`/api/chat/twilio/webhook`), TwiML generator, outbound resolution notifications | Enables customer support over WhatsApp *(requires upgraded Twilio account for public production numbers)*. |
+| 🔬 **Embedded RAG Testing Suite** | Interactive diagnostic tab testing Laya intent router, ChromaDB, BM25, and RRF ($k=60$) | Inspects dense vs. sparse retrieval mechanics and simulates circuit breaker boundaries. |
 
 ---
 
