@@ -215,12 +215,13 @@ Unlike naive RAG systems that pass weak context to an LLM and "hope" the system 
   > *"I'm sorry, but I do not have this information in my documents. I have logged your question for our team to assist you."*
 - **Outcome**: **0 tokens consumed, 0ms queue time, 100% defense against hallucinated policies**.
 
-### 4. Closed-Loop Knowledge Self-Healing
-Every tripped query is automatically logged to the tenant's `UnansweredQuestion` queue with timestamps, frequency counters, and optional customer lead emails:
+### 4. Closed-Loop Knowledge Self-Healing & Temporal Auditing
+Every tripped query is automatically logged to the tenant's `UnansweredQuestion` queue with high-precision temporal auditing (exact time asked with AM/PM and seconds, day of the week, full calendar date, and year) alongside customer lead capture:
 1. Business owner opens the **Unanswered Inquiries** tab on their dashboard.
-2. The owner types the authoritative ground-truth answer.
-3. System writes the resolution and **instantly generates vector embeddings and BM25 tokens**, inserting the new Q&A chunk into the active index.
-4. From that millisecond onward, the assistant answers that question accurately for all future customers.
+2. The owner reviews the exact inquiry text, matched confidence, contact details, and precise timestamp down to the second.
+3. The owner types the authoritative ground-truth answer.
+4. System writes the resolution and **instantly generates vector embeddings and BM25 tokens**, inserting the new Q&A chunk into the active index.
+5. From that millisecond onward, the assistant answers that question accurately for all future customers.
 
 ### 5. Multi-Device Cloud Persistence with Auto-Migration
 Iveri seamlessly switches between local zero-setup development and production cloud infrastructure:
@@ -239,6 +240,7 @@ Iveri seamlessly switches between local zero-setup development and production cl
 | 🔍 **Multi-Hybrid RAG** | ChromaDB dense semantic vectors + BM25Plus sparse index + RRF ($k=60$) | Discovers both high-level concepts and exact numerical/lexical matches. |
 | ⚡ **Deterministic Circuit Breaker** | Sub-10ms confidence gate; refuses out-of-domain inquiries without LLM calls | Guarantees zero hallucinations and protects company legal liability. |
 | 🔄 **Closed-Loop Q&A** | 1-click dashboard resolution converting unanswered questions into vector knowledge | Continuously heals documentation gaps based on real customer queries. |
+| 🕒 **Temporal Forensics & Auditing** | Exact time (hour:minute:second AM/PM), day of the week, calendar date, and year across Unanswered Queue & 2-Pane Chat History | Complete operational timeline tracking; audit peak contact hours and exact inquiry timestamps. |
 | 💬 **Customer Chat & SSE** | Server-Sent Events token streaming, starter question pills, verified citation popovers | Provides instant, interactive customer experience with verifiable sources. |
 | 👍 **Customer Feedback** | Thumbs up/down voting per message; owner downvote audit filtering | Quantifies customer sentiment and alerts owners to confusing documentation. |
 | 🎨 **Widget Studio** | Custom business avatar upload, brand accent colors, custom persona instructions | Matches each business's unique visual identity and hospitality tone. |
