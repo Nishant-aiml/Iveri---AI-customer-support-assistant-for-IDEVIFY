@@ -34,11 +34,16 @@ class BM25StoreService:
     }
 
     SYNONYM_MAP = {
-        "company": ["co", "brand", "store", "business", "brewnest"],
+        "company": ["co", "brand", "store", "business", "brewnest", "zephyr"],
         "co": ["company", "business"],
         "subscription": ["club", "membership"],
         "damaged": ["defect", "broken", "wrong"],
         "pricing": ["price", "cost", "rates"],
+        "product": ["plan", "plans", "broadband", "service", "services", "package", "packages", "item", "items", "pricing", "catalog"],
+        "products": ["plan", "plans", "broadband", "service", "services", "package", "packages", "items", "pricing", "catalog"],
+        "equipment": ["router", "modem", "device", "hardware", "cable", "cables", "installation"],
+        "plan": ["product", "broadband", "package", "service"],
+        "plans": ["products", "broadband", "packages", "services"],
     }
 
     @classmethod
