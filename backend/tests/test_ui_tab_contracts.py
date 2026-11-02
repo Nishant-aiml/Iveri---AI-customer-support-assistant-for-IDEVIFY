@@ -5,7 +5,7 @@ import unittest
 class TestUiTabContracts(unittest.TestCase):
     """Verifies that the single-page application UI maintains strict settings sub-tab hierarchy,
 
-    interactive RAG testing under settings, document inspection modal, and deletion controls.
+    interactive RAG testing on the right side of Account & Security, and no redundant playground in top navbar.
     """
 
     def setUp(self):
@@ -13,33 +13,34 @@ class TestUiTabContracts(unittest.TestCase):
         with open(html_path, "r", encoding="utf-8") as f:
             self.html = f.read()
 
-    def test_01_top_nav_tabs_exist(self):
-        """Ensures Settings and RAG Playground navigation elements exist."""
+    def test_01_top_nav_clean_and_no_navbar_playground(self):
+        """Ensures Settings tab exists in top nav and RAG playground is removed from navbar."""
         self.assertIn('id="tab-settings"', self.html)
-        self.assertIn('id="tab-playground"', self.html)
+        self.assertNotIn('id="tab-playground"', self.html)
         self.assertIn('switchTab(\'settings\')', self.html)
-        self.assertIn('switchTab(\'playground\')', self.html)
 
-    def test_02_settings_subtabs_and_testing_rag_embedded(self):
-        """Ensures that under Settings, a dedicated 'Testing RAG' sub-tab houses the RAG Playground."""
+    def test_02_settings_subtabs_order_and_testing_rag_on_right(self):
+        """Ensures that under Settings, Testing RAG is positioned on the right side of Account & Security."""
         settings_match = re.search(r'<section\s+id="view-settings"[^>]*>(.*?)</section>', self.html, re.DOTALL)
         self.assertIsNotNone(settings_match, "view-settings section must exist.")
         settings_content = settings_match.group(1)
 
-        # Sub-tab buttons
-        self.assertIn('id="subtab-btn-testing-rag"', settings_content)
+        # Sub-tab buttons exist
         self.assertIn('id="subtab-btn-studio"', settings_content)
         self.assertIn('id="subtab-btn-account"', settings_content)
+        self.assertIn('id="subtab-btn-testing-rag"', settings_content)
 
-        # Sub-views
+        # Verify relative order: Studio before Account, and Account before Testing RAG (on right)
+        idx_studio = settings_content.find('id="subtab-btn-studio"')
+        idx_account = settings_content.find('id="subtab-btn-account"')
+        idx_rag = settings_content.find('id="subtab-btn-testing-rag"')
+
+        self.assertGreater(idx_account, idx_studio, "Account & Security must be after Widget Studio.")
+        self.assertGreater(idx_rag, idx_account, "Testing RAG must be on the right side of Account & Security.")
+
+        # Sub-views exist and Testing RAG contains the playground
         self.assertIn('id="settings-subview-testing-rag"', settings_content)
-        self.assertIn('id="settings-subview-studio"', settings_content)
-        self.assertIn('id="settings-subview-account"', settings_content)
-
-        # RAG Playground must be under testing-rag subview
-        testing_rag_subview_match = re.search(r'<div\s+id="settings-subview-testing-rag"[^>]*>(.*?)</div>\s*<!-- Subview 2', settings_content, re.DOTALL)
-        self.assertIsNotNone(testing_rag_subview_match, "settings-subview-testing-rag must contain the playground.")
-        self.assertIn('id="settings-rag-playground"', testing_rag_subview_match.group(1))
+        self.assertIn('id="settings-rag-playground"', settings_content)
 
     def test_03_document_inspection_and_pdf_preview_modal(self):
         """Ensures document cross-verification modal and action buttons exist."""
