@@ -676,24 +676,45 @@
             </div>
           </div>
 
-          <!-- 1-Click Platform Install Tabs -->
+          <!-- Universal Embed & Public Integration Codes -->
           <div class="lumina-card p-6 rounded-2xl space-y-4">
-            <h3 class="font-bold text-slate-900 text-sm border-b border-slate-100 pb-3 flex items-center gap-2">
-              <span class="material-symbols-outlined text-secondary text-base">integration_instructions</span>
-              <span>1-Click Embed Snippets</span>
-            </h3>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+                <span class="material-symbols-outlined text-secondary text-base">integration_instructions</span>
+                <span>Universal Embed & Public Integration Codes</span>
+              </h3>
+              <div class="flex items-center gap-2 w-full sm:w-auto">
+                <label class="text-[10px] font-mono text-slate-400 whitespace-nowrap">API Origin:</label>
+                <input 
+                  type="text" 
+                  id="embed-api-host-input" 
+                  class="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-800 focus:outline-none focus:border-primary w-full sm:w-60"
+                  placeholder="https://your-domain.com"
+                  oninput="updateEmbedCode(currentEmbedPlatform)"
+                />
+              </div>
+            </div>
 
-            <div class="flex space-x-2 border-b border-slate-100 pb-2 text-[11px] font-mono">
-              <button onclick="setEmbedTab('html')" id="embed-tab-html" class="px-2.5 py-1 rounded bg-slate-100 font-semibold text-slate-800">HTML</button>
+            <div class="flex flex-wrap gap-1.5 border-b border-slate-100 pb-2.5 text-[11px] font-mono">
+              <button onclick="setEmbedTab('html')" id="embed-tab-html" class="px-2.5 py-1 rounded bg-slate-100 font-semibold text-slate-800">Floating Widget (HTML)</button>
+              <button onclick="setEmbedTab('iframe')" id="embed-tab-iframe" class="px-2.5 py-1 rounded text-slate-500 hover:text-slate-800">In-Page Iframe</button>
+              <button onclick="setEmbedTab('link')" id="embed-tab-link" class="px-2.5 py-1 rounded text-slate-500 hover:text-slate-800">Public Chat Link</button>
               <button onclick="setEmbedTab('shopify')" id="embed-tab-shopify" class="px-2.5 py-1 rounded text-slate-500 hover:text-slate-800">Shopify</button>
               <button onclick="setEmbedTab('wordpress')" id="embed-tab-wordpress" class="px-2.5 py-1 rounded text-slate-500 hover:text-slate-800">WordPress</button>
-              <button onclick="setEmbedTab('react')" id="embed-tab-react" class="px-2.5 py-1 rounded text-slate-500 hover:text-slate-800">React / Next</button>
+              <button onclick="setEmbedTab('react')" id="embed-tab-react" class="px-2.5 py-1 rounded text-slate-500 hover:text-slate-800">React / Next.js</button>
             </div>
 
             <div class="relative">
-              <textarea id="embed-code-area" readonly rows="4" class="w-full p-3 bg-slate-900 text-emerald-400 border border-slate-700 rounded-xl text-xs font-mono focus:outline-none"></textarea>
-              <button onclick="copyEmbedCode()" class="absolute top-2 right-2 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-[10px] font-mono rounded">Copy</button>
+              <textarea id="embed-code-area" readonly rows="5" class="w-full p-3.5 bg-slate-900 text-emerald-400 border border-slate-700 rounded-xl text-xs font-mono focus:outline-none leading-relaxed"></textarea>
+              <div class="absolute top-2.5 right-2.5 flex items-center gap-1.5">
+                <a id="embed-test-link" href="#" target="_blank" class="hidden px-2.5 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-[10px] font-mono rounded-lg transition flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[12px]">open_in_new</span>
+                  <span>Test Link</span>
+                </a>
+                <button id="embed-copy-btn" onclick="copyEmbedCode()" class="px-2.5 py-1 bg-primary hover:bg-primary-hover text-white text-[10px] font-mono rounded-lg transition shadow-xs">Copy Code</button>
+              </div>
             </div>
+            <p id="embed-platform-help" class="text-[11px] font-mono text-slate-500"></p>
           </div>
 
         </div>
@@ -1528,8 +1549,11 @@
       }
     }
 
+    let currentEmbedPlatform = 'html';
+
     function setEmbedTab(platform) {
-      ['html', 'shopify', 'wordpress', 'react'].forEach(p => {
+      currentEmbedPlatform = platform;
+      ['html', 'iframe', 'link', 'shopify', 'wordpress', 'react'].forEach(p => {
         const btn = document.getElementById(`embed-tab-${p}`);
         if (btn) btn.className = p === platform ? 'px-2.5 py-1 rounded bg-slate-100 font-semibold text-slate-800' : 'px-2.5 py-1 rounded text-slate-500 hover:text-slate-800';
       });
@@ -1537,27 +1561,67 @@
     }
 
     function updateEmbedCode(platform) {
+      platform = platform || currentEmbedPlatform || 'html';
       if (!currentBusiness) return;
       const slug = currentBusiness.slug;
-      const origin = window.location.origin;
-      const area = document.getElementById('embed-code-area');
+      
+      const hostInput = document.getElementById('embed-api-host-input');
+      let origin = window.location.origin;
+      if (hostInput && hostInput.value && hostInput.value.trim()) {
+        origin = hostInput.value.trim().replace(/\/+$/, '');
+      } else if (hostInput) {
+        hostInput.value = origin;
+      }
 
-      if (platform === 'shopify') {
-        area.value = `<!-- Paste right before </body> in theme.liquid -->\n<script src="${origin}/widget.js" data-business="${slug}" data-api="${origin}" defer><\/script>`;
+      const area = document.getElementById('embed-code-area');
+      const help = document.getElementById('embed-platform-help');
+      const testLink = document.getElementById('embed-test-link');
+
+      if (testLink) {
+        testLink.href = `${origin}/chat/${slug}`;
+        testLink.classList.remove('hidden');
+      }
+
+      if (platform === 'iframe') {
+        area.value = `<!-- Responsive In-Page Chatbot Container -->\n<iframe \n  src="${origin}/chat/${slug}" \n  width="100%" \n  height="650" \n  style="border: 1px solid #E2E8F0; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08);" \n  frameborder="0" \n  allow="clipboard-write">\n</iframe>`;
+        if (help) help.innerText = "Embed directly inside any page (e.g. contact page, support portal, Notion embed, or Webflow container) without a floating launcher.";
+      } else if (platform === 'link') {
+        area.value = `${origin}/chat/${slug}`;
+        if (help) help.innerText = "Standalone customer chat link. Share directly with customers via WhatsApp, email signatures, SMS, or link in your social media bio.";
+      } else if (platform === 'shopify') {
+        area.value = `<!-- Paste right before </body> in your Shopify theme.liquid file -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
+        if (help) help.innerText = "Shopify integration: Go to Online Store -> Themes -> Edit code -> theme.liquid and paste before </body>.";
       } else if (platform === 'wordpress') {
-        area.value = `// Paste into header.php or WPCode plugin:\nwp_enqueue_script('iveri-widget', '${origin}/widget.js', array(), null, true);\n// data-business: ${slug}\n// data-api: ${origin}`;
+        area.value = `<!-- WordPress: Paste in WPCode plugin, Custom HTML widget, or footer.php before </body> -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
+        if (help) help.innerText = "WordPress integration: Use the free 'WPCode' plugin (Footer script) or paste directly into footer.php.";
       } else if (platform === 'react') {
-        area.value = `import Script from 'next/script';\n\n<Script src="${origin}/widget.js" data-business="${slug}" data-api="${origin}" strategy="lazyOnload" />`;
+        area.value = `import Script from 'next/script';\n\n// Place inside your RootLayout or SupportPage component:\n<Script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  strategy="lazyOnload" \n/>`;
+        if (help) help.innerText = "React / Next.js integration: Zero-layout-shift script loader with lazyOnload strategy.";
       } else {
-        area.value = `<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
+        area.value = `<!-- Universal Floating Widget: Paste before </body> on any HTML, Webflow, Squarespace, or Wix site -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
+        if (help) help.innerText = "Standard 1-line installation for any website. Automatically displays the floating bubble with your custom branding.";
       }
     }
 
     function copyEmbedCode() {
       const el = document.getElementById('embed-code-area');
+      if (!el) return;
       el.select();
-      document.execCommand('copy');
-      alert("Embed code copied!");
+      navigator.clipboard.writeText(el.value).then(() => {
+        const btn = document.getElementById('embed-copy-btn');
+        if (btn) {
+          const oldText = btn.innerText;
+          btn.innerText = "Copied! ✓";
+          btn.classList.add("bg-emerald-600");
+          setTimeout(() => {
+            btn.innerText = oldText;
+            btn.classList.remove("bg-emerald-600");
+          }, 2000);
+        }
+      }).catch(() => {
+        document.execCommand('copy');
+        alert("Embed code copied to clipboard!");
+      });
     }
 
     async function uploadAvatarImage(input) {

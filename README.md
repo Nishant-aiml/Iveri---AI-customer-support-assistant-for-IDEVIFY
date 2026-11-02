@@ -147,12 +147,47 @@ docker compose up --build
 ```
 Access the application at `http://localhost:8000/dashboard`.
 
-### Render Free Tier Deployment
-The project includes a ready-to-deploy `render.yaml` blueprint:
-1. Connect this GitHub repository in the **Render Dashboard**.
-2. Deploy as a **Web Service** using Docker runtime.
-3. Add environment variables `GEMINI_API_KEY` and `GROQ_API_KEY`.
-4. Render automatically runs the healthcheck against `/api/health`.
+### Render & Cloud PostgreSQL Deployment (Access from Anywhere)
+The repository includes a production-ready `render.yaml` blueprint with automated **Managed PostgreSQL**:
+1. Connect this GitHub repository in the **Render Dashboard** as a **Blueprint**.
+2. Render automatically provisions a free, persistent **Managed PostgreSQL database** (`idevify-db`) alongside the web service and links the connection string.
+3. Once deployed, anyone can access their business account, upload documents, and manage assistants from any phone, tablet, or laptop 24/7.
+4. Render automatically validates container health against `/api/health`.
+
+---
+
+## 🌐 Multi-Device Cloud Database Access
+
+Iveri supports dual database modes with automated schema self-healing:
+
+| Environment | Supported Backend | Connection String Example | Multi-Device Persistence |
+| :--- | :--- | :--- | :--- |
+| **Local Testing** | SQLite (WAL mode) | `sqlite+aiosqlite:///./idevify.db` | Local machine only |
+| **Render Cloud** | Render Managed PostgreSQL | Injected via `render.yaml` | ✅ Persistent anywhere |
+| **Neon Cloud** | Neon Serverless Postgres | `postgresql+asyncpg://user:pass@ep-xxx.neon.tech/neondb?ssl=require` | ✅ Persistent anywhere |
+| **Supabase** | Supabase Managed Postgres | `postgresql+asyncpg://postgres:pass@db.xxx.supabase.co:5432/postgres?ssl=require` | ✅ Persistent anywhere |
+
+---
+
+## 🧩 1-Click Public Chatbot Integration Anywhere
+
+Business owners can embed their custom-branded assistant onto any external website directly from the **Widget Studio** tab in the dashboard (`/dashboard`):
+
+1. **Floating Widget (HTML / Webflow / Squarespace / Wix):**
+   ```html
+   <script src="https://your-domain.com/widget.js" data-business="your-slug" data-api="https://your-domain.com" defer></script>
+   ```
+2. **In-Page Responsive Iframe (Container Embed):**
+   ```html
+   <iframe src="https://your-domain.com/chat/your-slug" width="100%" height="650" style="border:1px solid #E2E8F0; border-radius:16px;" frameborder="0"></iframe>
+   ```
+3. **Public Chat Link (WhatsApp / SMS / Social Bio):**
+   ```
+   https://your-domain.com/chat/your-slug
+   ```
+4. **Shopify Integration:** Paste the floating script before `</body>` in `theme.liquid`.
+5. **WordPress Integration:** Paste snippet into the free `WPCode` plugin (Footer script) or theme footer.
+6. **React / Next.js:** Drop-in `<Script src="https://your-domain.com/widget.js" data-business="your-slug" data-api="https://your-domain.com" strategy="lazyOnload" />`.
 
 ---
 
