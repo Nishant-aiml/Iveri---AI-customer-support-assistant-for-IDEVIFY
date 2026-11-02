@@ -25,6 +25,13 @@ ALLOWED_EXTENSIONS = {
     ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff"
 }
 
+_biz_upload_locks: Dict[str, asyncio.Lock] = {}
+
+def _get_biz_lock(business_id: str) -> asyncio.Lock:
+    if business_id not in _biz_upload_locks:
+        _biz_upload_locks[business_id] = asyncio.Lock()
+    return _biz_upload_locks[business_id]
+
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_202_ACCEPTED)
 async def upload_document(
     files: Optional[List[UploadFile]] = File(None),
@@ -33,111 +40,114 @@ async def upload_document(
     db: AsyncSession = Depends(get_db)
 ):
     """Uploads one or multiple documents (PDF, DOCX, TXT, Excel .xlsx/.xls, Images .png/.jpg/.webp)
-
     and enqueues them for background parsing and vector indexing with Docling, Tesseract OCR, and openpyxl.
+    Guarantees strict single-document idempotency per filename per business tenant.
     """
-    incoming_files: List[UploadFile] = []
-    seen_names = set()
-    all_uploads: List[UploadFile] = []
-    if files:
-        all_uploads.extend([f for f in files if f and f.filename])
-    elif file and file.filename:
-        all_uploads.append(file)
+    biz_lock = _get_biz_lock(owner.business_id)
+    async with biz_lock:
+        incoming_files: List[UploadFile] = []
+        seen_names = set()
+        all_uploads: List[UploadFile] = []
+        if files:
+            all_uploads.extend([f for f in files if f and f.filename])
+        elif file and file.filename:
+            all_uploads.append(file)
 
-    for f in all_uploads:
-        norm = os.path.basename(f.filename).strip()
-        if norm.lower() not in seen_names:
-            seen_names.add(norm.lower())
-            incoming_files.append(f)
+        for f in all_uploads:
+            norm = os.path.basename(f.filename).strip()
+            if norm.lower() not in seen_names:
+                seen_names.add(norm.lower())
+                incoming_files.append(f)
 
-    if not incoming_files:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No document files provided. Please select at least one document to upload."
-        )
-
-    max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
-    business_upload_dir = os.path.join(settings.UPLOAD_DIRECTORY, owner.business_id)
-    os.makedirs(business_upload_dir, exist_ok=True)
-
-    queued_items: List[DocumentUploadItem] = []
-
-    for upload_item in incoming_files:
-        content_bytes, sanitized_filename, ext = await read_and_validate_upload(upload_item, max_bytes)
-
-        # Check if an existing document with the exact same name exists for this business
-        existing_doc = (await db.execute(
-            select(Document).where(
-                Document.business_id == owner.business_id,
-                Document.file_name == sanitized_filename
+        if not incoming_files:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No document files provided. Please select at least one document to upload."
             )
-        )).scalars().first()
 
-        if existing_doc:
-            # Cleanly purge prior vector & BM25 chunks to prevent duplicate chunk clutter
-            await rag_engine.delete_document_chunks(owner.business_id, existing_doc.id)
-            if existing_doc.storage_path and os.path.exists(existing_doc.storage_path):
-                try:
-                    os.remove(existing_doc.storage_path)
-                except Exception:
-                    pass
-            await db.delete(existing_doc)
-            await db.flush()
+        max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
+        business_upload_dir = os.path.join(settings.UPLOAD_DIRECTORY, owner.business_id)
+        os.makedirs(business_upload_dir, exist_ok=True)
 
-        unique_file_id = uuid.uuid4().hex[:8]
-        disk_filename = f"{unique_file_id}_{sanitized_filename}"
-        saved_file_path = os.path.join(business_upload_dir, disk_filename)
+        queued_items: List[DocumentUploadItem] = []
 
-        with open(saved_file_path, "wb") as buffer:
-            buffer.write(content_bytes)
+        for upload_item in incoming_files:
+            content_bytes, sanitized_filename, ext = await read_and_validate_upload(upload_item, max_bytes)
 
-        file_size = len(content_bytes)
+            # Check if existing document(s) with the exact same name exist for this business
+            existing_docs = (await db.execute(
+                select(Document).where(
+                    Document.business_id == owner.business_id,
+                    Document.file_name == sanitized_filename
+                )
+            )).scalars().all()
 
-        # Create document record with QUEUED status
-        doc = Document(
-            business_id=owner.business_id,
-            file_name=sanitized_filename,
-            file_type=ext.lstrip("."),
-            storage_path=saved_file_path,
-            file_size_bytes=file_size,
-            status="QUEUED"
+            for old_doc in existing_docs:
+                # Cleanly purge prior vector & BM25 chunks to prevent duplicate chunk clutter
+                await rag_engine.delete_document_chunks(owner.business_id, old_doc.id)
+                if old_doc.storage_path and os.path.exists(old_doc.storage_path):
+                    try:
+                        os.remove(old_doc.storage_path)
+                    except Exception:
+                        pass
+                await db.delete(old_doc)
+            if existing_docs:
+                await db.flush()
+
+            unique_file_id = uuid.uuid4().hex[:8]
+            disk_filename = f"{unique_file_id}_{sanitized_filename}"
+            saved_file_path = os.path.join(business_upload_dir, disk_filename)
+
+            with open(saved_file_path, "wb") as buffer:
+                buffer.write(content_bytes)
+
+            file_size = len(content_bytes)
+
+            # Create document record with QUEUED status
+            doc = Document(
+                business_id=owner.business_id,
+                file_name=sanitized_filename,
+                file_type=ext.lstrip("."),
+                storage_path=saved_file_path,
+                file_size_bytes=file_size,
+                status="QUEUED"
+            )
+            db.add(doc)
+            await db.commit()
+            await db.refresh(doc)
+
+            # Enqueue to background worker
+            job = IngestionJob(
+                document_id=doc.id,
+                business_id=owner.business_id,
+                file_path=saved_file_path,
+                file_name=sanitized_filename
+            )
+            await ingestion_queue.enqueue(job)
+
+            queued_items.append(DocumentUploadItem(
+                document_id=doc.id,
+                file_name=sanitized_filename,
+                status="QUEUED",
+                message="Document queued for indexing."
+            ))
+
+        first_item = queued_items[0]
+        total_count = len(queued_items)
+        summary_message = (
+            f"{total_count} documents uploaded successfully and queued for background indexing."
+            if total_count > 1
+            else "Document uploaded successfully and queued for background indexing."
         )
-        db.add(doc)
-        await db.commit()
-        await db.refresh(doc)
 
-        # Enqueue to background worker
-        job = IngestionJob(
-            document_id=doc.id,
-            business_id=owner.business_id,
-            file_path=saved_file_path,
-            file_name=sanitized_filename
-        )
-        await ingestion_queue.enqueue(job)
-
-        queued_items.append(DocumentUploadItem(
-            document_id=doc.id,
-            file_name=sanitized_filename,
+        return DocumentUploadResponse(
+            document_id=first_item.document_id,
+            file_name=first_item.file_name,
             status="QUEUED",
-            message="Document queued for indexing."
-        ))
-
-    first_item = queued_items[0]
-    total_count = len(queued_items)
-    summary_message = (
-        f"{total_count} documents uploaded successfully and queued for background indexing."
-        if total_count > 1
-        else "Document uploaded successfully and queued for background indexing."
-    )
-
-    return DocumentUploadResponse(
-        document_id=first_item.document_id,
-        file_name=first_item.file_name,
-        status="QUEUED",
-        message=summary_message,
-        uploaded_files=queued_items,
-        total_queued=total_count
-    )
+            message=summary_message,
+            uploaded_files=queued_items,
+            total_queued=total_count
+        )
 
 @router.post("/batch-upload", response_model=DocumentUploadResponse, status_code=status.HTTP_202_ACCEPTED)
 async def batch_upload_documents(

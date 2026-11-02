@@ -34,11 +34,37 @@ class IngestionWorkerQueue:
         self._running = False
 
     def start(self):
-        """Starts the background ingestion worker loop."""
+        """Starts the background ingestion worker loop and recovers unprocessed jobs."""
         if not self._running:
             self._running = True
             self._worker_task = asyncio.create_task(self._process_queue_loop())
+            asyncio.create_task(self.recover_unprocessed_jobs())
             logger.info("IngestionWorkerQueue started background worker.")
+
+    async def recover_unprocessed_jobs(self):
+        """Scans database for documents that were QUEUED or interrupted during PROCESSING and enqueues them."""
+        try:
+            import os
+            from app.database import AsyncSessionLocal
+            from app.models.document import Document
+            from sqlalchemy.future import select
+
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(
+                    select(Document).where(Document.status.in_(["QUEUED", "PROCESSING"]))
+                )
+                pending_docs = result.scalars().all()
+                for doc in pending_docs:
+                    if doc.storage_path and os.path.exists(doc.storage_path):
+                        await self.enqueue(IngestionJob(
+                            document_id=doc.id,
+                            business_id=doc.business_id,
+                            file_path=doc.storage_path,
+                            file_name=doc.file_name
+                        ))
+                        logger.info(f"Recovered pending document {doc.id} ('{doc.file_name}') on startup.")
+        except Exception as e:
+            logger.warning(f"Error during ingestion job recovery on startup: {str(e)}")
 
     async def shutdown(self):
         """Gracefully shuts down the background worker and thread pool."""

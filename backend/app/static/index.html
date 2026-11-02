@@ -883,11 +883,83 @@
 
     </section>
 
-    <!-- 5. VOICEFLOW-STYLE WIDGET STUDIO TAB -->
+    <!-- 5. VOICEFLOW-STYLE WIDGET STUDIO & SETTINGS TAB -->
     <section id="view-settings" class="hidden space-y-6">
       <div>
-        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Voiceflow-Style Widget Studio & Integrations</h2>
-        <p class="text-xs text-slate-500 font-mono">Customize avatar profile picture, welcome greeting, brand colors, launcher placement, and preview in real-time.</p>
+        <h2 class="text-xl font-bold text-slate-900 tracking-tight">Workspace Settings, Identity &amp; Studio</h2>
+        <p class="text-xs text-slate-500 font-mono">Manage account credentials, business name, voiceflow-style assistant customizations, and live RAG playground diagnostics.</p>
+      </div>
+
+      <!-- 1. Account Profile, Rename & Security Card -->
+      <div class="lumina-card p-6 rounded-2xl bg-white border border-slate-200/90 space-y-5 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-600 flex items-center justify-center">
+              <span class="material-symbols-outlined text-[18px]">manage_accounts</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm">Account &amp; Workspace Security</h3>
+              <p class="text-[11px] font-mono text-slate-500">Manage business name, login password, and workspace lifecycle</p>
+            </div>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[10px] font-mono font-bold border border-emerald-200 flex items-center gap-1 w-fit">
+            <span class="material-symbols-outlined text-[13px] text-emerald-600">verified</span>
+            <span>Business Owner Console</span>
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- Rename Business Account -->
+          <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3">
+            <div class="flex items-center gap-1.5 font-bold text-xs text-slate-800">
+              <span class="material-symbols-outlined text-primary text-[16px]">edit_note</span>
+              <span>Rename Business Account</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-mono">Updates your public store name across customer chat, widget header, and notification dispatches.</p>
+            <div class="space-y-2">
+              <input type="text" id="setting-account-name" placeholder="Business Workspace Name" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-primary shadow-2xs" />
+              <button type="button" onclick="renameAccount()" class="w-full py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-mono font-semibold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                <span class="material-symbols-outlined text-[14px]">save</span>
+                <span>Save New Account Name</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Change Password -->
+          <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3">
+            <div class="flex items-center gap-1.5 font-bold text-xs text-slate-800">
+              <span class="material-symbols-outlined text-primary text-[16px]">lock_reset</span>
+              <span>Change Account Password</span>
+            </div>
+            <p class="text-[11px] text-slate-500 font-mono">Set or update your password. (Min 8 characters, letters &amp; numbers required).</p>
+            <div class="space-y-2">
+              <input type="password" id="setting-current-password" placeholder="Current Password (leave blank if Google sign-in)" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-primary shadow-2xs" />
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input type="password" id="setting-new-password" placeholder="New Password" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-primary shadow-2xs" />
+                <input type="password" id="setting-confirm-password" placeholder="Confirm Password" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-primary shadow-2xs" />
+              </div>
+              <button type="button" onclick="changeAccountPassword()" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-mono font-semibold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                <span class="material-symbols-outlined text-[14px]">key</span>
+                <span>Update Password</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Danger Zone: Permanent Account Deletion -->
+        <div class="p-4 bg-rose-50/60 rounded-xl border border-rose-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <div class="text-xs font-bold text-rose-900 flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-rose-600 text-[17px]">warning</span>
+              <span>Danger Zone: Permanent Account Deletion</span>
+            </div>
+            <p class="text-[11px] text-rose-700 font-mono mt-0.5">Permanently deletes your account, business workspace, documents, ChromaDB vector chunks, tickets, and customer chat histories.</p>
+          </div>
+          <button type="button" onclick="deleteAccountPermanent()" class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-mono font-semibold rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs shrink-0 cursor-pointer">
+            <span class="material-symbols-outlined text-[15px]">delete_forever</span>
+            <span>Delete Account</span>
+          </button>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -1220,17 +1292,24 @@
         </div>
 
       </div>
-    </section>
 
-    <!-- 6. RAG PLAYGROUND TAB -->
-    <section id="view-playground" class="hidden space-y-6">
-      <div>
-        <h2 class="text-xl font-bold text-slate-900 tracking-tight">RAG Retrieval Playground & Diagnostics</h2>
-        <p class="text-xs text-slate-500 font-mono">Test queries live, examine BM25 vs Dense ChromaDB scores, inspect RRF fusion ranks, and verify the circuit breaker.</p>
-      </div>
+      <!-- RAG Retrieval Playground Section (Directly under Settings) -->
+      <div id="settings-rag-playground" class="lumina-card p-6 rounded-2xl bg-white border border-slate-200/90 space-y-5 shadow-xs">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center">
+              <span class="material-symbols-outlined text-[18px]">science</span>
+            </div>
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm">RAG Retrieval Playground &amp; Knowledge Diagnostics</h3>
+              <p class="text-[11px] font-mono text-slate-500">Test queries live, examine BM25 vs Dense ChromaDB scores, inspect RRF fusion ranks, and verify circuit breaker thresholds.</p>
+            </div>
+          </div>
+          <span class="px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 text-[10px] font-mono font-bold border border-purple-200 w-fit">
+            Deterministic Grounding
+          </span>
+        </div>
 
-      <div class="lumina-card p-6 rounded-2xl space-y-4">
-        
         <!-- Interactive Scenario Test Pills -->
         <div class="flex flex-wrap items-center gap-2 pb-1">
           <span class="text-[11px] font-mono text-slate-400 font-semibold uppercase">Interactive Scenarios:</span>
@@ -1545,6 +1624,8 @@
           document.getElementById('auth-action-btn').onclick = logout;
 
           // Populate Studio Settings
+          const accNameEl = document.getElementById('setting-account-name');
+          if (accNameEl) accNameEl.value = currentBusiness.name || '';
           document.getElementById('setting-name').value = currentBusiness.name || '';
           document.getElementById('setting-welcome').value = currentBusiness.welcome_message || '';
           document.getElementById('setting-avatar-url').value = currentBusiness.avatar_url || '';
@@ -1917,7 +1998,13 @@
       }, 2500);
     }
 
+    let isUploadingDocs = false;
+
     async function uploadDocumentFiles(inputSource) {
+      if (isUploadingDocs) {
+        console.warn("Upload already in progress. Ignoring duplicate trigger.");
+        return;
+      }
       let fileList = [];
       if (inputSource instanceof Event || (inputSource && inputSource.target && inputSource.target.files)) {
         fileList = Array.from(inputSource.target.files);
@@ -1932,6 +2019,14 @@
         alert("Please sign in to upload documents.");
         return;
       }
+
+      // Reset file input immediately to prevent double-firing
+      const fileInput = document.getElementById('doc-file-input');
+      if (fileInput) {
+        fileInput.value = '';
+        fileInput.disabled = true;
+      }
+      isUploadingDocs = true;
 
       const progressBox = document.getElementById('doc-upload-progress');
       const progressTitle = document.getElementById('doc-upload-progress-title');
@@ -1979,8 +2074,12 @@
         alert("An error occurred during document upload.");
         if (progressBox) progressBox.classList.add('hidden');
       } finally {
+        isUploadingDocs = false;
         const fileInput = document.getElementById('doc-file-input');
-        if (fileInput) fileInput.value = '';
+        if (fileInput) {
+          fileInput.value = '';
+          fileInput.disabled = false;
+        }
       }
     }
 
@@ -2507,6 +2606,163 @@
       }
     }
 
+    // =========================================================================
+    // ACCOUNT SETTINGS & WORKSPACE LIFECYCLE MANAGEMENT
+    // =========================================================================
+    async function renameAccount() {
+      if (!authToken) return;
+      const nameInput = document.getElementById('setting-account-name');
+      const newName = nameInput ? nameInput.value.trim() : '';
+      if (!newName || newName.length < 2) {
+        alert("Please enter a valid business workspace name (minimum 2 characters).");
+        return;
+      }
+      try {
+        const res = await fetch('/api/auth/rename-account', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ business_name: newName })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          alert("✅ " + data.message);
+          await loadBusinessProfile();
+        } else {
+          const err = await res.json();
+          alert("Failed to rename account: " + (err.detail || "Error"));
+        }
+      } catch (e) {
+        alert("Network error renaming account.");
+      }
+    }
+
+    async function changeAccountPassword() {
+      if (!authToken) return;
+      const curr = document.getElementById('setting-current-password').value;
+      const newPass = document.getElementById('setting-new-password').value;
+      const confPass = document.getElementById('setting-confirm-password').value;
+
+      if (!newPass || newPass.length < 8) {
+        alert("New password must be at least 8 characters long and contain letters and numbers.");
+        return;
+      }
+      if (newPass !== confPass) {
+        alert("New password and confirm password do not match.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/change-password', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            current_password: curr || null,
+            new_password: newPass
+          })
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          alert("✅ " + data.message);
+          document.getElementById('setting-current-password').value = '';
+          document.getElementById('setting-new-password').value = '';
+          document.getElementById('setting-confirm-password').value = '';
+        } else {
+          const err = await res.json();
+          alert("Password change error: " + (err.detail || "Error"));
+        }
+      } catch (e) {
+        alert("Network error updating password.");
+      }
+    }
+
+    async function deleteAccountPermanent() {
+      if (!authToken) return;
+      const phrase = prompt("⚠️ PERMANENT ACCOUNT & WORKSPACE DELETION\n\nThis will permanently delete:\n• Your Business Account & User Login\n• All Uploaded PDF / DOCX / Excel Documents\n• All ChromaDB & BM25 Knowledge Vector Chunks\n• All Support Tickets & Unanswered Question Queues\n• All Customer Chat History Sessions\n\nThis action CANNOT be undone.\nTo permanently delete, type exactly:\nDELETE MY ACCOUNT");
+
+      if (!phrase || phrase.trim().toUpperCase() !== "DELETE MY ACCOUNT") {
+        alert("Account deletion cancelled. Confirmation phrase did not match.");
+        return;
+      }
+
+      if (!confirm("Are you completely certain? All business documents, vector embeddings, and customer records will be erased forever.")) {
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/auth/delete-account', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({ confirmation_phrase: "DELETE MY ACCOUNT" })
+        });
+
+        if (res.ok) {
+          alert("✅ Account and workspace successfully deleted. You will now be redirected to the sign-in screen.");
+          logout();
+        } else {
+          const err = await res.json();
+          alert("Failed to delete account: " + (err.detail || "Error"));
+        }
+      } catch (e) {
+        alert("Network error deleting account.");
+      }
+    }
+
+    async function loginWithGoogleFirebase() {
+      try {
+        if (!window.firebaseAuth || !window.firebaseSignInWithPopup || !window.googleAuthProvider) {
+          alert("Google Firebase Auth SDK is initializing. Please check your internet connection and try again.");
+          return;
+        }
+        const btnLabel = document.getElementById('google-auth-btn-label');
+        if (btnLabel) btnLabel.innerText = "Connecting to Google...";
+
+        const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleAuthProvider);
+        const user = result.user;
+        const idToken = await user.getIdToken();
+
+        const res = await fetch('/api/auth/firebase-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id_token: idToken,
+            business_name: user.displayName ? `${user.displayName}'s Workspace` : 'Google Business Workspace'
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
+          alert("Google sign-in error: " + (err.detail || "Authentication token rejected"));
+          return;
+        }
+
+        const data = await res.json();
+        authToken = data.access_token;
+        localStorage.setItem('iveri_token', authToken);
+        toggleAuthModal();
+        await init();
+        alert("🎉 Welcome " + (user.displayName || user.email) + "! Signed in with Google.");
+      } catch (e) {
+        console.error("Google Auth error:", e);
+        const btnLabel = document.getElementById('google-auth-btn-label');
+        if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
+        if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+          return;
+        }
+        alert("Google Sign-In note: " + (e.message || e));
+      }
+    }
+
     // Copilot Navigation Assistant
     function toggleCopilot() {
       document.getElementById('copilot-window').classList.toggle('hidden');
@@ -2704,6 +2960,19 @@
 
     function switchTab(tabId) {
       if (tabId === 'unanswered') tabId = 'tickets';
+      if (tabId === 'playground') {
+        switchTab('settings');
+        const pgTab = document.getElementById('tab-playground');
+        if (pgTab) pgTab.classList.add('tab-active');
+        setTimeout(() => {
+          const pg = document.getElementById('settings-rag-playground');
+          if (pg) {
+            pg.scrollIntoView({ behavior: 'smooth' });
+            document.getElementById('playground-query-input')?.focus();
+          }
+        }, 120);
+        return;
+      }
       ['overview', 'documents', 'tickets', 'chats', 'playground', 'settings'].forEach(t => {
         const el = document.getElementById(`view-${t}`);
         const tabEl = document.getElementById(`tab-${t}`);
