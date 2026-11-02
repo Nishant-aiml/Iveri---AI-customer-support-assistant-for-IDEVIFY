@@ -50,9 +50,13 @@ else:
     # Enterprise PostgreSQL setup with asyncpg connection pool & auto-reconnect
     pg_connect_args = {}
     if "ssl=require" in database_url or "sslmode=require" in settings.DATABASE_URL or "supabase" in database_url:
-        pg_connect_args["ssl"] = True
+        import ssl
+        ssl_ctx = ssl.create_default_context()
+        ssl_ctx.check_hostname = False
+        ssl_ctx.verify_mode = ssl.CERT_NONE
+        pg_connect_args["ssl"] = ssl_ctx
 
-    # Supabase Supavisor / PgBouncer pooler (port 6543) requires statement_cache_size=0 for asyncpg
+    # Supabase Supavisor / PgBouncer pooler (port 6543 or pooler hostname) requires statement_cache_size=0 for asyncpg
     if ":6543" in database_url or "pooler.supabase.com" in database_url:
         pg_connect_args["statement_cache_size"] = 0
 
