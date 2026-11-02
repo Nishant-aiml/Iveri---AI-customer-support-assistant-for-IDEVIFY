@@ -70,6 +70,7 @@ jobs:
           python -m unittest backend/tests/test_owner_rag_hygiene.py
           python -m unittest backend/tests/test_account_management_and_firebase.py
           python -m unittest backend/tests/test_upload_idempotency_and_contact_synthesis.py
+          python -m unittest backend/tests/test_ui_tab_contracts.py
         env:
           ENVIRONMENT: testing
           DATABASE_URL: sqlite+aiosqlite:///./test_ci.db
