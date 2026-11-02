@@ -7,7 +7,8 @@ from app.services.bm25_store import bm25_store_service
 from app.services.rrf import reciprocal_rank_fusion
 from app.services.circuit_breaker import GreetingInterceptor, circuit_breaker
 from app.services.llm_client import llm_client
-from app.services.guardrails import guardrails_service
+from app.services.guardrails import guardrails_service
+from app.services.laya_router import laya_service
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,21 @@ class HybridRAGEngine:
                 "citations": [],
                 "llm_provider": "greeting_rule",
                 "latency_ms": max(latency_ms, 5),
+                "retrieved_chunks": []
+            }
+
+        # Step 1.2: Laya System 1 Semantic Guardrail (Pre-retrieval Out-of-Scope Firewall)
+        laya_intent = laya_service.classify_intent(sanitized_query)
+        if laya_intent.get("available") and laya_intent.get("intent") == "out_of_scope" and laya_intent.get("confidence", 0.0) >= 0.60:
+            latency_ms = int((time.time() - start_time) * 1000)
+            logger.info(f"Query '{user_query}' short-circuited by Laya System 1 Router as out_of_scope (conf={laya_intent.get('confidence'):.2f}).")
+            return {
+                "answer": fallback_msg,
+                "is_answered": False,
+                "confidence_score": 0.0,
+                "citations": [],
+                "llm_provider": "laya_guardrail",
+                "latency_ms": max(latency_ms, 8),
                 "retrieved_chunks": []
             }
 
