@@ -56,5 +56,10 @@ class TestUiTabContracts(unittest.TestCase):
         self.assertIn('/api/dashboard/chats/', self.html)
         self.assertIn('/api/tickets/', self.html)
 
+    def test_05_copilot_and_programmatic_playground_routing(self):
+        """Ensures switchTab('playground') programmatically activates settings and selects testing-rag."""
+        self.assertIn("tabId = 'settings';", self.html)
+        self.assertIn("switchSettingsSubTab('testing-rag');", self.html)
+
 if __name__ == "__main__":
     unittest.main()
