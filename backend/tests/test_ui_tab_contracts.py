@@ -74,7 +74,7 @@ class TestUiTabContracts(unittest.TestCase):
         self.assertIn("/favicon.ico", main_code)
 
     def test_07_circuit_breaker_company_and_product_synonyms(self):
-        """Ensures circuit breaker validates company synonyms so queries like 'name of the company' are answered."""
+        """Ensures circuit breaker validates company, location, and product concepts so genuine queries are answered."""
         from app.services.circuit_breaker import circuit_breaker
         fused_chunks = [{
             "id": "c1",
@@ -86,6 +86,9 @@ class TestUiTabContracts(unittest.TestCase):
         }]
         eval_result = circuit_breaker.evaluate(fused_chunks, query="name of the company")
         self.assertTrue(eval_result["can_answer"], f"Circuit breaker should allow company queries: {eval_result}")
+
+        eval_loc = circuit_breaker.evaluate(fused_chunks, query="where are you located")
+        self.assertTrue(eval_loc["can_answer"], f"Circuit breaker should allow location queries: {eval_loc}")
 
     def test_08_optimistic_document_upload_and_fast_tab_caching(self):
         """Ensures index.html provides instant tab switching and optimistic upload row rendering."""

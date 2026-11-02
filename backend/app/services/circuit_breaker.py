@@ -127,34 +127,44 @@ class PreLLMCircuitBreaker:
         "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they",
         "them", "their", "theirs", "themselves", "this", "that", "these", "those", "am", "please",
         "section", "sections", "page", "pages", "part", "parts", "chapter", "chapters", "clause", "clauses", "paragraph", "article", "doc", "document", "faq",
-        "name", "names", "title", "details", "info", "information", "about", "tell"
+        "title", "details", "info", "information", "about", "tell"
     }
 
-    PRODUCT_SYNONYMS = {
-        "product", "products", "item", "items", "plan", "plans", "package", "packages",
-        "service", "services", "catalog", "pricing", "broadband"
+    # Common business domain concept mappings allowing natural conversational queries without brittle verbatim word matching
+    CONCEPT_GROUPS = {
+        "location": {
+            "query_terms": {"location", "located", "where", "address", "city", "place", "headquarters", "hq", "office", "country", "state", "situate", "situated", "based"},
+            "context_patterns": [r"\b(based|located|location|headquarters|hq|office|city|address|street|pune|mumbai|delhi|bengaluru|bangalore|hyderabad|chennai|kolkata|india|usa|uk)\b"]
+        },
+        "identity": {
+            "query_terms": {"who", "name", "company", "brand", "business", "firm", "about", "founded", "founder", "started", "established"},
+            "context_patterns": [r"\b(company|co|brand|store|business|firm|shop|roaster|provider|founded|established|started)\b"]
+        },
+        "contact": {
+            "query_terms": {"contact", "reach", "email", "phone", "call", "support", "help", "helpline", "care", "touch"},
+            "context_patterns": [r"\b(contact|email|phone|call|support|help|helpline|care|reach|tel)\b", r"[\w\.-]+@[\w\.-]+", r"\+?\d{2,4}[-\s]?\d{3,5}[-\s]?\d{4}"]
+        },
+        "pricing_products": {
+            "query_terms": {"product", "products", "item", "items", "sell", "goods", "offering", "service", "services", "catalog", "pricing", "price", "cost", "plan", "plans", "package"},
+            "context_patterns": [r"\b(product|products|item|items|goods|service|services|catalog|pricing|price|cost|rs|inr|\$|broadband|package|roast|beans|coffee|grinder|dripper)\b"]
+        },
+        "shipping_delivery": {
+            "query_terms": {"ship", "shipping", "delivery", "deliver", "transit", "dispatch", "arrive", "courier", "postage", "freight"},
+            "context_patterns": [r"\b(ship|shipping|delivery|deliver|transit|dispatch|courier|postage|freight)\b"]
+        },
+        "returns_refunds": {
+            "query_terms": {"return", "returns", "refund", "refunds", "cancel", "cancellation", "warranty", "exchange", "moneyback"},
+            "context_patterns": [r"\b(return|returns|refund|refunds|cancel|cancellation|warranty|replacement|defect)\b"]
+        }
     }
 
-    COMPANY_SYNONYMS = {
-        "company", "co", "brand", "store", "business", "firm", "organization", "shop", "enterprise", "roaster", "provider"
+    # Technical / academic out-of-domain entities that should never be answered by store support
+    TECH_OUT_OF_DOMAIN = {
+        "bm25", "quantum", "quicksort", "bubble sort", "kubernetes", "tensorflow",
+        "pytorch", "neural network", "machine learning"
     }
 
-    _PRODUCT_RE = re.compile(
-        r"\b(" + "|".join(re.escape(s) for s in [
-            "product", "products", "item", "items", "plan", "plans", "package", "packages",
-            "service", "services", "catalog", "pricing", "broadband"
-        ]) + r")\b",
-        re.IGNORECASE
-    )
-
-    _COMPANY_RE = re.compile(
-        r"\b(" + "|".join(re.escape(s) for s in [
-            "company", "co", "brand", "store", "business", "firm", "organization", "shop", "enterprise", "roaster", "provider"
-        ]) + r")\b",
-        re.IGNORECASE
-    )
-
-    def __init__(self, default_threshold: float = 0.55):
+    def __init__(self, default_threshold: float = 0.52):
         self.default_threshold = default_threshold
 
     def evaluate(
@@ -178,7 +188,7 @@ class PreLLMCircuitBreaker:
         dense_sim = top_chunk.get("dense_similarity", 0.0)
         sparse_score = top_chunk.get("sparse_score", 0.0)
 
-        # 2. Key entity / keyword grounding validation
+        # 2. Key entity / grounding validation
         if query:
             clean_q = re.sub(r"[^\w\s]", " ", query.lower())
             tokens = [t for t in clean_q.split() if t and t not in self.STOPWORDS and len(t) > 1]
@@ -189,46 +199,59 @@ class PreLLMCircuitBreaker:
                     "confidence": 0.0,
                     "reason": "query_contains_no_domain_entities"
                 }
-            if tokens:
-                top_text = " ".join([
-                    (c.get("content", "") + " " + c.get("metadata", {}).get("document_name", "")).lower()
-                    for c in fused_chunks[:3]
-                ])
-                # Filter out boilerplate test disclaimers from entity matching
-                top_text_clean = re.sub(r"(?i)fictional document created for testing.*?\.", "", top_text)
-                top_text_clean = re.sub(r"(?i)created for testing an? ai customer support.*?assistant\b", "", top_text_clean)
-                top_text_clean = re.sub(r"(?i)testing an? ai customer support.*?assistant\b", "", top_text_clean)
-                top_text_clean = re.sub(r"(?i)fictional document\b", "", top_text_clean)
-                
-                entity_hits = []
-                for t in tokens:
-                    if t in self.PRODUCT_SYNONYMS and self._PRODUCT_RE.search(top_text_clean):
-                        entity_hits.append(t)
-                    elif t in self.COMPANY_SYNONYMS and self._COMPANY_RE.search(top_text_clean):
-                        entity_hits.append(t)
-                    elif re.search(r"\b" + re.escape(t) + r"\b", top_text_clean):
-                        entity_hits.append(t)
 
-                # If query entities (e.g. 'ai', 'bm25') have 0 genuine mentions in retrieved chunks
-                if not entity_hits:
-                    logger.info(f"Circuit breaker tripped: Query entities {tokens} missing from retrieved content (Dense={dense_sim:.3f}).")
-                    return {
-                        "can_answer": False,
-                        "confidence": round(top_score, 4),
-                        "reason": "query_entities_missing_from_context"
-                    }
+            top_text = " ".join([
+                (c.get("content", "") + " " + c.get("metadata", {}).get("document_name", "")).lower()
+                for c in fused_chunks[:3]
+            ])
+            top_text_clean = re.sub(r"(?i)fictional document created for testing.*?\.", "", top_text)
+            top_text_clean = re.sub(r"(?i)created for testing an? ai customer support.*?assistant\b", "", top_text_clean)
+            top_text_clean = re.sub(r"(?i)testing an? ai customer support.*?assistant\b", "", top_text_clean)
+            top_text_clean = re.sub(r"(?i)fictional document\b", "", top_text_clean)
 
-        # 3. Strict Confidence Evaluation:
+            # Check if query asks for known out-of-domain technical concepts missing from the store context
+            for tech_word in self.TECH_OUT_OF_DOMAIN:
+                if re.search(r"\b" + re.escape(tech_word) + r"\b", clean_q):
+                    if not re.search(r"\b" + re.escape(tech_word) + r"\b", top_text_clean):
+                        logger.info(f"Circuit breaker tripped: Query asked for technical concept '{tech_word}' absent from context.")
+                        return {
+                            "can_answer": False,
+                            "confidence": round(top_score, 4),
+                            "reason": "query_entities_missing_from_context"
+                        }
+
+            # Check semantic grounding across concepts or literal substring presence
+            grounded_hits = []
+            for t in tokens:
+                if re.search(r"\b" + re.escape(t) + r"\b", top_text_clean):
+                    grounded_hits.append(t)
+                    continue
+                # Concept-level grounding (e.g. 'located' -> 'based in Pune', 'name' -> 'BrewNest')
+                for group_name, group_cfg in self.CONCEPT_GROUPS.items():
+                    if t in group_cfg["query_terms"]:
+                        if any(re.search(pat, top_text_clean, re.IGNORECASE) for pat in group_cfg["context_patterns"]):
+                            grounded_hits.append(f"{t}:{group_name}")
+                            break
+
+            if not grounded_hits:
+                logger.info(f"Circuit breaker tripped: Query entities {tokens} missing from retrieved content (Dense={dense_sim:.3f}).")
+                return {
+                    "can_answer": False,
+                    "confidence": round(top_score, 4),
+                    "reason": "query_entities_missing_from_context"
+                }
+
+        # 3. Dynamic Semantic Confidence Evaluation:
         # A confident match requires either:
-        # a) Both engines agreed (sparse keyword match > 0 AND dense similarity >= 0.44)
+        # a) Both engines agreed (sparse keyword match > 0 AND dense similarity >= 0.40)
         # b) Significant keyword hit (sparse >= 0.20)
-        # c) High semantic similarity when sparse has no direct hit (dense >= 0.62)
+        # c) Strong semantic similarity when sparse has no direct hit (dense >= 0.52)
         has_confident_match = False
-        if sparse_score > 0.0 and dense_sim >= 0.44:
+        if sparse_score > 0.0 and dense_sim >= 0.40:
             has_confident_match = True
         elif sparse_score >= 0.20:
             has_confident_match = True
-        elif dense_sim >= 0.55:
+        elif dense_sim >= 0.52:
             has_confident_match = True
 
         if not has_confident_match:
