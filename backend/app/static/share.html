@@ -274,6 +274,28 @@
     </div>
 
     <script>
+        function formatExactDateTime(dateInput) {
+            if (!dateInput) return { day: '', dayShort: '', dateStr: '', dateFull: '', timeStr: '', timeShort: '', full: 'N/A' };
+            let s = String(dateInput).trim();
+            if (!s.includes('Z') && !s.includes('+') && !s.slice(10).includes('-')) {
+                s = s.replace(' ', 'T') + 'Z';
+            }
+            const d = new Date(s);
+            if (isNaN(d.getTime())) return { day: '', dayShort: '', dateStr: '', dateFull: '', timeStr: '', timeShort: '', full: String(dateInput) };
+
+            const day = d.toLocaleDateString(undefined, { weekday: 'long' });
+            const dayShort = d.toLocaleDateString(undefined, { weekday: 'short' });
+            const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' });
+            const dateFull = d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+            const timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+            const timeShort = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
+
+            return {
+                d, day, dayShort, dateStr, dateFull, timeStr, timeShort,
+                full: `${day}, ${dateStr} at ${timeStr}`
+            };
+        }
+
         async function loadSharedData() {
             const pathParts = window.location.pathname.split('/').filter(Boolean);
             const urlParams = new URLSearchParams(window.location.search);
@@ -334,16 +356,22 @@
             chatBody.innerHTML = '';
 
             if (data.type === 'unanswered') {
+                const dt = formatExactDateTime(data.created_at);
                 document.getElementById('bizSubtitle').innerText = "Unanswered Customer Inquiry";
                 chatBody.innerHTML = `
                     <div style="background: var(--bg-page); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px;">
                         <span class="pill pill-negative" style="margin-bottom: 12px;">Unresolved Query</span>
-                        <h2 style="font-size: 16px; margin-top: 8px; color: var(--text-primary);">${data.question_text}</h2>
+                        <h2 style="font-size: 16px; margin-top: 8px; color: var(--text-primary); font-weight: 600;">${data.question_text}</h2>
+                        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-family: monospace; color: var(--text-secondary); margin-top: 10px;">
+                            <span class="material-symbols-outlined" style="font-size: 15px; color: var(--primary);">event</span>
+                            <span>Asked on: <strong style="color: var(--text-primary);">${dt.day}, ${dt.dateStr} at ${dt.timeStr}</strong></span>
+                        </div>
                         ${data.customer_email ? `<p style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">Customer: <strong>${data.customer_email}</strong></p>` : ''}
                         ${data.is_resolved ? `
                             <div style="margin-top: 16px; padding: 12px; background: var(--success-light); border-left: 4px solid var(--success); border-radius: 4px;">
                                 <strong style="color: var(--success); font-size: 13px;">Verified Ground Truth Answer:</strong>
                                 <p style="font-size: 14px; margin-top: 4px; color: var(--text-primary);">${data.resolved_answer}</p>
+                                ${data.resolved_at ? `<p style="font-size: 11px; color: var(--text-secondary); margin-top: 4px; font-family: monospace;">Resolved on ${formatExactDateTime(data.resolved_at).full}</p>` : ''}
                             </div>
                         ` : ''}
                     </div>
@@ -355,6 +383,7 @@
             (data.messages || []).forEach(msg => {
                 const row = document.createElement('div');
                 row.className = `msg-row ${msg.sender}`;
+                const dtMsg = formatExactDateTime(msg.created_at);
 
                 let citationsHtml = '';
                 if (msg.citations && msg.citations.length > 0) {
@@ -377,7 +406,7 @@
                         ${citationsHtml}
                     </div>
                     <div class="msg-meta">
-                        <span>${new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                        <span style="font-weight: 600; color: var(--text-primary);">${dtMsg.dayShort}, ${dtMsg.dateStr} at ${dtMsg.timeStr}</span>
                         ${msg.latency_ms ? `<span>• ${msg.latency_ms}ms</span>` : ''}
                         ${msg.llm_provider ? `<span>• ${msg.llm_provider}</span>` : ''}
                     </div>
