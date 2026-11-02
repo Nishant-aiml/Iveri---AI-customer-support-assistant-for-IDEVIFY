@@ -352,7 +352,25 @@ class MultiTierLLMClient:
                 return "**Product Warranty Guidelines:**\n\n" + "\n".join(bullets)
 
         # 5. About Company / Store / Contact / Support Hours Intent
-        if any(k in q_lower for k in ["about us", "about company", "about the company", "about store", "who are you", "who is", "overview", "founded", "location", "contact", "phone", "email", "support hours", "store hours", "headquarters"]):
+        if any(k in q_lower for k in ["about us", "about company", "about the company", "about store", "who are you", "who is", "overview", "founded", "location", "contact", "phone", "number", "email", "support hours", "store hours", "clinic hours", "headquarters", "call", "reach"]):
+            # Check for general Contact / Phone / Email / Hours across retrieved grounded chunks
+            contact_bullets = []
+            seen_contact = set()
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                cleaned_content = re.sub(r"^\s*.*?\.\.\.\s*", "", content)
+                for line in cleaned_content.split("\n"):
+                    s = line.strip().replace("•", "").replace("...", "").strip()
+                    norm_s = " ".join(s.lower().split())
+                    if not norm_s or len(norm_s) < 8 or norm_s in seen_contact:
+                        continue
+                    if any(w in norm_s for w in ["contact:", "phone:", "phone +", "email:", "support phone", "support email", "appointments@", "clinic hours:", "store hours:", "hours:", "emergencies only", "urgent inquiries"]):
+                        seen_contact.add(norm_s)
+                        contact_bullets.append(s)
+
+            if contact_bullets and any(k in q_lower for k in ["contact", "phone", "number", "email", "call", "hours"]):
+                return "**Contact & Operating Information:**\n\n" + "\n".join([f"- {b}" for b in contact_bullets[:5]])
+
             for c in retrieved_chunks:
                 content = c.get("content", "")
                 if "specialty coffee roaster" in content.lower() or "about brewnest" in content.lower() or "customer support email:" in content.lower():
@@ -592,12 +610,15 @@ class MultiTierLLMClient:
         seen_sentences = set()
         for c in retrieved_chunks:
             text = c.get("content", "")
-            for raw_line in text.split("\n"):
-                s = raw_line.strip()
+            # Remove chunk overlap artifacts
+            clean_text = re.sub(r"^\s*.*?\.\.\.\s*", "", text)
+            for raw_line in clean_text.split("\n"):
+                s = raw_line.strip().replace("...", "").strip()
                 if not s or s.startswith("SECTION") or len(s) < 15:
                     continue
                 # Normalize line for deduplication (ignore leading bullet/whitespace)
                 norm_line = re.sub(r"^[•\-\*\s]+", "", s).strip().lower()
+                norm_line = " ".join(norm_line.split())
                 if norm_line in seen_sentences:
                     continue
                 matches = sum(1 for tok in q_tokens if re.search(r"\b" + re.escape(tok) + r"\b", norm_line))

@@ -60,12 +60,19 @@ def reciprocal_rank_fusion(
     # Normalize max RRF score to 1.0 scale
     max_possible = (1.0 / (k + 1)) + (1.0 / (k + 1))
     results: List[Dict[str, Any]] = []
+    seen_contents = set()
 
-    for cid in ranked_chunk_ids[:top_n]:
+    for cid in ranked_chunk_ids:
+        item = chunk_data[cid]
+        # Content-level normalization for deduplication
+        norm_content = " ".join(item["content"].lower().split())
+        if norm_content in seen_contents:
+            continue
+        seen_contents.add(norm_content)
+
         raw_rrf = scores[cid]
         normalized_score = min(1.0, raw_rrf / max_possible)
         
-        item = chunk_data[cid]
         results.append({
             "id": cid,
             "content": item["content"],
@@ -74,6 +81,9 @@ def reciprocal_rank_fusion(
             "dense_similarity": round(dense_scores.get(cid, 0.0), 4),
             "sparse_score": round(sparse_scores.get(cid, 0.0), 4)
         })
+
+        if len(results) >= top_n:
+            break
 
     logger.debug(f"RRF fused {len(dense_hits)} dense + {len(sparse_hits)} sparse hits into {len(results)} chunks.")
     return results
