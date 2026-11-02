@@ -21,9 +21,9 @@ class LayaClassifierService:
                 "type": "choice",
                 "instructions": "Determine if the user query is about customer store support, a greeting, or completely out of scope.",
                 "criteria": {
-                    "store_support": "questions about broadband, internet, wifi, router, equipment, plans, pricing, fees, charges, gst, bills, installation, outage, speed, cancellation, returns, warranties, store policy, what is the product, about store",
-                    "out_of_scope": "medical procedures like c-section, medical surgery, health, diseases, doctors, artificial intelligence, python programming, coding, weather, general trivia, politics, sports",
-                    "greeting": "hello, hi, hey, good morning, thanks, thank you, bye, goodbye"
+                    "store_support": "questions about store policies, products, catalogs, broadband, internet, wifi, router, equipment, plans, pricing, fees, charges, gst, bills, installation, outage, speed, cancellation, returns, refunds, warranties, shipping, hours, contact info",
+                    "out_of_scope": "medical procedures like c-section, medical surgery, health, diseases, doctors, artificial intelligence general concepts, python programming, coding, software development, weather, general trivia, politics, sports, entertainment",
+                    "greeting": "hello, hi, hey, good morning, good evening, thanks, thank you, bye, goodbye"
                 }
             }
         }
