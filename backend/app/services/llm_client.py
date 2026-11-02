@@ -28,11 +28,11 @@ Or briefly guide the customer on what topics are covered in the store's verified
 class MultiTierLLMClient:
     """Multi-Tier LLM Cascade engineered for Render Free Tier (512MB RAM safe).
     
-    Tier 1 (Primary): Google Gemini Flash (gemini-3.5-flash / gemini-flash-latest)
-    Tier 2 (High-Speed Fallback): Groq LPUs (openai/gpt-oss-120b / llama-3.1-8b-instant)
-    Tier 3 (Indic/Multilingual Fallback): Sarvam AI 105B LLM (sarvam-105b)
+    Tier 1 (Primary): Google Gemini Flash (gemini-3.5-flash / gemini-flash-latest - Free Tier)
+    Tier 2 (Fallback 1): Sarvam AI 105B LLM (sarvam-105b - Indic & Multilingual Freemium)
+    Tier 3 (Fallback 2): Groq Freemium Cloud LPUs (qwen/qwen3.8-27b / allam-2-7b - Free Open Weights)
     Tier 4 (Optional Enterprise): OpenAI (gpt-4o-mini / gpt-3.5-turbo)
-    Tier 5 (Offline/Deterministic): Local Grounded Extractive Synthesis
+    Tier 5 (Offline/Deterministic): Local Grounded Extractive Synthesis (Zero Cost, 0 API)
     """
 
     @staticmethod
@@ -69,11 +69,10 @@ class MultiTierLLMClient:
         user_content = f"Customer Question: {query}"
 
         # -----------------------------------------------------------------
-        # TIER 1: Google Gemini Flash (Primary)
+        # TIER 1: Google Gemini Flash (Primary Generous Free Tier)
         # -----------------------------------------------------------------
         if settings.GEMINI_API_KEY:
             gemini_models = [settings.GEMINI_MODEL, "gemini-3.5-flash", "gemini-flash-latest"]
-            # Deduplicate while preserving order
             gemini_models = list(dict.fromkeys([m for m in gemini_models if m]))
             
             for g_model in gemini_models:
@@ -111,48 +110,10 @@ class MultiTierLLMClient:
                 except Exception as e:
                     logger.warning(f"Tier 1 (Gemini {g_model}) encountered error: {str(e)}")
 
-            logger.warning("All Tier 1 (Gemini) candidates failed. Cascading to Tier 2 (Groq)...")
+            logger.warning("All Tier 1 (Gemini) candidates failed. Cascading to Tier 2 (Sarvam AI LLM)...")
 
         # -----------------------------------------------------------------
-        # TIER 2: Groq LPUs (High-Speed Fallback)
-        # -----------------------------------------------------------------
-        if settings.GROQ_API_KEY:
-            groq_models = [settings.GROQ_MODEL, "openai/gpt-oss-120b", "llama-3.1-8b-instant"]
-            groq_models = list(dict.fromkeys([m for m in groq_models if m]))
-            
-            for groq_m in groq_models:
-                try:
-                    url = "https://api.groq.com/openai/v1/chat/completions"
-                    headers = {
-                        "Authorization": f"Bearer {settings.GROQ_API_KEY}",
-                        "Content-Type": "application/json"
-                    }
-                    payload = {
-                        "model": groq_m,
-                        "messages": [
-                            {"role": "system", "content": prompt},
-                            {"role": "user", "content": user_content}
-                        ],
-                        "temperature": 0.1,
-                        "max_tokens": 600
-                    }
-                    async with httpx.AsyncClient(timeout=12.0) as client:
-                        resp = await client.post(url, headers=headers, json=payload)
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            choices = data.get("choices", [])
-                            if choices and "message" in choices[0]:
-                                text = choices[0]["message"].get("content", "").strip()
-                                logger.info(f"Answer generated successfully via Tier 2 (Groq: {groq_m}).")
-                                return text, "groq"
-                        logger.warning(f"Tier 2 (Groq {groq_m}) returned HTTP {resp.status_code}: {resp.text[:120]}")
-                except Exception as e:
-                    logger.warning(f"Tier 2 (Groq {groq_m}) encountered error: {str(e)}")
-
-            logger.warning("All Tier 2 (Groq) models failed. Cascading to Tier 3 (Sarvam AI LLM)...")
-
-        # -----------------------------------------------------------------
-        # TIER 3: Sarvam AI 105B LLM (Indic & Multilingual Fallback)
+        # TIER 2: Sarvam AI 105B LLM (Indic & Multilingual Freemium)
         # -----------------------------------------------------------------
         sarvam_key = getattr(settings, "SARVAM_LLM_KEY", "") or getattr(settings, "SARVAM_API_KEY", "")
         if sarvam_key:
@@ -179,13 +140,52 @@ class MultiTierLLMClient:
                         choices = data.get("choices", [])
                         if choices and "message" in choices[0]:
                             text = choices[0]["message"].get("content", "").strip()
-                            logger.info("Answer generated successfully via Tier 3 (Sarvam 105B LLM).")
+                            logger.info("Answer generated successfully via Tier 2 (Sarvam 105B LLM).")
                             return text, "sarvam"
-                    logger.warning(f"Tier 3 (Sarvam AI) returned HTTP {resp.status_code}: {resp.text[:120]}")
+                    logger.warning(f"Tier 2 (Sarvam AI) returned HTTP {resp.status_code}: {resp.text[:120]}")
             except Exception as e:
-                logger.warning(f"Tier 3 (Sarvam AI) encountered error: {str(e)}")
+                logger.warning(f"Tier 2 (Sarvam AI) encountered error: {str(e)}")
 
-            logger.warning("Tier 3 (Sarvam AI) failed. Cascading to Tier 4 / Extractive Synthesis...")
+            logger.warning("Tier 2 (Sarvam AI) failed. Cascading to Tier 3 (Groq Freemium LPUs)...")
+
+        # -----------------------------------------------------------------
+        # TIER 3: Groq Freemium Cloud LPUs (Zero Cost Open-Source Weights)
+        # -----------------------------------------------------------------
+        if settings.GROQ_API_KEY:
+            # Free-tier accessible open-source models on Groq
+            groq_models = [settings.GROQ_MODEL, "qwen/qwen3.8-27b", "allam-2-7b", "openai/gpt-oss-20b"]
+            groq_models = list(dict.fromkeys([m for m in groq_models if m]))
+            
+            for groq_m in groq_models:
+                try:
+                    url = "https://api.groq.com/openai/v1/chat/completions"
+                    headers = {
+                        "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+                        "Content-Type": "application/json"
+                    }
+                    payload = {
+                        "model": groq_m,
+                        "messages": [
+                            {"role": "system", "content": prompt},
+                            {"role": "user", "content": user_content}
+                        ],
+                        "temperature": 0.1,
+                        "max_tokens": 600
+                    }
+                    async with httpx.AsyncClient(timeout=12.0) as client:
+                        resp = await client.post(url, headers=headers, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            choices = data.get("choices", [])
+                            if choices and "message" in choices[0]:
+                                text = choices[0]["message"].get("content", "").strip()
+                                logger.info(f"Answer generated successfully via Tier 3 (Groq Freemium: {groq_m}).")
+                                return text, "groq"
+                        logger.warning(f"Tier 3 (Groq {groq_m}) returned HTTP {resp.status_code}: {resp.text[:120]}")
+                except Exception as e:
+                    logger.warning(f"Tier 3 (Groq {groq_m}) encountered error: {str(e)}")
+
+            logger.warning("All Tier 3 (Groq) models failed. Cascading to Tier 4 / Extractive Synthesis...")
 
         # -----------------------------------------------------------------
         # TIER 4: OpenAI (Optional Enterprise Fallback)

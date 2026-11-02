@@ -33,14 +33,14 @@ class Settings(BaseSettings):
     GEMINI_MODEL: str = "gemini-3.5-flash"
     GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
     
-    # Tier 2: Groq High-Speed Cloud LPU
-    GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "openai/gpt-oss-120b"
-    
-    # Tier 3: Sarvam AI LLM (Indic & Multilingual)
+    # Tier 2: Sarvam AI LLM (Indic & Multilingual Freemium)
     SARVAM_LLM_KEY: str = ""
     SARVAM_LLM_MODEL: str = "sarvam-105b"
     SARVAM_LLM_URL: str = "https://api.sarvam.ai/v1"
+    
+    # Tier 3: Groq Freemium Cloud LPU (Zero Cost Open-Source Weights: Qwen / Allam)
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "qwen/qwen3.8-27b"
     
     # Optional Tier: OpenAI (if configured)
     OPENAI_API_KEY: str = ""
