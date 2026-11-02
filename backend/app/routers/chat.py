@@ -61,22 +61,32 @@ async def create_chat_session(req: ChatSessionCreateRequest, db: AsyncSession = 
 @router.post("/message", response_model=ChatMessageResponse)
 async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(get_db)):
     """Sends a question in an active chat session, runs Hybrid RAG, and saves the conversation."""
-    # 1. Fetch Session & Business
-    session_query = select(ChatSession).where(ChatSession.id == req.session_id)
-    session = (await db.execute(session_query)).scalar_one_or_none()
-    if not session:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found.")
+    # 1. High-Performance Joined Session & Business Fetch (Single DB Round-Trip)
+    sess_biz_query = (
+        select(ChatSession, Business)
+        .join(Business, Business.id == ChatSession.business_id)
+        .where(ChatSession.id == req.session_id)
+    )
+    row = (await db.execute(sess_biz_query)).first()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session or business not found.")
+    session, business = row
 
-    biz_query = select(Business).where(Business.id == session.business_id)
-    business = (await db.execute(biz_query)).scalar_one_or_none()
-    if not business:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
+    # 2. Retrieve Rolling History (prior message pairs)
+    hist_query = select(ChatMessage).where(
+        ChatMessage.session_id == session.id
+    ).order_by(desc(ChatMessage.created_at)).limit(8)
+    hist_results = (await db.execute(hist_query)).scalars().all()
+    rolling_history = [
+        {"role": m.sender, "content": m.content}
+        for m in reversed(hist_results)
+    ]
 
-    # 2. Analyze Sentiment & Topic
+    # 3. Analyze Sentiment & Topic
     sentiment_label, _ = sentiment_analyzer.analyze(req.message.strip())
     topic_category = topic_analyzer.classify(req.message.strip())
 
-    # 3. Record Customer Message
+    # 4. Record Customer Message (no intermediate flush needed)
     user_msg = ChatMessage(
         session_id=session.id,
         sender="customer",
@@ -89,19 +99,8 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
     session.last_message_at = datetime.utcnow()
     session.sentiment = sentiment_label
     session.primary_topic = topic_category
-    await db.flush()
 
-    # 3. Retrieve Rolling History (last 4 message pairs)
-    hist_query = select(ChatMessage).where(
-        ChatMessage.session_id == session.id
-    ).order_by(desc(ChatMessage.created_at)).limit(8)
-    hist_results = (await db.execute(hist_query)).scalars().all()
-    rolling_history = [
-        {"role": m.sender, "content": m.content}
-        for m in reversed(hist_results)
-    ]
-
-    # 4. Execute Multi-Hybrid RAG Pipeline
+    # 5. Execute Multi-Hybrid RAG Pipeline
     biz_settings = {
         "name": business.name,
         "tone": business.tone,
@@ -115,7 +114,7 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
         chat_history=rolling_history
     )
 
-    # 5. Format Citations
+    # 6. Format Citations
     citation_objs = [
         SourceCitation(
             document_name=c.get("document_name", "Document"),
@@ -126,8 +125,11 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
         for c in rag_result.get("citations", [])
     ]
 
-    # 6. Record Assistant Message
+    # 7. Record Assistant Message (pre-generated UUID eliminates db.flush round-trip)
+    from app.models.base import generate_uuid
+    asst_msg_id = generate_uuid()
     assistant_msg = ChatMessage(
+        id=asst_msg_id,
         session_id=session.id,
         sender="assistant",
         content=rag_result["answer"],
@@ -140,14 +142,13 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
         source_citations=[c.model_dump() for c in citation_objs]
     )
     db.add(assistant_msg)
-    await db.flush()
 
-    # 7. If Unknown Question: Log to Unanswered Questions & Auto-Generate Support Ticket
+    # 8. If Unknown Question: Log to Unanswered Questions & Auto-Generate Support Ticket
     if not rag_result["is_answered"]:
         unanswered_entry = UnansweredQuestion(
             business_id=business.id,
             session_id=session.id,
-            message_id=assistant_msg.id,
+            message_id=asst_msg_id,
             question_text=req.message.strip(),
             customer_email=session.customer_email,
             top_retrieval_score=rag_result["confidence_score"]
@@ -161,7 +162,7 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
             description=req.message.strip(),
             subject="Unanswered Customer Question",
             session_id=session.id,
-            message_id=assistant_msg.id,
+            message_id=asst_msg_id,
             customer_email=session.customer_email,
             channel=session.channel,
             priority="medium"
