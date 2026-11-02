@@ -114,7 +114,7 @@ class HybridRAGEngine:
                 "is_answered": False,
                 "confidence_score": 0.0,
                 "citations": [],
-                "llm_provider": "laya_guardrail",
+                "llm_provider": "circuit_breaker",
                 "latency_ms": max(latency_ms, 8),
                 "retrieved_chunks": []
             }
