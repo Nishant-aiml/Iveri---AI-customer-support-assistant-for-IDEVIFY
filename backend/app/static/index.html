@@ -253,16 +253,10 @@
           <span class="sm:hidden">Docs</span>
           <span class="hidden sm:inline">Documents & Scale</span>
         </button>
-        <button onclick="switchTab('unanswered')" id="tab-unanswered" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
-          <span class="material-symbols-outlined text-[15px] sm:text-[16px]">help_outline</span>
-          <span class="sm:hidden">Unanswered</span>
-          <span class="hidden sm:inline">Unanswered Queue</span>
-          <span id="unanswered-badge-count" class="hidden px-1.5 py-0.2 text-[10px] bg-amber-100 text-amber-800 border border-amber-300 rounded-full font-bold">0</span>
-        </button>
         <button onclick="switchTab('tickets')" id="tab-tickets" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
           <span class="material-symbols-outlined text-[15px] sm:text-[16px]">confirmation_number</span>
           <span class="sm:hidden">Tickets</span>
-          <span class="hidden sm:inline">Support Tickets</span>
+          <span class="hidden sm:inline">Support Tickets & Escalations</span>
           <span id="tickets-badge-count" class="hidden px-1.5 py-0.2 text-[10px] bg-rose-100 text-rose-800 border border-rose-300 rounded-full font-bold">0</span>
         </button>
         <button onclick="switchTab('chats')" id="tab-chats" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
@@ -310,6 +304,30 @@
       </div>
     </div>
 
+
+    <!-- Desktop & Mobile Alerts Permission Banner -->
+    <div id="desktop-notif-prompt" class="hidden lumina-card p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-amber-50 via-indigo-50 to-purple-50 border border-primary/20 flex items-center justify-between gap-3 shadow-xs">
+      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <span class="material-symbols-outlined text-primary text-[22px] shrink-0">notifications_active</span>
+        <div class="min-w-0">
+          <div class="text-xs sm:text-sm font-bold text-slate-900 font-sans">
+            Turn On Instant Desktop & Mobile Notifications
+          </div>
+          <div class="text-[11px] text-slate-500 font-sans truncate">
+            Get instant screen alerts and sound chimes whenever customers ask questions or message on WhatsApp.
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <button onclick="requestPushPermission()" class="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[15px]">notifications</span>
+          <span>Enable Alerts</span>
+        </button>
+        <button onclick="document.getElementById('desktop-notif-prompt').classList.add('hidden')" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg">
+          <span class="material-symbols-outlined text-sm">close</span>
+        </button>
+      </div>
+    </div>
 
     <!-- 1. OVERVIEW & ANALYTICS TAB -->
     <section id="view-overview" class="space-y-6">
@@ -512,44 +530,8 @@
       </div>
     </section>
 
-    <!-- 3. UNANSWERED QUESTIONS QUEUE TAB -->
-    <section id="view-unanswered" class="hidden space-y-6">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Unanswered Questions & Closed-Loop Resolution</h2>
-          <p class="text-xs text-slate-500 font-mono">Inquiries that tripped the confidence circuit breaker. Train them into knowledge in one click.</p>
-        </div>
-        <div class="flex items-center space-x-2">
-          <select id="unanswered-filter-select" onchange="loadUnansweredQuestions()" class="text-xs font-mono border border-slate-200 rounded-xl px-3 py-2 bg-white text-slate-800 focus:outline-none focus:border-primary">
-            <option value="">All Questions</option>
-            <option value="false" selected>Pending Unresolved</option>
-            <option value="true">Resolved</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="lumina-card rounded-2xl overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-slate-50 text-slate-500 uppercase tracking-wider font-mono border-b border-slate-200 font-medium">
-              <tr>
-                <th class="px-6 py-3.5">Customer Inquiry</th>
-                <th class="px-6 py-3.5">Captured Lead</th>
-                <th class="px-6 py-3.5">Confidence</th>
-                <th class="px-6 py-3.5">Status</th>
-                <th class="px-6 py-3.5">Date, Day & Exact Time</th>
-                <th class="px-6 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody id="unanswered-tbody" class="divide-y divide-slate-100 font-mono">
-              <tr>
-                <td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">Loading unanswered inquiries...</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </section>
+    <!-- 3. UNANSWERED MERGED INTO SUPPORT TICKETS -->
+    <section id="view-unanswered" class="hidden"></section>
 
     <!-- SUPPORT TICKETS TAB (Auto-Created & Closed-Loop Learning) -->
     <section id="view-tickets" class="hidden space-y-6">
@@ -557,8 +539,8 @@
       <!-- Top Header & Filter Controls -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Support Tickets & Closed-Loop Learning</h2>
-          <p class="text-xs text-slate-500 mt-0.5 font-mono">Automated tickets created when the AI cannot answer or when customers request human callbacks. Resolving tickets trains the AI immediately.</p>
+          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Support Tickets & Escalation Queue</h2>
+          <p class="text-xs text-slate-500 mt-0.5 font-mono">Unified inbox for automated tickets, unanswered AI questions, and customer callback requests. Resolving any ticket trains the AI immediately.</p>
         </div>
         <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           <input 
@@ -1359,9 +1341,19 @@
         loadAnalyticsCharts();
         if (typeof loadNotifications === 'function') {
           loadNotifications();
-          setInterval(loadNotifications, 30000);
+          setInterval(loadNotifications, 15000);
         }
-        if (typeof loadTickets === 'function') loadTickets();
+        if (typeof loadTickets === 'function') {
+          loadTickets();
+          setInterval(loadTickets, 20000);
+        }
+        if ('Notification' in window && Notification.permission === 'default') {
+          const banner = document.getElementById('desktop-notif-prompt');
+          if (banner) banner.classList.remove('hidden');
+        } else if ('Notification' in window && Notification.permission === 'granted') {
+          const toggleBtn = document.getElementById('push-toggle-btn');
+          if (toggleBtn) toggleBtn.innerText = 'Push Active ✓';
+        }
       }
     }
 
@@ -2432,7 +2424,8 @@
     }
 
     function switchTab(tabId) {
-      ['overview', 'documents', 'unanswered', 'tickets', 'chats', 'playground', 'settings'].forEach(t => {
+      if (tabId === 'unanswered') tabId = 'tickets';
+      ['overview', 'documents', 'tickets', 'chats', 'playground', 'settings'].forEach(t => {
         const el = document.getElementById(`view-${t}`);
         const tabEl = document.getElementById(`tab-${t}`);
         if (el) el.classList.add('hidden');
@@ -2638,7 +2631,7 @@
     }
 
     function updateMobileBottomNav(tabId) {
-      ['overview', 'documents', 'unanswered', 'tickets', 'chats', 'settings'].forEach(t => {
+      ['overview', 'documents', 'tickets', 'chats', 'settings'].forEach(t => {
         const btn = document.getElementById(`mobile-nav-${t}`);
         if (btn) {
           if (t === tabId) {
@@ -2838,6 +2831,27 @@
       }
     }
 
+        let lastUnreadCount = 0;
+
+    function playNotificationChime() {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        const ctx = new AudioCtx();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.4);
+      } catch (e) {}
+    }
+
     async function loadNotifications() {
       if (!authToken) return;
       try {
@@ -2845,9 +2859,42 @@
           headers: { 'Authorization': 'Bearer ' + authToken }
         });
         if (!res.ok) return;
-        const notifs = await res.json();
+        const data = await res.json();
 
-        const unreadCount = notifs.filter(n => !n.is_read).length;
+        // Safely extract unread_count and items
+        const unreadCount = typeof data.unread_count === 'number'
+          ? data.unread_count
+          : (Array.isArray(data) ? data.filter(n => !n.is_read).length : 0);
+        const notifs = Array.isArray(data.items)
+          ? data.items
+          : (Array.isArray(data) ? data : []);
+
+        // 1. Audio and Desktop Notification if new alert arrived
+        if (unreadCount > lastUnreadCount && lastUnreadCount > 0) {
+          playNotificationChime();
+          if (window.Notification && Notification.permission === 'granted' && notifs.length > 0) {
+            const latest = notifs[0];
+            try {
+              new Notification(latest.title || '🚨 New Support Ticket Alert', {
+                body: latest.message || 'A customer query requires owner resolution.',
+                icon: '/static/icons/icon-192.png',
+                badge: '/static/icons/icon-192.png'
+              });
+            } catch (nErr) {
+              if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+                navigator.serviceWorker.ready.then(reg => {
+                  reg.showNotification(latest.title || '🚨 New Support Ticket Alert', {
+                    body: latest.message,
+                    icon: '/static/icons/icon-192.png'
+                  });
+                });
+              }
+            }
+          }
+        }
+        lastUnreadCount = unreadCount;
+
+        // 2. Bell Badge Indicator
         const badge = document.getElementById('notif-badge');
         if (badge) {
           if (unreadCount > 0) {
@@ -2858,6 +2905,14 @@
           }
         }
 
+        // 3. Tab Title Alert
+        if (unreadCount > 0) {
+          document.title = `(${unreadCount}) 🚨 Alerts - Iveri Console`;
+        } else {
+          document.title = 'Iveri Console - Grounded Support Engine';
+        }
+
+        // 4. Render Items
         const listEl = document.getElementById('notif-list');
         if (!listEl) return;
 
@@ -2866,22 +2921,22 @@
           return;
         }
 
-        listEl.innerHTML = notifs.slice(0, 15).map(n => {
+        listEl.innerHTML = notifs.slice(0, 20).map(n => {
           const dateStr = new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const unreadClass = !n.is_read ? 'bg-indigo-50/40 font-semibold' : 'opacity-80';
+          const unreadClass = !n.is_read ? 'bg-indigo-50/50 font-semibold' : 'opacity-80';
           let icon = 'notifications';
           if (n.category === 'urgent_contact') icon = 'contact_phone';
           if (n.category === 'auto_ticket') icon = 'confirmation_number';
           if (n.category === 'whatsapp') icon = 'chat';
 
-          return '<div class="p-3 hover:bg-slate-50 transition flex items-start gap-2.5 ' + unreadClass + ' cursor-pointer" onclick="handleNotificationClick(\'' + n.id + '\', \'' + (n.ticket_id || '') + '\')">' +
+          return '<div class="p-3 hover:bg-slate-50 transition flex items-start gap-2.5 ' + unreadClass + ' cursor-pointer border-b border-slate-100 last:border-0" onclick="handleNotificationClick(\'' + n.id + '\', \'' + (n.ticket_id || '') + '\')">' +
             '<span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">' + icon + '</span>' +
             '<div class="flex-1 min-w-0">' +
               '<div class="flex items-center justify-between">' +
-                '<div class="text-[12px] text-slate-900 truncate">' + escapeHtml(n.title) + '</div>' +
+                '<div class="text-[12px] text-slate-900 truncate font-medium">' + escapeHtml(n.title) + '</div>' +
                 '<span class="text-[10px] text-slate-400 font-mono">' + dateStr + '</span>' +
               '</div>' +
-              '<div class="text-[11px] text-slate-500 font-normal line-clamp-2 mt-0.5">' + escapeHtml(n.message) + '</div>' +
+              '<div class="text-[11px] text-slate-600 font-normal line-clamp-2 mt-0.5">' + escapeHtml(n.message) + '</div>' +
             '</div>' +
           '</div>';
         }).join('');
@@ -2923,18 +2978,71 @@
       }
     }
 
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
     async function requestPushPermission() {
       if (!('Notification' in window)) {
-        alert("Web Push notifications are not supported on this browser.");
+        alert("Web notifications are not supported on this browser.");
         return;
       }
-      const perm = await Notification.requestPermission();
-      if (perm === 'granted') {
-        const toggleBtn = document.getElementById('push-toggle-btn');
-        if (toggleBtn) toggleBtn.innerText = "Push Enabled ✓";
-        alert("🎉 Notifications enabled! You will receive mobile/browser alerts when customers create tickets or request callbacks.");
-      } else {
-        alert("Notification permission was dismissed or blocked.");
+      try {
+        const perm = await Notification.requestPermission();
+        if (perm === 'granted') {
+          playNotificationChime();
+          try {
+            new Notification("🔔 Iveri Alerts Active!", {
+              body: "You will receive instant alerts on this device whenever tickets or WhatsApp messages arrive.",
+              icon: "/static/icons/icon-192.png"
+            });
+          } catch(e) {}
+
+          // Service Worker Push registration
+          if ('serviceWorker' in navigator && authToken) {
+            try {
+              const reg = await navigator.serviceWorker.ready;
+              const vapidRes = await fetch('/api/notifications/push/vapid-public-key');
+              if (vapidRes.ok) {
+                const { public_key } = await vapidRes.json();
+                if (public_key) {
+                  const sub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(public_key)
+                  });
+                  const subJson = sub.toJSON();
+                  await fetch('/api/notifications/push/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({
+                      endpoint: subJson.endpoint,
+                      p256dh: subJson.keys?.p256dh || '',
+                      auth: subJson.keys?.auth || ''
+                    })
+                  });
+                }
+              }
+            } catch (swErr) {
+              console.info("Service worker push note:", swErr);
+            }
+          }
+
+          const banner = document.getElementById('desktop-notif-prompt');
+          if (banner) banner.classList.add('hidden');
+          const toggleBtn = document.getElementById('push-toggle-btn');
+          if (toggleBtn) toggleBtn.innerText = "Push Active ✓";
+        } else {
+          alert("Notification permission was dismissed or blocked in browser settings.");
+        }
+      } catch (err) {
+        console.error("requestPushPermission error:", err);
       }
     }
 
@@ -3012,11 +3120,6 @@
     <button onclick="switchTab('documents')" id="mobile-nav-documents" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
       <span class="material-symbols-outlined text-[19px] nav-icon">folder</span>
       <span class="text-[9.5px] font-medium font-sans mt-0.5">Docs</span>
-    </button>
-    <button onclick="switchTab('unanswered')" id="mobile-nav-unanswered" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
-      <span class="material-symbols-outlined text-[19px] nav-icon">help_outline</span>
-      <span class="text-[9.5px] font-medium font-sans mt-0.5">Queue</span>
-      <span id="mobile-unanswered-badge" class="hidden absolute top-0.5 right-2 w-2 h-2 bg-amber-500 rounded-full border border-white"></span>
     </button>
     <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
       <span class="material-symbols-outlined text-[19px] nav-icon">confirmation_number</span>

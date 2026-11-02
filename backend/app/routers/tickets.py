@@ -152,6 +152,24 @@ async def resolve_ticket(
     )
     db.add(notif)
 
+    # 4b. Synchronize with any corresponding UnansweredQuestion
+    try:
+        from app.models.unanswered import UnansweredQuestion
+        unans_q = select(UnansweredQuestion).where(
+            UnansweredQuestion.business_id == biz_id,
+            (
+                (UnansweredQuestion.question_text == ticket.description) |
+                (UnansweredQuestion.session_id == ticket.session_id)
+            )
+        )
+        unans_records = (await db.execute(unans_q)).scalars().all()
+        for u in unans_records:
+            u.is_resolved = True
+            u.resolved_answer = req.resolved_answer.strip()
+            u.resolved_at = datetime.utcnow()
+    except Exception as e:
+        logger.warning(f"Note syncing UnansweredQuestion: {e}")
+
     # 5. Outbound WhatsApp Notification to Customer (if contact phone exists or WhatsApp channel)
     target_phone = ticket.customer_phone or (ticket.customer_email if ticket.channel == "whatsapp" else None)
     if target_phone:
