@@ -12,6 +12,7 @@ class BusinessSettingsUpdateRequest(BaseModel):
     fallback_message: Optional[str] = Field(None, min_length=5, max_length=1000)
     starter_questions: Optional[List[str]] = Field(None, max_length=8)
     whatsapp_number: Optional[str] = Field(None, max_length=50)
+    enable_whatsapp: Optional[bool] = None
     enable_callback: Optional[bool] = None
     callback_channel: Optional[str] = Field(None, pattern="^(phone_and_email|phone|email|whatsapp)$")
     callback_button_text: Optional[str] = Field(None, max_length=100)
@@ -30,6 +31,7 @@ class BusinessSettingsResponse(BaseModel):
     fallback_message: str
     starter_questions: List[str]
     whatsapp_number: str = ""
+    enable_whatsapp: bool = True
     enable_callback: bool = True
     callback_channel: str = "phone_and_email"
     callback_button_text: str = "Request Callback"
@@ -49,6 +51,7 @@ class PublicBusinessInfoResponse(BaseModel):
     fallback_message: str
     starter_questions: List[str]
     whatsapp_number: str = ""
+    enable_whatsapp: bool = True
     enable_callback: bool = True
     callback_channel: str = "phone_and_email"
     callback_button_text: str = "Request Callback"

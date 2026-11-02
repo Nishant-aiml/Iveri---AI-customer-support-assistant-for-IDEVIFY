@@ -67,6 +67,22 @@ class TwilioService:
         )
         return await self.send_whatsapp_message(owner_phone, msg)
 
+    async def notify_customer_ticket_created(
+        self,
+        customer_phone: str,
+        ticket_number: str,
+        business_name: str,
+        customer_name: str | None = None
+    ) -> dict:
+        """Sends an outbound WhatsApp confirmation to the customer acknowledging their ticket or callback request."""
+        name_greeting = f" {customer_name}" if customer_name else ""
+        msg = (
+            f"👋 *Hi{name_greeting}!* We've received your inquiry with *{business_name}* (Ticket #{ticket_number}).\n\n"
+            f"Our team is reviewing your request and will reach out to you shortly.\n\n"
+            f"Thank you for contacting us!"
+        )
+        return await self.send_whatsapp_message(customer_phone, msg)
+
     async def notify_customer_ticket_resolved(
         self,
         customer_phone: str,

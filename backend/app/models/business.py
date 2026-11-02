@@ -20,6 +20,7 @@ class Business(Base, TimestampMixin):
     welcome_message = Column(Text, default="Hello! How can I help you today?", nullable=False)
     custom_prompt = Column(Text, default="", nullable=False)
     whatsapp_number = Column(String(50), default="", nullable=False)
+    enable_whatsapp = Column(Boolean, default=True, nullable=False)
     enable_callback = Column(Boolean, default=True, nullable=False)
     callback_channel = Column(String(50), default="phone_and_email", nullable=False)
     callback_button_text = Column(String(100), default="Request Callback", nullable=False)

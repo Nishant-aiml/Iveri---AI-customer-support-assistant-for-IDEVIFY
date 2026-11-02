@@ -113,8 +113,9 @@ class NotificationService:
         except Exception as e:
             logger.warning(f"Push dispatch note: {e}")
 
-        # 6. Dispatch WhatsApp Alert to Business Owner (if owner whatsapp_number is configured)
-        if business.whatsapp_number:
+        # 6. Dispatch WhatsApp Alert to Business Owner (if owner whatsapp_number is configured and enable_whatsapp is ON)
+        is_whatsapp_enabled = getattr(business, "enable_whatsapp", True) is not False
+        if business.whatsapp_number and is_whatsapp_enabled:
             try:
                 from app.services.twilio_service import twilio_service
                 await twilio_service.notify_owner_whatsapp(
@@ -125,6 +126,33 @@ class NotificationService:
                 )
             except Exception as e:
                 logger.warning(f"Twilio WhatsApp owner notification notice: {e}")
+
+        # 7. Dispatches Instant Confirmation / Acknowledgment to the CUSTOMER
+        # 7a. Customer WhatsApp Confirmation
+        if customer_phone and is_whatsapp_enabled:
+            try:
+                from app.services.twilio_service import twilio_service
+                await twilio_service.notify_customer_ticket_created(
+                    customer_phone=customer_phone,
+                    ticket_number=ticket_num,
+                    business_name=business.name,
+                    customer_name=customer_name
+                )
+            except Exception as e:
+                logger.warning(f"Twilio WhatsApp customer confirmation notice: {e}")
+
+        # 7b. Customer Email Confirmation
+        if customer_email:
+            try:
+                await email_service.send_customer_ticket_acknowledgment(
+                    to_email=customer_email,
+                    business_name=business.name,
+                    ticket_number=ticket_num,
+                    customer_name=customer_name,
+                    question_text=description
+                )
+            except Exception as e:
+                logger.warning(f"Customer email confirmation notice: {e}")
 
         logger.info(f"Ticket {ticket_num} created successfully for business {business.name}")
         return ticket

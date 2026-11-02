@@ -261,7 +261,35 @@ async def capture_customer_lead(
     for u in unans_results:
         u.customer_email = str(req.email)
 
+    # Attach email to any open tickets for this session
+    from app.models.ticket import Ticket
+    ticket_query = select(Ticket).where(
+        Ticket.session_id == session_id,
+        Ticket.status != "resolved"
+    )
+    open_tickets = (await db.execute(ticket_query)).scalars().all()
+    for t in open_tickets:
+        t.customer_email = str(req.email)
+
     await db.commit()
+
+    # Dispatches immediate customer confirmation email acknowledging the inquiry
+    biz_query = select(Business).where(Business.id == session.business_id)
+    business = (await db.execute(biz_query)).scalar_one_or_none()
+    if business:
+        ticket_num = open_tickets[0].ticket_number if open_tickets else "PENDING"
+        last_question = unans_results[-1].question_text if unans_results else None
+        try:
+            from app.services.email_service import email_service
+            await email_service.send_customer_ticket_acknowledgment(
+                to_email=str(req.email),
+                business_name=business.name,
+                ticket_number=ticket_num,
+                question_text=last_question
+            )
+        except Exception as e:
+            logger.warning(f"Customer email lead acknowledgment notice: {e}")
+
     return {"status": "success", "message": "Email captured successfully. Our team will contact you."}
 
 @router.get("/stream")

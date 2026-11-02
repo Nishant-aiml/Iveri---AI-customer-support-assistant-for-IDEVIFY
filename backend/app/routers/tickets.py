@@ -170,9 +170,12 @@ async def resolve_ticket(
     except Exception as e:
         logger.warning(f"Note syncing UnansweredQuestion: {e}")
 
-    # 5. Outbound WhatsApp Notification to Customer (if contact phone exists or WhatsApp channel)
+    # 5. Outbound WhatsApp Notification to Customer (if contact phone exists and WhatsApp is enabled)
+    biz_record = (await db.execute(select(Business).where(Business.id == biz_id))).scalar_one_or_none()
+    is_whatsapp_enabled = getattr(biz_record, "enable_whatsapp", True) is not False if biz_record else True
+
     target_phone = ticket.customer_phone or (ticket.customer_email if ticket.channel == "whatsapp" else None)
-    if target_phone:
+    if target_phone and is_whatsapp_enabled:
         try:
             from app.services.twilio_service import twilio_service
             await twilio_service.notify_customer_ticket_resolved(
@@ -183,6 +186,21 @@ async def resolve_ticket(
             )
         except Exception as e:
             logger.warning(f"Twilio WhatsApp customer resolution notification note: {e}")
+
+    # 5b. Outbound Email Notification to Customer (if customer_email exists)
+    if ticket.customer_email and "@" in ticket.customer_email:
+        try:
+            from app.services.email_service import email_service
+            await email_service.send_customer_ticket_resolved(
+                to_email=ticket.customer_email,
+                business_name=biz_record.name if biz_record else "Iveri Support",
+                ticket_number=ticket.ticket_number,
+                question_text=ticket.description or ticket.subject or "Inquiry",
+                resolved_answer=req.resolved_answer,
+                customer_name=ticket.customer_name
+            )
+        except Exception as e:
+            logger.warning(f"Customer email resolution notification note: {e}")
 
     await db.commit()
     await db.refresh(ticket)

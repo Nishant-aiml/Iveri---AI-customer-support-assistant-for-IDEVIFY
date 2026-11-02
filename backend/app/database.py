@@ -123,6 +123,7 @@ async def init_db():
                 await add_column_if_missing("businesses", "welcome_message", "TEXT DEFAULT 'Hello! How can I help you today?'")
                 await add_column_if_missing("businesses", "custom_prompt", "TEXT DEFAULT ''")
                 await add_column_if_missing("businesses", "whatsapp_number", "VARCHAR(50) DEFAULT ''")
+                await add_column_if_missing("businesses", "enable_whatsapp", "BOOLEAN DEFAULT 1")
                 await add_column_if_missing("businesses", "enable_callback", "BOOLEAN DEFAULT 1")
                 await add_column_if_missing("businesses", "callback_channel", "VARCHAR(50) DEFAULT 'phone_and_email'")
                 await add_column_if_missing("businesses", "callback_button_text", "VARCHAR(100) DEFAULT 'Request Callback'")
@@ -147,6 +148,7 @@ async def init_db():
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_message TEXT DEFAULT 'Hello! How can I help you today?'",
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS custom_prompt TEXT DEFAULT ''",
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50) DEFAULT ''",
+                    "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS enable_whatsapp BOOLEAN DEFAULT TRUE",
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS enable_callback BOOLEAN DEFAULT TRUE",
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS callback_channel VARCHAR(50) DEFAULT 'phone_and_email'",
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS callback_button_text VARCHAR(100) DEFAULT 'Request Callback'",

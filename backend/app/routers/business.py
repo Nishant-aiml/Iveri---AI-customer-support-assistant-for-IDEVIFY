@@ -43,6 +43,7 @@ async def get_business_settings(owner: User = Depends(get_current_owner), db: As
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
         whatsapp_number=business.whatsapp_number or "",
+        enable_whatsapp=getattr(business, "enable_whatsapp", True) if getattr(business, "enable_whatsapp", None) is not None else True,
         enable_callback=getattr(business, "enable_callback", True) if getattr(business, "enable_callback", None) is not None else True,
         callback_channel=getattr(business, "callback_channel", "phone_and_email") or "phone_and_email",
         callback_button_text=getattr(business, "callback_button_text", "Request Callback") or "Request Callback",
@@ -82,6 +83,8 @@ async def update_business_settings(
         business.starter_questions = req.starter_questions
     if req.whatsapp_number is not None:
         business.whatsapp_number = req.whatsapp_number.strip()
+    if req.enable_whatsapp is not None:
+        business.enable_whatsapp = req.enable_whatsapp
     if req.enable_callback is not None:
         business.enable_callback = req.enable_callback
     if req.callback_channel is not None:
@@ -109,6 +112,7 @@ async def update_business_settings(
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
         whatsapp_number=business.whatsapp_number or "",
+        enable_whatsapp=getattr(business, "enable_whatsapp", True) if getattr(business, "enable_whatsapp", None) is not None else True,
         enable_callback=getattr(business, "enable_callback", True) if getattr(business, "enable_callback", None) is not None else True,
         callback_channel=getattr(business, "callback_channel", "phone_and_email") or "phone_and_email",
         callback_button_text=getattr(business, "callback_button_text", "Request Callback") or "Request Callback",
@@ -211,6 +215,7 @@ async def get_public_business_info(slug_or_token: str, db: AsyncSession = Depend
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
         whatsapp_number=business.whatsapp_number or "",
+        enable_whatsapp=getattr(business, "enable_whatsapp", True) if getattr(business, "enable_whatsapp", None) is not None else True,
         enable_callback=getattr(business, "enable_callback", True) if getattr(business, "enable_callback", None) is not None else True,
         callback_channel=getattr(business, "callback_channel", "phone_and_email") or "phone_and_email",
         callback_button_text=getattr(business, "callback_button_text", "Request Callback") or "Request Callback",
