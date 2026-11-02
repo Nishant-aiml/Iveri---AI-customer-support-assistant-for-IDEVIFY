@@ -579,15 +579,20 @@ class MultiTierLLMClient:
         } and len(t) > 1])
 
         candidate_sentences = []
+        seen_sentences = set()
         for c in retrieved_chunks:
             text = c.get("content", "")
             for raw_line in text.split("\n"):
                 s = raw_line.strip()
                 if not s or s.startswith("SECTION") or len(s) < 15:
                     continue
-                line_lower = s.lower()
-                matches = sum(1 for tok in q_tokens if re.search(r"\b" + re.escape(tok) + r"\b", line_lower))
+                # Normalize line for deduplication (ignore leading bullet/whitespace)
+                norm_line = re.sub(r"^[•\-\*\s]+", "", s).strip().lower()
+                if norm_line in seen_sentences:
+                    continue
+                matches = sum(1 for tok in q_tokens if re.search(r"\b" + re.escape(tok) + r"\b", norm_line))
                 if matches > 0:
+                    seen_sentences.add(norm_line)
                     candidate_sentences.append((matches, s))
 
         # If NO sentence in the retrieved chunks has any query content overlap

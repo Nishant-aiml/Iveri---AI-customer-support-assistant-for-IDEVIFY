@@ -37,12 +37,18 @@ async def upload_document(
     and enqueues them for background parsing and vector indexing with Docling, Tesseract OCR, and openpyxl.
     """
     incoming_files: List[UploadFile] = []
-    if file:
-        incoming_files.append(file)
+    seen_names = set()
+    all_uploads: List[UploadFile] = []
     if files:
-        for f in files:
-            if f and f not in incoming_files:
-                incoming_files.append(f)
+        all_uploads.extend([f for f in files if f and f.filename])
+    elif file and file.filename:
+        all_uploads.append(file)
+
+    for f in all_uploads:
+        norm = os.path.basename(f.filename).strip()
+        if norm.lower() not in seen_names:
+            seen_names.add(norm.lower())
+            incoming_files.append(f)
 
     if not incoming_files:
         raise HTTPException(
@@ -58,6 +64,25 @@ async def upload_document(
 
     for upload_item in incoming_files:
         content_bytes, sanitized_filename, ext = await read_and_validate_upload(upload_item, max_bytes)
+
+        # Check if an existing document with the exact same name exists for this business
+        existing_doc = (await db.execute(
+            select(Document).where(
+                Document.business_id == owner.business_id,
+                Document.file_name == sanitized_filename
+            )
+        )).scalars().first()
+
+        if existing_doc:
+            # Cleanly purge prior vector & BM25 chunks to prevent duplicate chunk clutter
+            await rag_engine.delete_document_chunks(owner.business_id, existing_doc.id)
+            if existing_doc.storage_path and os.path.exists(existing_doc.storage_path):
+                try:
+                    os.remove(existing_doc.storage_path)
+                except Exception:
+                    pass
+            await db.delete(existing_doc)
+            await db.flush()
 
         unique_file_id = uuid.uuid4().hex[:8]
         disk_filename = f"{unique_file_id}_{sanitized_filename}"

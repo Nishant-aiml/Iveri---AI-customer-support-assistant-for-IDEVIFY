@@ -22,7 +22,9 @@ class TicketResponse(BaseModel):
         from_attributes = True
 
 class TicketResolveRequest(BaseModel):
-    resolved_answer: str = Field(..., min_length=3, description="Ground truth answer to resolve ticket and index into knowledge base")
+    resolved_answer: str = Field(..., min_length=3, description="Customer reply or resolution summary")
+    train_ai: bool = Field(True, description="Whether to permanently index verified knowledge into the business RAG memory. Strictly for business owners.")
+    verified_knowledge_fact: str | None = Field(None, description="Optional clean factual knowledge rule to index, distinct from customer greeting")
 
 class ContactRequest(BaseModel):
     session_id: str = Field(..., description="Active chat session id")
