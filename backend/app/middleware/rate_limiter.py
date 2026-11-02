@@ -1,3 +1,4 @@
+import sys
 from collections import defaultdict
 import json
 import logging
@@ -52,7 +53,12 @@ class SlidingWindowRateLimiter(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next) -> Response:
         # 0. Bypass rate limiting in automated testing environment (unless explicitly evaluating rate limits)
-        if (settings.ENVIRONMENT == "testing" or os.environ.get("PYTEST_CURRENT_TEST")) and request.headers.get("X-Test-Rate-Limit") != "true":
+        is_testing = (
+            settings.ENVIRONMENT == "testing"
+            or bool(os.environ.get("PYTEST_CURRENT_TEST"))
+            or "unittest" in sys.modules
+        )
+        if is_testing and request.headers.get("X-Test-Rate-Limit") != "true":
             return await call_next(request)
 
         path = request.url.path

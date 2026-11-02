@@ -21,9 +21,9 @@ class LayaClassifierService:
                 "type": "choice",
                 "instructions": "Determine if the user query is about customer store support, a greeting, or completely out of scope.",
                 "criteria": {
-                    "store_support": "questions about store policies, products, catalogs, broadband, internet, wifi, router, equipment, plans, pricing, fees, charges, gst, bills, installation, outage, speed, cancellation, returns, refunds, warranties, shipping, hours, contact info",
-                    "out_of_scope": "medical procedures like c-section, medical surgery, health, diseases, doctors, artificial intelligence general concepts, python programming, coding, software development, weather, general trivia, politics, sports, entertainment",
-                    "greeting": "hello, hi, hey, good morning, good evening, thanks, thank you, bye, goodbye"
+                    "store_support": "questions specifically about store policies, products, catalogs, broadband, internet, wifi, router, equipment, plans, pricing, fees, charges, gst, bills, installation, outage, speed, cancellation, returns, refunds, warranties, shipping, hours, contact info",
+                    "out_of_scope": "what is ai, artificial intelligence, machine learning, definitions of words, coding, python programming, software, medical procedures like c-section, medical surgery, health, diseases, doctors, weather, general trivia, politics, sports, entertainment",
+                    "greeting": "conversational greetings like hello, hi, hey, good morning, good evening, thanks, thank you, bye, goodbye"
                 }
             }
         }
@@ -54,6 +54,13 @@ class LayaClassifierService:
             answers = res.get("answers", {}).get("intent", {})
             choice = answers.get("choice", "store_support")
             confidence = answers.get("answer_confidence", 0.0)
+
+            # Heuristic safeguard: Questions starting with interrogatives are not greetings
+            clean_q = query.strip().lower()
+            if any(clean_q.startswith(w) for w in ["what", "how", "why", "who", "where", "which", "when", "can you explain", "explain"]):
+                if choice == "greeting":
+                    choice = "out_of_scope"
+
             return {
                 "available": True,
                 "intent": choice,

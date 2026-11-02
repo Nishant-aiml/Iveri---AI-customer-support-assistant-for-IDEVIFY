@@ -36,6 +36,71 @@ class GreetingInterceptor:
         return None
 
 
+class TemporalInterceptor:
+    """Fast, accurate real-time clock, date, day of week, and year interceptor.
+    
+    Answers real-time questions about the current time, today's date, day of the week,
+    and year with 100% precision without burning LLM tokens or calling external APIs.
+    """
+
+    STORE_CONTEXT_KEYWORDS = {
+        "delivery", "shipping", "transit", "dispatch", "response", "opening", "closing",
+        "store", "shop", "working", "business", "operation", "operating", "order",
+        "return", "refund", "warranty", "duration", "wait", "sla", "delay", "arrive"
+    }
+
+    @classmethod
+    def check_temporal(cls, text: str) -> Optional[str]:
+        import datetime
+        clean = text.strip().lower()
+        clean_no_punct = re.sub(r"['’\"?,.!]", "", clean)
+        q_words = re.findall(r"\b\w+\b", clean_no_punct)
+        
+        # If query asks about store operational hours, transit duration, or delivery dates, defer to RAG
+        if any(w in cls.STORE_CONTEXT_KEYWORDS for w in q_words):
+            return None
+
+        now = datetime.datetime.now()
+        cur_time = now.strftime("%I:%M %p").lstrip("0")
+        cur_day = now.strftime("%A")
+        cur_date = now.strftime("%B %d, %Y")
+        cur_year = now.strftime("%Y")
+
+        # 1. Combined date & time query
+        if re.search(r"\b(date\s+and\s+time|time\s+and\s+date|what\s+date\s+and\s+time)\b", clean_no_punct):
+            return f"The current time is **{cur_time}** on **{cur_day}, {cur_date}**."
+
+        # 2. Exact Time query
+        if (
+            re.search(r"\b(what(s)?\s+(is\s+)?(the\s+)?time|what\s+time(\s+is\s+it)?|tell\s+me\s+(the\s+)?time|current\s+time|time\s+right\s+now|exact\s+time|time\s+now)\b", clean_no_punct)
+            or clean_no_punct in ["time", "the time", "what time", "current time"]
+        ):
+            return f"The current time is **{cur_time}** ({cur_day}, {cur_date})."
+
+        # 3. Exact Date query
+        if (
+            re.search(r"\b(what(s)?\s+(is\s+)?(the\s+|todays\s+)?date|what\s+date(\s+is\s+it|\s+is\s+today)?|todays\s+date|current\s+date|exact\s+date|tell\s+me\s+(the\s+|todays\s+)?date|date\s+today)\b", clean_no_punct)
+            or clean_no_punct in ["date", "the date", "todays date", "date today"]
+        ):
+            return f"Today's date is **{cur_day}, {cur_date}**."
+
+        # 4. Exact Day of week query
+        if (
+            re.search(r"\b(what\s+day\s+(is\s+(it|today)|of\s+(the\s+)?week)|which\s+day\s+is\s+(it|today)|what(s)?\s+(is\s+)?(todays|current)\s+day|current\s+day|tell\s+me\s+(the\s+|todays\s+)?day|day\s+today)\b", clean_no_punct)
+            or clean_no_punct in ["day", "today day", "current day", "what day"]
+        ):
+            return f"Today is **{cur_day}**, {cur_date}."
+
+        # 5. Exact Year query
+        if (
+            re.search(r"\b(what\s+year\s+is\s+(this|it|today)|which\s+year\s+is\s+(this|it)|what(s)?\s+(is\s+)?(the\s+|current\s+)?year|current\s+year|tell\s+me\s+(the\s+)?year|this\s+year)\b", clean_no_punct)
+            or clean_no_punct in ["year", "the year", "current year"]
+        ):
+            return f"The current year is **{cur_year}**."
+
+        return None
+
+
 class PreLLMCircuitBreaker:
     """Deterministic Pre-LLM confidence gate.
     
@@ -114,6 +179,9 @@ class PreLLMCircuitBreaker:
                 top_text = " ".join([c.get("content", "").lower() for c in fused_chunks[:3]])
                 # Filter out boilerplate test disclaimers from entity matching
                 top_text_clean = re.sub(r"(?i)fictional document created for testing.*?\.", "", top_text)
+                top_text_clean = re.sub(r"(?i)created for testing an? ai customer support.*?assistant\b", "", top_text_clean)
+                top_text_clean = re.sub(r"(?i)testing an? ai customer support.*?assistant\b", "", top_text_clean)
+                top_text_clean = re.sub(r"(?i)fictional document\b", "", top_text_clean)
                 
                 entity_hits = []
                 for t in tokens:
