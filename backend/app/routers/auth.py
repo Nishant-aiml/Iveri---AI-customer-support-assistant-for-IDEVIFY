@@ -150,6 +150,65 @@ async def get_active_owner_workspace(db: AsyncSession = Depends(get_db)):
         }
     return {"has_active_workspace": False}
 
+@router.post("/quick-access", response_model=TokenResponse)
+async def quick_access_login(db: AsyncSession = Depends(get_db)):
+    """
+    1-Click instant owner access for mobile testing and evaluation:
+    Returns valid JWT session in <0.2s without requiring passwords or third-party OAuth.
+    """
+    res = await db.execute(
+        select(User, Business)
+        .join(Business, User.business_id == Business.id)
+        .where(User.role == "owner")
+        .order_by(User.created_at.desc())
+        .limit(1)
+    )
+    row = res.first()
+    if row:
+        user, business = row
+    else:
+        business = Business(
+            name="Iveri Demo Workspace",
+            slug=f"demo-workspace-{uuid.uuid4().hex[:6]}",
+            welcome_message="Hello! I am your AI Customer Support Assistant. How can I help you today?",
+            fallback_message="I'm sorry, I couldn't find information about that in my business policy. Let me connect you with our human team.",
+            brand_color="#4F46E5",
+            tone="professional",
+            enable_callback=True
+        )
+        db.add(business)
+        await db.flush()
+
+        user = User(
+            email="demo_owner@iveri.ai",
+            password_hash=hash_password("DemoPassword123!"),
+            role="owner",
+            business_id=business.id,
+            auth_provider="quick_access"
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        await db.refresh(business)
+
+    token_payload = {
+        "sub": user.id,
+        "email": user.email,
+        "role": user.role,
+        "business_id": business.id
+    }
+    access_token = create_access_token(token_payload)
+
+    return TokenResponse(
+        access_token=access_token,
+        user_id=user.id,
+        business_id=business.id,
+        role=user.role,
+        business_name=business.name,
+        business_slug=business.slug,
+        share_token=business.share_token
+    )
+
 @router.get("/session/validate")
 async def validate_session(current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Validates session token freshness and multi-device connection status."""
