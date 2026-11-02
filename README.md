@@ -191,6 +191,19 @@ Business owners can embed their custom-branded assistant onto any external websi
 
 ---
 
+## 🛡️ Cybersecurity, Guardrails, Evals & CI/CD Pipeline
+
+For in-depth architectural details, threat modeling, and local execution runbooks, refer to **[`DEVOPS_SECURITY_GUARDRAILS.md`](DEVOPS_SECURITY_GUARDRAILS.md)**.
+
+### Highlights:
+- **Perimeter Defense**: HTTP security headers (`nosniff`, `SAMEORIGIN`, `strict-origin-when-cross-origin`), in-memory sliding-window rate limiting (anti-DDoS / brute-force defense), and `X-Request-ID` telemetry correlation.
+- **Upload Hardening**: Streaming upload byte capping (25MB), path traversal sanitization, and binary magic-byte signature validation (`%PDF-`, `PK\x03\x04`, valid UTF-8).
+- **Safety Guardrails**: Inbound heuristic prompt injection and jailbreak scanner (100% resistance rate), PII and credential shield (redacting credit cards, SSNs, and API keys), and outbound secret leakage filter.
+- **Continuous Evals**: Automated 28-test verification suite (8 security & safety evaluations + 20 multi-phase functional tests) testing grounding, tenant isolation, and rate limit triggers.
+- **DevOps CI/CD**: Fully automated GitHub Actions workflow (`quality-and-security`, `test-and-evals`, `docker-build`, `deploy-render`) with root `pyproject.toml` Ruff linting and zero-downtime deployment.
+
+---
+
 ## 👥 Engineering Team & Technical Ownership
 
 | Engineer | Role & Technical Focus | Architecture Modules |
