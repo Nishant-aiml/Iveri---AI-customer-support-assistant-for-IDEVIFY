@@ -339,7 +339,7 @@ gantt
 | **Phase 0** | Git init, `.gitignore`, [BRD.md](file:///c:/Users/datta.000/Desktop/IDEVIFY/BRD.md), [PRD.md](file:///c:/Users/datta.000/Desktop/IDEVIFY/PRD.md), [README.md](file:///c:/Users/datta.000/Desktop/IDEVIFY/README.md) | `Nishant Datta <dattanishant2@gmail.com>` |
 | **Phase 1** | Multi-tenant schema, SQLite dev $\rightarrow$ Postgres prod, JWT RBAC, Business settings & starter questions | `Nishant Datta <dattanishant2@gmail.com>` |
 | **Phase 2** | **Sarvam Document Intelligence API** + **PyMuPDF fallback**, async queue worker, chunking, and **Manual Q&A ingestion** | **`Ishwari Bhoyar <ishwaribhoyar2@gmail.com>`** |
-| **Phase 3** | **Multi-Hybrid RAG** (ChromaDB + BM25 + RRF), **Pre-LLM Confidence Circuit Breaker**, **Gemini Flash $\rightarrow$ Groq Llama cascade** | **`Ishwari Bhoyar <ishwaribhoyar2@gmail.com>`** |
+| **Phase 3** | **Multi-Hybrid RAG** (ChromaDB + BM25 + RRF), **Laya System 1 Neural Guardrails**, **Pre-LLM Confidence Circuit Breaker**, **Gemini Flash $\rightarrow$ Groq Llama cascade** | **`Ishwari Bhoyar <ishwaribhoyar2@gmail.com>`** |
 | **Phase 4** | Customer chat API, SSE streaming, **Answer Feedback (👍/👎)**, **Lead Capture form**, **Source chunk preview**, **Embeddable Widget** | `Ishwari Bhoyar <ishwaribhoyar2@gmail.com>` & `Nishant Datta` |
 | **Phase 5** | Analytics Dashboard, **Resolve Unanswered Questions into Knowledge Base**, Downvote filter, **Test Playground** | `Nishant Datta <dattanishant2@gmail.com>` |
 | **Phase 6** | Sample business seeder (`seed.py`), 4-point Idevify evaluation verification suite, Render deployment configuration | Joint Final Release |
