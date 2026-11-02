@@ -275,9 +275,10 @@
     <circle cx="30" cy="65" r="16" fill="#1E2337" stroke="#6366F1" stroke-width="1.5" />
     <text x="30" y="70" fill="#A5B4FC" class="mono-text" font-size="11" text-anchor="middle">SSE</text>
     
-    <text x="30" y="105" fill="#38BDF8" class="mono-text" font-size="7" font-weight="600" text-anchor="middle">Gemini</text>
-    <text x="30" y="120" fill="#A78BFA" class="mono-text" font-size="7" font-weight="600" text-anchor="middle">Groq 8B</text>
-    <text x="30" y="135" fill="#34D399" class="mono-text" font-size="7" font-weight="600" text-anchor="middle">Extract</text>
+    <text x="30" y="98" fill="#38BDF8" class="mono-text" font-size="6.5" font-weight="600" text-anchor="middle">Gemini</text>
+    <text x="30" y="111" fill="#F59E0B" class="mono-text" font-size="6.5" font-weight="600" text-anchor="middle">Sarvam</text>
+    <text x="30" y="124" fill="#A78BFA" class="mono-text" font-size="6.5" font-weight="600" text-anchor="middle">Groq</text>
+    <text x="30" y="137" fill="#34D399" class="mono-text" font-size="6.5" font-weight="600" text-anchor="middle">Extract</text>
     
     <circle cx="30" cy="152" r="3" fill="#10B981" class="pulse-beacon" />
   </g>

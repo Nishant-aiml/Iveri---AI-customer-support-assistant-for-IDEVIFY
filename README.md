@@ -62,7 +62,7 @@ flowchart LR
 - **2-Minute Self-Service Launch**: Any business owner creates an account, uploads their PDF/DOCX/TXT manuals, customizes brand colors and assistant avatar, and embeds the assistant anywhere.
 - **Zero-Hallucination Mandate**: If an answer is not in the uploaded documentation, the deterministic **Pre-LLM Circuit Breaker** intercepts the query in `< 10ms` with **0 tokens consumed, 0ms queue time, and 0% risk of hallucination**.
 - **Closed-Loop Knowledge Healing**: Unanswered questions are logged with customer lead capture. The owner answers the question once from their dashboard, and the system **immediately indexes it into the vector & lexical engines**, answering future customers instantly.
-- **Ultra-Lightweight 120MB Footprint**: Zero in-container weight loading. Multi-tier API cascade (Google Gemini Flash $\rightarrow$ Groq Llama 3.1 8B $\rightarrow$ Extractive Synthesis) enables 24/7 deployment on free-tier cloud resources (Render Free Tier 512MB RAM ceiling).
+- **Ultra-Lightweight 120MB Footprint**: Zero in-container weight loading. Multi-tier freemium API cascade (Google Gemini Flash $\rightarrow$ Sarvam AI 105B $\rightarrow$ Groq Freemium Qwen/Allam $\rightarrow$ Extractive Synthesis) enables 24/7 deployment on free-tier cloud resources (Render Free Tier 512MB RAM ceiling).
 
 ---
 
@@ -110,10 +110,11 @@ flowchart TD
 
     subgraph Generation["4. Multi-Tier Generation & Telemetry"]
         PromptAssembler --> LLMCascade{"Multi-Tier Hosted API Cascade"}
-        LLMCascade -->|Primary Free Tier| GeminiFlash["Google Gemini 1.5 Flash"]
-        LLMCascade -.->|Fallback Tier| GroqLlama["Groq Cloud (Llama 3.1 8B Instant)"]
-        LLMCascade -.->|Offline / CPU Fallback| ExtractiveRAG["Extractive Grounded Synthesis"]
-        GeminiFlash & GroqLlama & ExtractiveRAG --> OutboundFilter["Outbound Secret & Credential Leakage Filter"]
+        LLMCascade -->|Tier 1: Primary Free| GeminiFlash["Google Gemini Flash (Free Tier)"]
+        LLMCascade -.->|Tier 2: Indic Fallback| SarvamLLM["Sarvam AI 105B LLM (Freemium)"]
+        LLMCascade -.->|Tier 3: Free LPU Fallback| GroqQwen["Groq Cloud LPUs (Qwen 27B / Allam 7B Free)"]
+        LLMCascade -.->|Tier 4: Offline Fallback| ExtractiveRAG["Extractive Grounded Synthesis"]
+        GeminiFlash & SarvamLLM & GroqQwen & ExtractiveRAG --> OutboundFilter["Outbound Secret & Credential Leakage Filter"]
         OutboundFilter --> SSEStream["SSE Real-Time Stream / Chat Response"]
         SSEStream --> Visitor
     end
@@ -154,7 +155,7 @@ sequenceDiagram
             Circuit-->>Customer: "I don't have this info. I've logged it for our team."
         else Score >= Threshold (Grounded Evidence Found)
             Circuit->>LLM: Dispatch Context-Bounded Prompt + System Instructions
-            LLM->>LLM: Stream tokens (Gemini Flash -> Groq Llama 3.1 fallback)
+            LLM->>LLM: Stream tokens (Gemini Flash -> Sarvam 105B -> Groq Qwen fallback)
             LLM-->>Customer: Streamed Answer + Verified Source Citations
             Customer->>DB: POST /api/chat/message/{id}/feedback (Thumbs Up / Down)
         end
@@ -197,7 +198,7 @@ Every dimension of the IDEVIFY platform is governed by formal engineering specif
 ### 1. Dual-System Cognitive Architecture (Laya + Hosted LLM)
 Following Kahneman's cognitive framework, Iveri separates fast intuitive filtering (**System 1**) from deep generative synthesis (**System 2**):
 - **System 1 (Laya Neural Router)**: Powered by `convaiinnovations/laya`, a lightweight, non-autoregressive decision model. It categorizes incoming queries in milliseconds—intercepting small-talk, filtering malicious prompts, and verifying domain relevance without spending a single generative LLM token.
-- **System 2 (Generative LLM Cascade)**: When a query passes System 1 and satisfies confidence gates, it enters our multi-tier cascade (Gemini Flash $\rightarrow$ Groq Llama 3.1 8B) for nuanced, grounded synthesis.
+- **System 2 (Generative LLM Cascade)**: When a query passes System 1 and satisfies confidence gates, it enters our multi-tier freemium cascade (Google Gemini Flash $\rightarrow$ Sarvam AI 105B $\rightarrow$ Groq Freemium Qwen/Allam $\rightarrow$ Extractive Synthesis) for nuanced, grounded synthesis.
 
 ### 2. Reciprocal Rank Fusion (RRF) Hybrid Search
 Vector search alone fails on exact SKU codes, numerical pricing, and technical acronyms. Keyword search alone fails on conversational paraphrasing. Iveri fuses both using Reciprocal Rank Fusion ($k=60$):
@@ -266,9 +267,10 @@ Iveri seamlessly switches between local zero-setup development and production cl
 │ • SQLAlchemy 2.0 (Async)     │ • Laya System 1 Router      │ • Semantic Chunker        │
 ├──────────────────────────────┼─────────────────────────────┼───────────────────────────┤
 │ Multi-Tier Generation        │ Document Intelligence       │ Relational Persistence    │
-│ • Google Gemini 1.5 Flash    │ • Sarvam Document AI API    │ • PostgreSQL (Production) │
-│ • Groq Llama 3.1 8B Instant  │ • PyMuPDF (fitz) Stream     │ • SQLite WAL (Local Dev)  │
-│ • Extractive CPU Fallback    │ • python-docx & UTF-8 TXT   │ • Asyncpg Connection Pool │
+│ • Google Gemini Flash (Free) │ • Sarvam Document AI API    │ • PostgreSQL (Production) │
+│ • Sarvam 105B LLM (Freemium) │ • PyMuPDF (fitz) Stream     │ • SQLite WAL (Local Dev)  │
+│ • Groq Freemium LPUs (Qwen)  │ • python-docx & UTF-8 TXT   │ • Asyncpg Connection Pool │
+│ • Extractive CPU Fallback    │                             │                           │
 └──────────────────────────────┴─────────────────────────────┴───────────────────────────┘
                                                  │
                                                  ▼
@@ -287,7 +289,7 @@ Architecture, implementation, and verification were led across four core functio
 | Engineer | Functional Role | Core Architectural Deliverables |
 | :--- | :--- | :--- |
 | **Ishwari Bhoyar**<br>([@ishwaribhoyar](https://github.com/ishwaribhoyar)) | **Lead AI & RAG Systems Architect & Full-Stack Lead** | • **Document Intelligence & Ingestion**: High-fidelity dual-engine ingestion pipeline integrating Sarvam Document Intelligence API (complex table extraction, document layout OCR, multilingual Indic & English) with PyMuPDF (`fitz`) streaming local fallback; support for PDF, DOCX, and TXT; in-flight 25MB stream cap, binary magic-byte validation (`%PDF-`, `PK\x03\x04`), and recursive semantic chunking (400–600 chars, 60 overlap).<br>• **Multi-Hybrid Advanced RAG**: Parallel dual retrieval combining dense semantic vector search (ChromaDB with cosine distance scoring) and sparse lexical search (`rank-bm25` `BM25Plus`) with domain-specific synonym expansion (`equipment`, `plans`, `charges`, `outages`); fused via Reciprocal Rank Fusion (RRF, $k=60$) cross-rank normalization.<br>• **Laya Neural Guardrail & Semantic Router**: System 1 non-autoregressive ModernBERT neural classifier (`convaiinnovations/laya`) providing sub-100ms cognitive boundary enforcement; zero-shot intent categorization across store support, greetings, and out-of-scope inquiries; automated rejection of medical, coding, toxic, and general trivia queries with 0 generative tokens consumed.<br>• **Deterministic Circuit Breaker & Closed-Loop Healing**: Pre-LLM confidence gate ($\tau = 0.55$) guaranteeing zero hallucinations; automated logging to `UnansweredQuestion` queue with customer lead capture; closed-loop knowledge healing instantly vectorizing owner resolutions into ChromaDB and BM25Plus; verified citation attribution with page numbers and source chunk excerpts. |
-| **Nishant Datta**<br>([@Nishant-aiml](https://github.com/Nishant-aiml)) | **Lead AI & RAG Systems Architect & Full-Stack Lead** | • **System Design & Distributed Architecture**: End-to-end multi-tenant platform architecture, stateless ASGI application layer with FastAPI and Uvicorn, tenant data isolation and workspace scoping (`business_id`), cloud PostgreSQL multi-tier persistence with asyncpg connection pooling (`pool_size=20`, `max_overflow=40`), idempotent auto-migration engine, and authoring of master specifications (`BRD.md`, `PRD.md`, `README.md`).<br>• **DevOps, Multi-Stage Containerization & CI/CD**: 4-stage automated GitHub Actions CI/CD pipeline (`Lint & Security Audit`, `Test Suite & Safety Evals`, `Multi-Stage Docker Validation`, `Continuous Deployment to Render`), multi-stage Alpine Docker architecture (`builder` $\rightarrow$ unprivileged `runner`), zero-downtime rolling deploys, and automated Render blueprint provisioning (`render.yaml`).<br>• **Cybersecurity & OWASP LLM Defense**: Comprehensive perimeter security architecture, OWASP Top 10 for LLM Applications compliance matrix (`LLM01` through `LLM07`), in-memory sliding-window anti-DDoS rate limiter, 14-rule prompt injection & jailbreak regex defense battery, `PIIShield` in-memory regex tokenization/masking for credit cards, SSNs, and API keys, outbound credential leakage protection, and authoring of [`DEVOPS_SECURITY_GUARDRAILS.md`](DEVOPS_SECURITY_GUARDRAILS.md).<br>• **Executive Dashboard & Multi-Tier LLM Cascade**: Full-stack executive intelligence console, 2-Pane chat audit console, multi-message customer sentiment hierarchy, multi-tier hosted LLM cascade (Google Gemini 1.5 Flash $\rightarrow$ Groq Llama 3.1 8B Instant $\rightarrow$ Extractive RAG), and Power BI live streaming telemetry. |
+| **Nishant Datta**<br>([@Nishant-aiml](https://github.com/Nishant-aiml)) | **Lead AI & RAG Systems Architect & Full-Stack Lead** | • **System Design & Distributed Architecture**: End-to-end multi-tenant platform architecture, stateless ASGI application layer with FastAPI and Uvicorn, tenant data isolation and workspace scoping (`business_id`), cloud PostgreSQL multi-tier persistence with asyncpg connection pooling (`pool_size=20`, `max_overflow=40`), idempotent auto-migration engine, and authoring of master specifications (`BRD.md`, `PRD.md`, `README.md`).<br>• **DevOps, Multi-Stage Containerization & CI/CD**: 4-stage automated GitHub Actions CI/CD pipeline (`Lint & Security Audit`, `Test Suite & Safety Evals`, `Multi-Stage Docker Validation`, `Continuous Deployment to Render`), multi-stage Alpine Docker architecture (`builder` $\rightarrow$ unprivileged `runner`), zero-downtime rolling deploys, and automated Render blueprint provisioning (`render.yaml`).<br>• **Cybersecurity & OWASP LLM Defense**: Comprehensive perimeter security architecture, OWASP Top 10 for LLM Applications compliance matrix (`LLM01` through `LLM07`), in-memory sliding-window anti-DDoS rate limiter, 14-rule prompt injection & jailbreak regex defense battery, `PIIShield` in-memory regex tokenization/masking for credit cards, SSNs, and API keys, outbound credential leakage protection, and authoring of [`DEVOPS_SECURITY_GUARDRAILS.md`](DEVOPS_SECURITY_GUARDRAILS.md).<br>• **Executive Dashboard & Multi-Tier LLM Cascade**: Full-stack executive intelligence console, 2-Pane chat audit console, multi-message customer sentiment hierarchy, multi-tier freemium hosted LLM cascade (Google Gemini Flash $\rightarrow$ Sarvam AI 105B $\rightarrow$ Groq Freemium Qwen 27B $\rightarrow$ Extractive RAG), and Power BI live streaming telemetry. |
 | **Gunjan Nandeshwar**<br>([@gunjannan2005](https://github.com/gunjannan2005)) | **Core Backend & Infrastructure Engineer** | • Multi-tenant data isolation and tenant workspace scoping across all relational queries<br>• Cloud PostgreSQL multi-cloud connectivity, async connection pooling, and auto-migration engine<br>• Security perimeter: sliding-window rate limiting, PII credential shield, and HTTP security headers<br>• Multi-stage Docker containerization (`builder` $\rightarrow$ `runner`) and GitHub Actions CI/CD workflows<br>• Live Power BI Streaming Web Connector (`/api/dashboard/export/powerbi`) and dataset export |
 | **Nazish Khan**<br>([@nazishkhan10](https://github.com/nazishkhan10)) | **Frontend & Customer Experience Engineer** | • Google Stitch "Obsidian Kinetic" design system implementation and design token integration<br>• Real-time customer chat interface with Server-Sent Events (SSE) token streaming<br>• Standalone zero-dependency embeddable `widget.js` script and 6-channel Widget Studio<br>• Verified source citation drawer, starter question pills, and thumbs up/down feedback voting<br>• Mobile-responsive UI styling, custom avatar preview, and customer lead capture modal |
 
