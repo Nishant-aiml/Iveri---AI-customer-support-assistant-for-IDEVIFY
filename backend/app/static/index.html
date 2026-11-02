@@ -82,8 +82,12 @@
 
           if (res.ok) {
             const data = await res.json();
-            window.authToken = data.access_token;
-            localStorage.setItem('iveri_token', data.access_token);
+            if (typeof window.applyAuthToken === 'function') {
+              window.applyAuthToken(data.access_token);
+            } else {
+              window.authToken = data.access_token;
+              localStorage.setItem('iveri_token', data.access_token);
+            }
             document.getElementById('auth-modal')?.classList.add('hidden');
             if (loadingBox) loadingBox.classList.add('hidden');
             if (typeof window.init === 'function') {
@@ -1716,37 +1720,6 @@
         </button>
       </div>
 
-      <!-- 1-Tap Instant Access for Mobile & Testing -->
-      <div class="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl space-y-2">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-1.5 font-bold text-xs text-indigo-950 font-sans">
-            <span class="material-symbols-outlined text-[16px] text-amber-500">bolt</span>
-            <span>Fast Mobile Login</span>
-          </div>
-          <span class="text-[9.5px] font-bold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded font-mono">Instant &bull; 0.2s</span>
-        </div>
-        <button type="button" onclick="performQuickAccessLogin()" class="w-full py-2.5 px-3 bg-gradient-to-r from-primary to-indigo-700 hover:from-primary-hover hover:to-indigo-800 text-white rounded-xl text-xs font-sans font-bold transition shadow-sm flex items-center justify-center gap-1.5 active:scale-98 cursor-pointer">
-          <span class="material-symbols-outlined text-[16px] text-amber-300">rocket_launch</span>
-          <span id="quick-access-btn-label">⚡ 1-Tap Instant Access (Skip Password)</span>
-        </button>
-      </div>
-
-      <!-- Active Workspace Cross-Device Quick Login Banner -->
-      <div id="auth-active-workspace-banner" class="hidden p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono space-y-1.5">
-        <div class="flex items-center justify-between">
-          <span class="text-slate-900 font-bold flex items-center gap-1.5">
-            <span class="material-symbols-outlined text-[15px] text-primary">storefront</span>
-            <span id="active-ws-name">Existing Workspace</span>
-          </span>
-          <span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-semibold">Active</span>
-        </div>
-        <p class="text-[11px] text-slate-600">Owner: <strong id="active-ws-email" class="text-slate-900"></strong></p>
-        <button type="button" onclick="prefillActiveOwnerLogin()" class="w-full py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-semibold transition flex items-center justify-center gap-1 shadow-xs">
-          <span class="material-symbols-outlined text-[14px]">login</span>
-          <span>Sign In to Existing Workspace</span>
-        </button>
-      </div>
-
       <div class="grid grid-cols-2 p-1 bg-slate-100 rounded-xl border border-slate-200 text-xs font-mono">
         <button id="auth-tab-login" onclick="switchAuthMode('login')" class="py-2 rounded-lg font-semibold text-white bg-primary transition shadow-xs">
           Sign In
@@ -1965,7 +1938,16 @@
   </div>
 
   <script>
-    let authToken = localStorage.getItem('iveri_token') || '';
+    var authToken = localStorage.getItem('iveri_token') || '';
+    window.applyAuthToken = function(token) {
+      authToken = token || '';
+      if (token) {
+        localStorage.setItem('iveri_token', token);
+      } else {
+        localStorage.removeItem('iveri_token');
+      }
+    };
+
     let currentBusiness = null;
     let activeResolvingId = null;
     let selectedSessionId = null;
@@ -1974,27 +1956,31 @@
     let charts = {};
 
     async function init() {
+      authToken = localStorage.getItem('iveri_token') || authToken || '';
+      const authModal = document.getElementById('auth-modal');
       if (!authToken) {
-        toggleAuthModal();
-      } else {
-        await loadBusinessProfile();
-        loadDashboardData();
-        loadAnalyticsCharts();
-        if (typeof loadNotifications === 'function') {
-          loadNotifications();
-          setInterval(loadNotifications, 15000);
-        }
-        if (typeof loadTickets === 'function') {
-          loadTickets();
-          setInterval(loadTickets, 20000);
-        }
-        if ('Notification' in window && Notification.permission === 'default') {
-          const banner = document.getElementById('desktop-notif-prompt');
-          if (banner) banner.classList.remove('hidden');
-        } else if ('Notification' in window && Notification.permission === 'granted') {
-          const toggleBtn = document.getElementById('push-toggle-btn');
-          if (toggleBtn) toggleBtn.innerText = 'Push Active ✓';
-        }
+        if (authModal) authModal.classList.remove('hidden');
+        return;
+      }
+      if (authModal) authModal.classList.add('hidden');
+
+      await loadBusinessProfile();
+      loadDashboardData();
+      loadAnalyticsCharts();
+      if (typeof loadNotifications === 'function') {
+        loadNotifications();
+        setInterval(loadNotifications, 15000);
+      }
+      if (typeof loadTickets === 'function') {
+        loadTickets();
+        setInterval(loadTickets, 20000);
+      }
+      if ('Notification' in window && Notification.permission === 'default') {
+        const banner = document.getElementById('desktop-notif-prompt');
+        if (banner) banner.classList.remove('hidden');
+      } else if ('Notification' in window && Notification.permission === 'granted') {
+        const toggleBtn = document.getElementById('push-toggle-btn');
+        if (toggleBtn) toggleBtn.innerText = 'Push Active ✓';
       }
     }
 
@@ -2003,6 +1989,12 @@
         const res = await fetch('/api/business/settings', {
           headers: {'Authorization': `Bearer ${authToken}`}
         });
+        if (res.status === 401) {
+          console.warn("Session token expired or rejected, opening login...");
+          window.applyAuthToken('');
+          document.getElementById('auth-modal')?.classList.remove('hidden');
+          return;
+        }
         if (res.ok) {
           currentBusiness = await res.json();
           document.getElementById('biz-header-name').innerText = currentBusiness.name;
@@ -3135,55 +3127,12 @@
       }
     }
 
-    // 1-Tap Instant Mobile / Demo Login (Guaranteed <0.2s without OAuth hangs)
-    async function performQuickAccessLogin() {
-      const btn = document.getElementById('quick-access-btn-label');
-      if (btn) btn.innerText = "Connecting instantly...";
-      try {
-        const res = await fetch('/api/auth/quick-access', { method: 'POST' });
-        if (res.ok) {
-          const data = await res.json();
-          authToken = data.access_token;
-          localStorage.setItem('iveri_token', authToken);
-          document.getElementById('auth-modal')?.classList.add('hidden');
-          await init();
-          alert("🎉 Welcome to " + (data.business_name || "Iveri Console") + "!");
-          return;
-        }
-
-        // Resilient fallback via test token (works 100% of the time)
-        const fallbackRes = await fetch('/api/auth/firebase-login', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({
-            id_token: 'test_fb_token:demo_user:owner@iveri.ai:Iveri Store',
-            business_name: 'Iveri Business Workspace'
-          })
-        });
-        if (fallbackRes.ok) {
-          const data = await fallbackRes.json();
-          authToken = data.access_token;
-          localStorage.setItem('iveri_token', authToken);
-          document.getElementById('auth-modal')?.classList.add('hidden');
-          await init();
-          alert("🎉 Welcome to your Iveri Workspace!");
-        } else {
-          alert("Instant login unavailable. Please sign in with email and password below.");
-        }
-      } catch (e) {
-        console.error("Quick access error:", e);
-        alert("Network error. Please try email and password below.");
-      } finally {
-        if (btn) btn.innerText = "⚡ 1-Tap Instant Access (Skip Password)";
-      }
-    }
-
     async function loginWithGoogleFirebase() {
       const btnLabel = document.getElementById('google-auth-btn-label');
       const loadingBox = document.getElementById('auth-google-loading');
       try {
         if (!window.firebaseAuth || !window.googleAuthProvider) {
-          alert("Google Firebase Auth SDK is initializing. Please check your internet connection or use '⚡ 1-Tap Instant Access'.");
+          alert("Google Firebase Auth SDK is initializing. Please check your internet connection.");
           return;
         }
         if (btnLabel) btnLabel.innerText = "Connecting to Google...";
@@ -3192,40 +3141,27 @@
           const t = document.getElementById('auth-google-loading-title');
           const d = document.getElementById('auth-google-loading-desc');
           if (t) t.innerText = "Connecting to Google...";
-          if (d) d.innerText = "Opening Google Account selector...";
+          if (d) d.innerText = "Please select your Google Account...";
         }
 
         let user = null;
 
-        // Try direct in-page Google popup with an 8-second timeout guard to prevent infinite hanging
         if (window.firebaseSignInWithPopup) {
           try {
-            const timeoutPromise = new Promise((_, reject) => {
-              setTimeout(() => reject(new Error("GOOGLE_AUTH_TIMEOUT")), 8000);
-            });
-            const popupPromise = window.firebaseSignInWithPopup(window.firebaseAuth, window.googleAuthProvider);
-            const result = await Promise.race([popupPromise, timeoutPromise]);
+            const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleAuthProvider);
             user = result ? result.user : null;
           } catch (popupErr) {
-            console.warn("[Iveri Firebase] Popup attempt:", popupErr);
-            if (popupErr.message === "GOOGLE_AUTH_TIMEOUT") {
-              if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
-              if (loadingBox) loadingBox.classList.add('hidden');
-              alert("⚠️ Google Sign-In Timed Out (8s).\n\nThis happens on mobile when 'iveri-ai-support.onrender.com' is not yet added to Firebase Console Authorized Domains, or third-party cookies are blocked.\n\n👉 Please tap '⚡ 1-Tap Instant Access' above to log in immediately without passwords or third-party restrictions!");
-              return;
-            }
+            console.warn("[Iveri Firebase] Popup note:", popupErr);
+            if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
+            if (loadingBox) loadingBox.classList.add('hidden');
             if (popupErr.code === 'auth/popup-closed-by-user' || popupErr.code === 'auth/cancelled-popup-request') {
-              if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
-              if (loadingBox) loadingBox.classList.add('hidden');
               return;
             }
             if (popupErr.code === 'auth/unauthorized-domain') {
-              if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
-              if (loadingBox) loadingBox.classList.add('hidden');
               showFirebaseDomainHelper();
               return;
             }
-            // Fall back to redirect if popup is strictly blocked
+            // Fall back to redirect if popup is strictly blocked on mobile
             if (window.firebaseSignInWithRedirect && (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/operation-not-supported-in-this-environment')) {
               console.log("[Iveri Firebase] Switching to redirect flow...");
               await window.firebaseSignInWithRedirect(window.firebaseAuth, window.googleAuthProvider);
@@ -3244,7 +3180,6 @@
           return;
         }
 
-        // Use global completion helper if available
         if (window.completeFirebaseSignIn) {
           await window.completeFirebaseSignIn(user);
         } else {
@@ -3267,8 +3202,7 @@
           }
 
           const data = await res.json();
-          authToken = data.access_token;
-          localStorage.setItem('iveri_token', authToken);
+          window.applyAuthToken(data.access_token);
           document.getElementById('auth-modal')?.classList.add('hidden');
           if (loadingBox) loadingBox.classList.add('hidden');
           await init();
@@ -3806,10 +3740,12 @@
         });
         if (res.ok) {
           const data = await res.json();
-          authToken = data.access_token;
-          localStorage.setItem('iveri_token', authToken);
-          toggleAuthModal();
-          init();
+          window.applyAuthToken(data.access_token);
+          document.getElementById('auth-modal')?.classList.add('hidden');
+          await init();
+          if (typeof showToast === 'function') {
+            showToast("🎉 Welcome back to your workspace!", "success");
+          }
         } else {
           const err = await res.json();
           alert(err.detail || "Invalid email or password.");
@@ -3840,10 +3776,12 @@
         });
         if (res.ok) {
           const data = await res.json();
-          authToken = data.access_token;
-          localStorage.setItem('iveri_token', authToken);
-          toggleAuthModal();
-          init();
+          window.applyAuthToken(data.access_token);
+          document.getElementById('auth-modal')?.classList.add('hidden');
+          await init();
+          if (typeof showToast === 'function') {
+            showToast("🎉 Business workspace created successfully!", "success");
+          }
         } else {
           const err = await res.json();
           // Seamless cross-device handling: if email already exists, offer instant sign in
@@ -3863,8 +3801,7 @@
     }
 
     function logout() {
-      authToken = '';
-      localStorage.removeItem('iveri_token');
+      window.applyAuthToken('');
       location.reload();
     }
 

@@ -143,7 +143,7 @@ class FirebaseAuthService:
             if not user.firebase_uid:
                 user.firebase_uid = uid
                 user.auth_provider = "firebase"
-                await db.flush()
+            await db.commit()
 
             # Load business
             biz_query = await db.execute(select(Business).where(Business.id == user.business_id))
@@ -183,6 +183,7 @@ class FirebaseAuthService:
         # Generate internal access token for session persistence
         token_payload = {
             "sub": user.id,
+            "email": user.email,
             "role": user.role,
             "business_id": user.business_id,
             "auth_provider": "firebase"
