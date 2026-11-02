@@ -49,14 +49,29 @@ class VectorStoreService:
         return all_embeddings
 
     async def _get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
-        # 1. Google Gemini Embeddings (Primary Free Tier)
+        # 1. Local Semantic ONNX all-MiniLM-L6-v2 Embeddings (Deterministic 384-dim Cosine Space)
+        # Keeps embeddings 100% matched with ChromaDB index and runs in-process with 0 external API calls
+        try:
+            from chromadb.utils import embedding_functions
+            default_ef = embedding_functions.DefaultEmbeddingFunction()
+            embeddings = default_ef(texts)
+            return [list(map(float, emb)) for emb in embeddings]
+        except Exception as e:
+            logger.warning(f"Chroma ONNX embedding failed ({str(e)}). Trying Google Gemini embedding...")
+
+        # 2. Google Gemini Embeddings (Cloud Fallback)
         if settings.GEMINI_API_KEY:
             try:
                 embeddings = []
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:batchEmbedContents?key={settings.GEMINI_API_KEY}"
+                emb_model = getattr(settings, "GEMINI_EMBEDDING_MODEL", "gemini-embedding-001")
+                if not emb_model.startswith("models/"):
+                    model_path = f"models/{emb_model}"
+                else:
+                    model_path = emb_model
+                url = f"https://generativelanguage.googleapis.com/v1beta/{model_path}:batchEmbedContents?key={settings.GEMINI_API_KEY}"
                 
                 requests_payload = [
-                    {"model": "models/text-embedding-004", "content": {"parts": [{"text": t[:2048]}]}}
+                    {"model": model_path, "content": {"parts": [{"text": t[:2048]}]}}
                     for t in texts
                 ]
                 
@@ -68,18 +83,9 @@ class VectorStoreService:
                             embeddings.append(emb_obj["values"])
                         return embeddings
                     else:
-                        logger.warning(f"Gemini embedding API returned {resp.status_code}. Using fallback embedding...")
+                        logger.warning(f"Gemini embedding API returned {resp.status_code}. Using hash fallback embedding...")
             except Exception as e:
-                logger.warning(f"Gemini embedding call failed ({str(e)}). Using fallback embedding...")
-
-        # 2. Local Semantic ONNX all-MiniLM-L6-v2 Embeddings (True Cosine Similarity)
-        try:
-            from chromadb.utils import embedding_functions
-            default_ef = embedding_functions.DefaultEmbeddingFunction()
-            embeddings = default_ef(texts)
-            return [list(map(float, emb)) for emb in embeddings]
-        except Exception as e:
-            logger.warning(f"Chroma ONNX embedding failed ({str(e)}). Using deterministic fallback...")
+                logger.warning(f"Gemini embedding call failed ({str(e)}). Using hash fallback embedding...")
 
         # 3. Local Deterministic 384-dimensional Hash Embedding Fallback
         fallback_embeddings: List[List[float]] = []
