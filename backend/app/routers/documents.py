@@ -1,7 +1,7 @@
 import os
 import uuid
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -11,7 +11,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.document import Document, DocumentChunk
 from app.models.unanswered import UnansweredQuestion
-from app.schemas.document import DocumentResponse, DocumentUploadResponse, ManualQACreateRequest, ManualQAResponse
+from app.schemas.document import DocumentResponse, DocumentUploadResponse, DocumentUploadItem, ManualQACreateRequest, ManualQAResponse
 from app.utils.security import get_current_owner
 from app.utils.upload_validator import read_and_validate_upload
 from app.services.ingestion_queue import ingestion_queue, IngestionJob
@@ -19,59 +19,109 @@ from app.services.rag_engine import rag_engine
 
 router = APIRouter(prefix="/api/documents", tags=["Knowledge Base & Documents"])
 
-ALLOWED_EXTENSIONS = {".pdf", ".docx", ".txt", ".md"}
+ALLOWED_EXTENSIONS = {
+    ".pdf", ".docx", ".txt", ".md",
+    ".xlsx", ".xls",
+    ".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff"
+}
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=status.HTTP_202_ACCEPTED)
 async def upload_document(
-    file: UploadFile = File(...),
+    files: Optional[List[UploadFile]] = File(None),
+    file: Optional[UploadFile] = File(None),
     owner: User = Depends(get_current_owner),
     db: AsyncSession = Depends(get_db)
 ):
-    """Uploads a PDF, DOCX, or TXT file and enqueues it for background parsing and vector indexing."""
-    max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
-    content_bytes, sanitized_filename, ext = await read_and_validate_upload(file, max_bytes)
+    """Uploads one or multiple documents (PDF, DOCX, TXT, Excel .xlsx/.xls, Images .png/.jpg/.webp)
 
-    # Save to disk in owner's isolated tenant directory
+    and enqueues them for background parsing and vector indexing with Docling, Tesseract OCR, and openpyxl.
+    """
+    incoming_files: List[UploadFile] = []
+    if file:
+        incoming_files.append(file)
+    if files:
+        for f in files:
+            if f and f not in incoming_files:
+                incoming_files.append(f)
+
+    if not incoming_files:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No document files provided. Please select at least one document to upload."
+        )
+
+    max_bytes = settings.MAX_FILE_SIZE_MB * 1024 * 1024
     business_upload_dir = os.path.join(settings.UPLOAD_DIRECTORY, owner.business_id)
     os.makedirs(business_upload_dir, exist_ok=True)
-    
-    unique_file_id = uuid.uuid4().hex[:8]
-    disk_filename = f"{unique_file_id}_{sanitized_filename}"
-    saved_file_path = os.path.join(business_upload_dir, disk_filename)
 
-    with open(saved_file_path, "wb") as buffer:
-        buffer.write(content_bytes)
+    queued_items: List[DocumentUploadItem] = []
 
-    file_size = len(content_bytes)
+    for upload_item in incoming_files:
+        content_bytes, sanitized_filename, ext = await read_and_validate_upload(upload_item, max_bytes)
 
-    # Create document record with QUEUED status
-    doc = Document(
-        business_id=owner.business_id,
-        file_name=sanitized_filename,
-        file_type=ext.lstrip("."),
-        storage_path=saved_file_path,
-        file_size_bytes=file_size,
-        status="QUEUED"
+        unique_file_id = uuid.uuid4().hex[:8]
+        disk_filename = f"{unique_file_id}_{sanitized_filename}"
+        saved_file_path = os.path.join(business_upload_dir, disk_filename)
+
+        with open(saved_file_path, "wb") as buffer:
+            buffer.write(content_bytes)
+
+        file_size = len(content_bytes)
+
+        # Create document record with QUEUED status
+        doc = Document(
+            business_id=owner.business_id,
+            file_name=sanitized_filename,
+            file_type=ext.lstrip("."),
+            storage_path=saved_file_path,
+            file_size_bytes=file_size,
+            status="QUEUED"
+        )
+        db.add(doc)
+        await db.commit()
+        await db.refresh(doc)
+
+        # Enqueue to background worker
+        job = IngestionJob(
+            document_id=doc.id,
+            business_id=owner.business_id,
+            file_path=saved_file_path,
+            file_name=sanitized_filename
+        )
+        await ingestion_queue.enqueue(job)
+
+        queued_items.append(DocumentUploadItem(
+            document_id=doc.id,
+            file_name=sanitized_filename,
+            status="QUEUED",
+            message="Document queued for indexing."
+        ))
+
+    first_item = queued_items[0]
+    total_count = len(queued_items)
+    summary_message = (
+        f"{total_count} documents uploaded successfully and queued for background indexing."
+        if total_count > 1
+        else "Document uploaded successfully and queued for background indexing."
     )
-    db.add(doc)
-    await db.commit()
-    await db.refresh(doc)
-
-    # Enqueue to background worker
-    job = IngestionJob(
-        document_id=doc.id,
-        business_id=owner.business_id,
-        file_path=saved_file_path,
-        file_name=sanitized_filename
-    )
-    await ingestion_queue.enqueue(job)
 
     return DocumentUploadResponse(
-        document_id=doc.id,
-        file_name=sanitized_filename,
+        document_id=first_item.document_id,
+        file_name=first_item.file_name,
         status="QUEUED",
-        message="Document uploaded successfully and queued for background indexing."
+        message=summary_message,
+        uploaded_files=queued_items,
+        total_queued=total_count
     )
+
+@router.post("/batch-upload", response_model=DocumentUploadResponse, status_code=status.HTTP_202_ACCEPTED)
+async def batch_upload_documents(
+    files: List[UploadFile] = File(...),
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Batch uploads multiple documents simultaneously."""
+    return await upload_document(files=files, file=None, owner=owner, db=db)
 
 @router.post("/manual-qa", response_model=ManualQAResponse, status_code=status.HTTP_201_CREATED)
 async def create_manual_qa(

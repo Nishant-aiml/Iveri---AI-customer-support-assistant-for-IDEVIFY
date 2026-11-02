@@ -1,3 +1,4 @@
+  let lastUserQuery = '';
 (function () {
   // Find script element and extract configuration
   const currentScript = document.currentScript || (function() {
@@ -266,6 +267,12 @@
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
+        <button id="iveri-cb-btn" title="Request Callback" style="display:none; background:#EEF2FF; border:1px solid #C7D2FE; color:#4F46E5; font-size:11px; font-weight:600; cursor:pointer; padding:3px 7px; border-radius:6px; align-items:center; gap:3px;">
+          📞 <span id="iveri-cb-label">Callback</span>
+        </button>
+        <a id="iveri-wa-btn" title="Chat on WhatsApp" target="_blank" style="display:none; background:#ECFDF5; border:1px solid #A7F3D0; color:#059669; font-size:11px; font-weight:600; text-decoration:none; padding:3px 7px; border-radius:6px; align-items:center; gap:3px;">
+          💬 WA
+        </a>
         <button id="iveri-share-btn" title="Share Conversation" style="background:none; border:none; color:#64748B; font-size:14px; cursor:pointer; padding:4px; display:flex; align-items:center;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
         </button>
@@ -276,6 +283,29 @@
       <div class="iveri-msg iveri-msg-assistant">
         Hello! How can I assist you today with store policies, orders, or products?
         <div class="iveri-starters" id="iveri-starter-container"></div>
+      </div>
+    </div>
+    <div id="iveri-cb-modal" style="display:none; position:absolute; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(2px); z-index:50; padding:16px; align-items:center; justify-content:center;">
+      <div style="background:#FFFFFF; border-radius:12px; padding:16px; width:100%; max-width:320px; box-shadow:0 10px 25px rgba(0,0,0,0.2); font-family:inherit;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <div style="font-weight:700; font-size:13px; color:#0F172A;">📞 Request Human Callback</div>
+          <button id="iveri-cb-modal-close" style="background:none; border:none; font-size:18px; color:#94A3B8; cursor:pointer;">×</button>
+        </div>
+        <div style="display:flex; flex-direction:column; gap:8px; font-size:11px;">
+          <div>
+            <label style="color:#475569; font-weight:600;">Your Name</label>
+            <input type="text" id="iveri-cb-name" placeholder="e.g. John Doe" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #CBD5E1; border-radius:6px; font-size:11px; margin-top:2px;" />
+          </div>
+          <div>
+            <label style="color:#475569; font-weight:600;">Phone Number or Email *</label>
+            <input type="text" id="iveri-cb-contact" placeholder="+91 98765 43210 or email" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #CBD5E1; border-radius:6px; font-size:11px; margin-top:2px;" />
+          </div>
+          <div>
+            <label style="color:#475569; font-weight:600;">How can we help?</label>
+            <textarea id="iveri-cb-note" rows="2" placeholder="Describe your inquiry..." style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #CBD5E1; border-radius:6px; font-size:11px; margin-top:2px;"></textarea>
+          </div>
+          <button id="iveri-cb-submit" style="background:#4F46E5; color:#FFFFFF; border:none; padding:8px; border-radius:6px; font-weight:600; cursor:pointer; margin-top:4px;">Submit Callback Request</button>
+        </div>
       </div>
     </div>
     <div class="iveri-input-box">
@@ -330,6 +360,28 @@
       }
 
       document.getElementById('iveri-biz-name').innerText = data.name || 'Support Assistant';
+
+      // Callback Button
+      if (data.enable_callback !== false) {
+        const cbBtn = document.getElementById('iveri-cb-btn');
+        if (cbBtn) {
+          cbBtn.style.display = 'flex';
+          if (data.callback_button_text) {
+            document.getElementById('iveri-cb-label').innerText = data.callback_button_text;
+          }
+          cbBtn.onclick = () => openWidgetCallbackModal();
+        }
+      }
+
+      // WhatsApp Button
+      if (data.whatsapp_number) {
+        const cleanWa = data.whatsapp_number.replace(/[^0-9]/g, '');
+        const waBtn = document.getElementById('iveri-wa-btn');
+        if (waBtn) {
+          waBtn.style.display = 'flex';
+          waBtn.href = `https://wa.me/${cleanWa}?text=Hi%2C%20I%20have%20an%20inquiry%20regarding%20${encodeURIComponent(data.name || 'your store')}`;
+        }
+      }
       
       const starterContainer = document.getElementById('iveri-starter-container');
       if (starterContainer) {
@@ -393,6 +445,7 @@
     const msgsContainer = document.getElementById('iveri-msgs');
 
     // Append User Message
+    lastUserQuery = text;
     const userBubble = document.createElement('div');
     userBubble.className = 'iveri-msg iveri-msg-user';
     userBubble.innerText = msgText;
@@ -448,32 +501,34 @@
         buttons[1].onclick = () => sendFeedback(data.id, 'down', feedbackRow);
         botBubble.appendChild(feedbackRow);
 
-        // Lead capture if unknown
+        // Enhanced Human Handoff / Callback Card if unknown
         if (!data.is_answered) {
           const leadBox = document.createElement('div');
           leadBox.style.marginTop = '8px';
-          leadBox.style.padding = '8px 10px';
-          leadBox.style.background = '#FFFBEB';
+          leadBox.style.padding = '10px';
+          leadBox.style.background = 'linear-gradient(to right, #FFFBEB, #EEF2FF)';
           leadBox.style.border = '1px solid #FDE68A';
-          leadBox.style.borderRadius = '8px';
+          leadBox.style.borderRadius = '10px';
+          
+          let waBtnHtml = '';
+          if (businessData && businessData.whatsapp_number) {
+            const cleanWa = businessData.whatsapp_number.replace(/[^0-9]/g, '');
+            waBtnHtml = `<a href="https://wa.me/${cleanWa}?text=Hi%2C%20I%20have%20an%20inquiry%20regarding%20${encodeURIComponent(businessData.name || 'your store')}" target="_blank" style="background:#059669; color:#FFFFFF; text-decoration:none; padding:5px 9px; font-size:11px; border-radius:6px; font-weight:600; display:inline-flex; align-items:center; gap:3px;">💬 WhatsApp</a>`;
+          }
+
           leadBox.innerHTML = `
-            <div style="font-size:11.5px; color:#92400E; font-weight:500; margin-bottom:4px;">Need team follow-up?</div>
-            <div style="display:flex; gap:6px;">
-              <input type="email" placeholder="your@email.com" style="flex:1; padding:4px 8px; font-size:11.5px; background:#FFFFFF; color:#0F172A; border:1px solid #CBD5E1; border-radius:4px;" />
-              <button style="padding:4px 8px; font-size:11.5px; background:#D97706; color:white; border:none; border-radius:4px; font-weight:600; cursor:pointer;">Send</button>
+            <div style="font-size:11.5px; color:#1E293B; font-weight:700; margin-bottom:4px;">Need team follow-up or callback?</div>
+            <div style="font-size:11px; color:#64748B; margin-bottom:8px;">Our team can contact you via phone, email, or WhatsApp.</div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <button class="iveri-cb-handoff-btn" style="background:#4F46E5; color:#FFFFFF; border:none; padding:5px 10px; font-size:11px; border-radius:6px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; gap:3px;">📞 Request Callback</button>
+              ${waBtnHtml}
             </div>
           `;
-          const btn = leadBox.querySelector('button');
-          const inp = leadBox.querySelector('input');
-          btn.onclick = () => {
-            if (inp.value) {
-              fetch(`${apiBaseUrl}/api/chat/session/${sessionId}/lead`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: inp.value })
-              }).then(() => { leadBox.innerHTML = '<span style="font-size:11.5px; color:#059669; font-weight:500;">✓ Email recorded! Team will reach out.</span>'; });
-            }
-          };
+          
+          const cbBtn = leadBox.querySelector('.iveri-cb-handoff-btn');
+          if (cbBtn) {
+            cbBtn.onclick = () => openWidgetCallbackModal();
+          }
           botBubble.appendChild(leadBox);
         }
 

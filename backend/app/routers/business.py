@@ -42,6 +42,10 @@ async def get_business_settings(owner: User = Depends(get_current_owner), db: As
         custom_prompt=getattr(business, "custom_prompt", "") or "",
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
+        whatsapp_number=business.whatsapp_number or "",
+        enable_callback=getattr(business, "enable_callback", True) if getattr(business, "enable_callback", None) is not None else True,
+        callback_channel=getattr(business, "callback_channel", "phone_and_email") or "phone_and_email",
+        callback_button_text=getattr(business, "callback_button_text", "Request Callback") or "Request Callback",
         shareable_link=shareable_link,
         embed_snippet=embed_snippet
     )
@@ -76,6 +80,14 @@ async def update_business_settings(
         business.fallback_message = req.fallback_message
     if req.starter_questions is not None:
         business.starter_questions = req.starter_questions
+    if req.whatsapp_number is not None:
+        business.whatsapp_number = req.whatsapp_number.strip()
+    if req.enable_callback is not None:
+        business.enable_callback = req.enable_callback
+    if req.callback_channel is not None:
+        business.callback_channel = req.callback_channel
+    if req.callback_button_text is not None:
+        business.callback_button_text = req.callback_button_text.strip()
 
     await db.commit()
     await db.refresh(business)
@@ -96,6 +108,10 @@ async def update_business_settings(
         custom_prompt=getattr(business, "custom_prompt", "") or "",
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
+        whatsapp_number=business.whatsapp_number or "",
+        enable_callback=getattr(business, "enable_callback", True) if getattr(business, "enable_callback", None) is not None else True,
+        callback_channel=getattr(business, "callback_channel", "phone_and_email") or "phone_and_email",
+        callback_button_text=getattr(business, "callback_button_text", "Request Callback") or "Request Callback",
         shareable_link=shareable_link,
         embed_snippet=embed_snippet
     )
@@ -194,5 +210,9 @@ async def get_public_business_info(slug_or_token: str, db: AsyncSession = Depend
         custom_prompt=getattr(business, "custom_prompt", "") or "",
         fallback_message=business.fallback_message,
         starter_questions=business.starter_questions,
+        whatsapp_number=business.whatsapp_number or "",
+        enable_callback=getattr(business, "enable_callback", True) if getattr(business, "enable_callback", None) is not None else True,
+        callback_channel=getattr(business, "callback_channel", "phone_and_email") or "phone_and_email",
+        callback_button_text=getattr(business, "callback_button_text", "Request Callback") or "Request Callback",
         document_count=doc_count
     )

@@ -1,5 +1,5 @@
 import json
-from sqlalchemy import Column, String, Text
+from sqlalchemy import Column, String, Text, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
 from app.models.base import TimestampMixin, generate_uuid
@@ -20,6 +20,9 @@ class Business(Base, TimestampMixin):
     welcome_message = Column(Text, default="Hello! How can I help you today?", nullable=False)
     custom_prompt = Column(Text, default="", nullable=False)
     whatsapp_number = Column(String(50), default="", nullable=False)
+    enable_callback = Column(Boolean, default=True, nullable=False)
+    callback_channel = Column(String(50), default="phone_and_email", nullable=False)
+    callback_button_text = Column(String(100), default="Request Callback", nullable=False)
     fallback_message = Column(
         Text, 
         default="I'm sorry, but I do not have this information in my documents. I have logged your question for our team to assist you.",

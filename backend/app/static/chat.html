@@ -110,6 +110,14 @@
       </div>
       
       <div class="flex items-center space-x-1.5 sm:space-x-2">
+        <button id="btn-request-callback" onclick="openCallbackModal()" class="hidden inline-flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-primary border border-primary/20 text-xs font-semibold shadow-xs transition active:scale-95" title="Request a human callback">
+          <span class="material-symbols-outlined text-[14px]">phone_callback</span>
+          <span id="label-request-callback">Request Callback</span>
+        </button>
+        <a id="btn-whatsapp-direct" href="#" target="_blank" class="hidden inline-flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-semibold shadow-xs transition active:scale-95" title="Chat on WhatsApp">
+          <span class="material-symbols-outlined text-[14px]">chat</span>
+          <span class="hidden sm:inline">WhatsApp</span>
+        </a>
         <button onclick="shareCurrentChat()" title="Share this conversation" class="inline-flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-1 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 text-xs font-semibold shadow-xs transition active:scale-95">
           <span class="material-symbols-outlined text-[14px] text-primary">share</span>
           <span class="hidden xs:inline">Share</span>
@@ -178,14 +186,23 @@
     <!-- Input Footer -->
     <footer class="p-3 sm:p-4 bg-white border-t border-slate-200 space-y-2.5 sm:space-y-3">
       <!-- Human Handoff Banner (if triggered) -->
-      <div id="handoff-box" class="hidden bg-amber-50 border border-amber-200 p-3 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs text-amber-800">
+      <div id="handoff-box" class="hidden p-3 sm:p-3.5 bg-gradient-to-r from-amber-50 via-orange-50 to-indigo-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs text-amber-950 shadow-xs">
         <div class="flex items-center space-x-2">
-          <span class="material-symbols-outlined text-amber-600 text-lg shrink-0">mail</span>
-          <span class="font-medium">Could not find an answer in verified docs? Leave your email:</span>
+          <span class="material-symbols-outlined text-amber-600 text-xl shrink-0">support_agent</span>
+          <div>
+            <div class="font-bold text-slate-900">Need team follow-up or callback?</div>
+            <div class="text-[11px] text-slate-600">Request a phone callback or leave a message for our support staff.</div>
+          </div>
         </div>
-        <div class="flex w-full sm:w-auto items-center space-x-2">
-          <input type="email" id="lead-email" placeholder="you@domain.com" class="px-3 py-2 text-base sm:text-xs bg-white border border-amber-300 rounded-lg text-slate-900 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 flex-1 sm:w-56" />
-          <button onclick="submitLeadEmail()" class="px-3.5 py-2 sm:py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold whitespace-nowrap transition shadow-xs">Notify Me</button>
+        <div class="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+          <button onclick="openCallbackModal()" class="px-3.5 py-1.5 bg-primary hover:bg-primary-hover text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+            <span class="material-symbols-outlined text-[14px]">phone_callback</span>
+            <span id="handoff-cb-btn-label">Request Callback</span>
+          </button>
+          <a id="handoff-wa-link" href="#" target="_blank" class="hidden px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition shadow-xs flex items-center gap-1.5">
+            <span class="material-symbols-outlined text-[14px]">chat</span>
+            <span>WhatsApp</span>
+          </a>
         </div>
       </div>
 
@@ -224,7 +241,36 @@
         const res = await fetch(`/api/public/business/${businessSlug}`);
         if (res.ok) {
           const data = await res.json();
+          publicBizData = data;
           document.getElementById('biz-name').innerText = data.name;
+          const modalBizTitle = document.getElementById('modal-biz-title');
+          if (modalBizTitle) modalBizTitle.innerText = `Request Callback from ${data.name}`;
+
+          // Configure Callback Button
+          if (data.enable_callback !== false) {
+            const cbBtn = document.getElementById('btn-request-callback');
+            if (cbBtn) cbBtn.classList.remove('hidden');
+            const cbLabel = document.getElementById('label-request-callback');
+            if (cbLabel && data.callback_button_text) cbLabel.innerText = data.callback_button_text;
+            const handoffBtnLabel = document.getElementById('handoff-cb-btn-label');
+            if (handoffBtnLabel && data.callback_button_text) handoffBtnLabel.innerText = data.callback_button_text;
+          }
+
+          // Configure WhatsApp Direct Button
+          if (data.whatsapp_number) {
+            const cleanWa = data.whatsapp_number.replace(/[^0-9]/g, '');
+            const waUrl = `https://wa.me/${cleanWa}?text=Hi%2C%20I%20have%20an%20inquiry%20regarding%20${encodeURIComponent(data.name)}`;
+            const waBtn = document.getElementById('btn-whatsapp-direct');
+            if (waBtn) {
+              waBtn.href = waUrl;
+              waBtn.classList.remove('hidden');
+            }
+            const handoffWa = document.getElementById('handoff-wa-link');
+            if (handoffWa) {
+              handoffWa.href = waUrl;
+              handoffWa.classList.remove('hidden');
+            }
+          }
           if (data.starter_questions && data.starter_questions.length > 0) {
             renderStarters(data.starter_questions);
           } else {
@@ -271,6 +317,7 @@
       const text = input.value.trim();
       if (!text || !sessionId) return;
 
+      lastUserQuestion = text;
       // Hide starters once conversation starts
       document.getElementById('starter-container').classList.add('hidden');
       input.value = '';
@@ -500,7 +547,126 @@
       });
     }
 
+    
+    let publicBizData = null;
+    let lastUserQuestion = "";
+
+    function openCallbackModal() {
+      const modal = document.getElementById('callback-modal');
+      if (!modal) return;
+      const noteInput = document.getElementById('cb-note');
+      if (noteInput && !noteInput.value && lastUserQuestion) {
+        noteInput.value = "Regarding inquiry: " + lastUserQuestion;
+      }
+      modal.classList.remove('hidden');
+      document.getElementById('cb-contact')?.focus();
+    }
+
+    function closeCallbackModal() {
+      const modal = document.getElementById('callback-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    async function submitCallbackRequest() {
+      const contact = document.getElementById('cb-contact')?.value.trim();
+      const name = document.getElementById('cb-name')?.value.trim() || '';
+      const note = document.getElementById('cb-note')?.value.trim() || lastUserQuestion || 'General callback request';
+      
+      if (!contact) {
+        alert("Please provide your phone number or email address so we can reach you.");
+        return;
+      }
+      if (!sessionId) {
+        alert("Session not initialized. Please refresh the page.");
+        return;
+      }
+
+      const btn = document.getElementById('cb-submit-btn');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = "Submitting...";
+      }
+
+      try {
+        const res = await fetch('/api/chat/contact-request', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            session_id: sessionId,
+            customer_name: name,
+            customer_contact: contact,
+            message: note,
+            channel: 'public_link'
+          })
+        });
+
+        if (res.ok) {
+          const result = await res.json();
+          closeCallbackModal();
+          
+          // Append verified confirmation bubble to chat
+          const confirmText = `✅ **Callback Request Submitted! (Ticket #${result.ticket_number})**\n\nThank you ${name ? name : ''}! Our team has been notified with high priority and will contact you promptly at **${escapeHtml(contact)}**.\n\n*Details:* "${escapeHtml(note)}"`;
+          appendMessage('assistant', confirmText);
+          
+          const hBox = document.getElementById('handoff-box');
+          if (hBox) hBox.classList.add('hidden');
+        } else {
+          alert("Could not submit request. Please try again.");
+        }
+      } catch (err) {
+        console.error("Callback submission error:", err);
+        alert("Network error submitting request.");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span class="material-symbols-outlined text-[15px]">send</span><span>Submit Request</span>';
+        }
+      }
+    }
+
     window.onload = init;
   </script>
+  <!-- Human Callback / Contact Request Modal -->
+  <div id="callback-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-150">
+      <div class="flex items-start justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
+            <span class="material-symbols-outlined text-[20px]">phone_callback</span>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-sm sm:text-base tracking-tight" id="modal-biz-title">Request Human Callback</h3>
+            <p class="text-xs text-slate-500 font-mono">Our team will be alerted and follow up promptly.</p>
+          </div>
+        </div>
+        <button onclick="closeCallbackModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">
+          <span class="material-symbols-outlined text-[20px]">close</span>
+        </button>
+      </div>
+
+      <div class="space-y-3 font-sans text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Your Name (Optional)</label>
+          <input type="text" id="cb-name" placeholder="e.g. Sarah Connor" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:bg-white focus:border-primary text-xs" />
+        </div>
+        <div id="cb-contact-container">
+          <label id="cb-contact-label" class="block font-semibold text-slate-700 mb-1">Phone Number or Email <span class="text-rose-500">*</span></label>
+          <input type="text" id="cb-contact" placeholder="e.g. +91 98765 43210 or name@example.com" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:bg-white focus:border-primary text-xs" />
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">How can we help? / Preferred Time</label>
+          <textarea id="cb-note" rows="3" placeholder="Brief details about what you need assistance with..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 focus:outline-none focus:bg-white focus:border-primary text-xs"></textarea>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+        <button type="button" onclick="closeCallbackModal()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold transition">Cancel</button>
+        <button type="button" onclick="submitCallbackRequest()" id="cb-submit-btn" class="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-semibold transition shadow-xs flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[15px]">send</span>
+          <span>Submit Request</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>

@@ -11,6 +11,10 @@ class BusinessSettingsUpdateRequest(BaseModel):
     custom_prompt: Optional[str] = Field(None, max_length=2000)
     fallback_message: Optional[str] = Field(None, min_length=5, max_length=1000)
     starter_questions: Optional[List[str]] = Field(None, max_length=8)
+    whatsapp_number: Optional[str] = Field(None, max_length=50)
+    enable_callback: Optional[bool] = None
+    callback_channel: Optional[str] = Field(None, pattern="^(phone_and_email|phone|email|whatsapp)$")
+    callback_button_text: Optional[str] = Field(None, max_length=100)
 
 class BusinessSettingsResponse(BaseModel):
     id: str
@@ -25,6 +29,10 @@ class BusinessSettingsResponse(BaseModel):
     custom_prompt: str = ""
     fallback_message: str
     starter_questions: List[str]
+    whatsapp_number: str = ""
+    enable_callback: bool = True
+    callback_channel: str = "phone_and_email"
+    callback_button_text: str = "Request Callback"
     shareable_link: str
     embed_snippet: str
 
@@ -40,4 +48,8 @@ class PublicBusinessInfoResponse(BaseModel):
     custom_prompt: str = ""
     fallback_message: str
     starter_questions: List[str]
+    whatsapp_number: str = ""
+    enable_callback: bool = True
+    callback_channel: str = "phone_and_email"
+    callback_button_text: str = "Request Callback"
     document_count: int
