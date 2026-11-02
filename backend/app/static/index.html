@@ -31,7 +31,7 @@
   <!-- Firebase 10 Web SDK with Google Auth -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCuSu2rb9kOxAU6khZ19W8YpsaE-o4iy9U",
@@ -57,28 +57,82 @@
       window.firebaseGetRedirectResult = getRedirectResult;
       console.log("[Iveri Firebase] Google Auth SDK initialized successfully.");
 
-      // Automatically handle mobile redirect auth result
-      getRedirectResult(auth).then(async (result) => {
-        if (result && result.user) {
-          console.log("[Iveri Firebase] Redirect sign-in success:", result.user.email);
-          const idToken = await result.user.getIdToken();
+      // Helper to finalize Firebase token exchange with Iveri backend
+      async function completeFirebaseSignIn(user) {
+        if (!user) return;
+        const loadingBox = document.getElementById('auth-google-loading');
+        const loadingTitle = document.getElementById('auth-google-loading-title');
+        const loadingDesc = document.getElementById('auth-google-loading-desc');
+        if (loadingBox) {
+          loadingBox.classList.remove('hidden');
+          if (loadingTitle) loadingTitle.innerText = `Connecting as ${user.email}...`;
+          if (loadingDesc) loadingDesc.innerText = "Securing session with Iveri backend...";
+        }
+
+        try {
+          const idToken = await user.getIdToken();
           const res = await fetch('/api/auth/firebase-login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               id_token: idToken,
-              business_name: result.user.displayName ? `${result.user.displayName}'s Workspace` : 'Google Business Workspace'
+              business_name: user.displayName ? `${user.displayName}'s Workspace` : 'Google Business Workspace'
             })
           });
+
           if (res.ok) {
             const data = await res.json();
+            window.authToken = data.access_token;
             localStorage.setItem('iveri_token', data.access_token);
-            window.location.reload();
+            document.getElementById('auth-modal')?.classList.add('hidden');
+            if (loadingBox) loadingBox.classList.add('hidden');
+            if (typeof window.init === 'function') {
+              await window.init();
+            }
+            if (typeof window.showToast === 'function') {
+              window.showToast("🎉 Signed in as " + (user.displayName || user.email), "success");
+            }
+          } else {
+            const err = await res.json().catch(() => ({}));
+            if (loadingBox) loadingBox.classList.add('hidden');
+            console.error("[Iveri Firebase] Backend rejection:", err);
+            alert("Backend Authentication Error: " + (err.detail || "Authentication token rejected by server"));
           }
+        } catch (syncErr) {
+          console.error("[Iveri Firebase] Sync error:", syncErr);
+          if (loadingBox) loadingBox.classList.add('hidden');
+          alert("Network or verification error: " + (syncErr.message || syncErr));
+        }
+      }
+      window.completeFirebaseSignIn = completeFirebaseSignIn;
+
+      // Automatically handle mobile redirect auth result
+      getRedirectResult(auth).then(async (result) => {
+        if (result && result.user) {
+          console.log("[Iveri Firebase] Redirect sign-in success:", result.user.email);
+          await completeFirebaseSignIn(result.user);
         }
       }).catch((err) => {
-        console.warn("[Iveri Firebase] Redirect result note:", err);
+        console.error("[Iveri Firebase] Redirect result error:", err);
+        if (err.code === 'auth/unauthorized-domain') {
+          if (typeof window.showFirebaseDomainHelper === 'function') {
+            window.showFirebaseDomainHelper();
+          } else {
+            alert("Firebase Domain Error: Please add 'iveri-ai-support.onrender.com' in Firebase Console > Authentication > Settings > Authorized Domains.");
+          }
+        } else {
+          alert("Google Sign-In notice: " + (err.message || err));
+        }
       });
+
+      // Listen for authenticated user state (survives page reloads & redirects)
+      onAuthStateChanged(auth, async (user) => {
+        if (user && !localStorage.getItem('iveri_token')) {
+          console.log("[Iveri Firebase] Active user detected without session:", user.email);
+          await completeFirebaseSignIn(user);
+        }
+      });
+
     } catch (err) {
       console.warn("[Iveri Firebase] SDK initialization note:", err);
     }
@@ -1688,6 +1742,14 @@
       </div>
 
       <!-- Google Firebase Sign-In / Register Button -->
+      <div id="auth-google-loading" class="hidden p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs font-sans text-indigo-900 flex items-center gap-2.5">
+        <div class="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin shrink-0"></div>
+        <div class="flex-1">
+          <div class="font-bold text-xs" id="auth-google-loading-title">Connecting to Google...</div>
+          <div class="text-[11px] text-indigo-700" id="auth-google-loading-desc">Logging you into your Iveri Workspace.</div>
+        </div>
+      </div>
+
       <button type="button" onclick="loginWithGoogleFirebase()" class="w-full py-2.5 px-4 bg-white hover:bg-slate-50 border border-slate-300 hover:border-slate-400 text-slate-800 rounded-xl text-xs font-mono font-semibold transition shadow-xs flex items-center justify-center gap-2.5 cursor-pointer">
         <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
           <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -1775,13 +1837,29 @@
         <div class="p-3.5 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl space-y-2 transition">
           <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
             <span class="material-symbols-outlined text-emerald-600 text-[18px]">android</span>
-            <span>Android (Chrome / Samsung Internet / Brave)</span>
+            <span>Android Phone (Chrome / Samsung Internet / Brave)</span>
           </div>
-          <ol class="text-[11px] text-slate-600 list-decimal list-inside space-y-1 font-sans pl-1">
-            <li>Tap the <strong>three dots (⋮)</strong> at the top-right corner of Chrome.</li>
-            <li>Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</li>
-            <li>The full app will install directly onto your home screen and app drawer with native push support!</li>
+          <ol class="text-[11px] text-slate-600 list-decimal list-inside space-y-1.5 font-sans pl-1">
+            <li>Tap the <strong>three dots (⋮)</strong> in Chrome (or the "Install Now" button above).</li>
+            <li>Tap <strong>"Install app"</strong> (or "Add to Home screen") ➔ Confirm <strong>"Install"</strong>.</li>
+            <li><strong>Where is it?</strong> Android adds the app in the background. Swipe to your <strong>Home Screen</strong> or open your <strong>App Drawer</strong> to find and open the <strong>"Iveri"</strong> app icon!</li>
           </ol>
+        </div>
+
+        <!-- Standalone APK Packaging -->
+        <div class="p-3.5 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-2">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2 text-xs font-bold text-indigo-950">
+              <span class="material-symbols-outlined text-indigo-600 text-[18px]">apk_install</span>
+              <span>Prefer a Direct Standalone .APK File?</span>
+            </div>
+            <span class="text-[10px] font-bold bg-indigo-200 text-indigo-800 px-1.5 py-0.5 rounded font-mono">1-Click</span>
+          </div>
+          <p class="text-[11px] text-slate-600 font-sans">You can generate and download a signed standalone Android APK package instantly through Microsoft PWABuilder.</p>
+          <a href="https://www.pwabuilder.com?url=https%3A%2F%2Fiveri-ai-support.onrender.com" target="_blank" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition shadow-xs">
+            <span class="material-symbols-outlined text-[16px]">download</span>
+            <span>Generate & Download Standalone APK</span>
+          </a>
         </div>
 
         <!-- iOS Guide -->
@@ -3043,72 +3121,95 @@
     }
 
     async function loginWithGoogleFirebase() {
+      const btnLabel = document.getElementById('google-auth-btn-label');
+      const loadingBox = document.getElementById('auth-google-loading');
       try {
         if (!window.firebaseAuth || !window.googleAuthProvider) {
           alert("Google Firebase Auth SDK is initializing. Please check your internet connection and try again.");
           return;
         }
-        const btnLabel = document.getElementById('google-auth-btn-label');
         if (btnLabel) btnLabel.innerText = "Connecting to Google...";
-
-        // Check if device is mobile or popup blocked
-        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        let result = null;
-        if (isMobileDevice && window.firebaseSignInWithRedirect) {
-          // On mobile devices, redirect prevents popup blocker issues
-          console.log("[Iveri Firebase] Mobile device detected, initiating redirect flow...");
-          await window.firebaseSignInWithRedirect(window.firebaseAuth, window.googleAuthProvider);
-          return;
+        if (loadingBox) {
+          loadingBox.classList.remove('hidden');
+          const t = document.getElementById('auth-google-loading-title');
+          const d = document.getElementById('auth-google-loading-desc');
+          if (t) t.innerText = "Connecting to Google...";
+          if (d) d.innerText = "Opening Google Account selector...";
         }
 
+        let user = null;
+
+        // Try direct in-page Google popup first (touch events on mobile support this smoothly)
         if (window.firebaseSignInWithPopup) {
           try {
-            result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleAuthProvider);
+            const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleAuthProvider);
+            user = result ? result.user : null;
           } catch (popupErr) {
-            if (popupErr.code === 'auth/popup-blocked' && window.firebaseSignInWithRedirect) {
-              console.log("[Iveri Firebase] Popup blocked, falling back to redirect flow...");
+            console.warn("[Iveri Firebase] Popup attempt:", popupErr);
+            if (popupErr.code === 'auth/popup-closed-by-user' || popupErr.code === 'auth/cancelled-popup-request') {
+              if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
+              if (loadingBox) loadingBox.classList.add('hidden');
+              return;
+            }
+            if (popupErr.code === 'auth/unauthorized-domain') {
+              if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
+              if (loadingBox) loadingBox.classList.add('hidden');
+              showFirebaseDomainHelper();
+              return;
+            }
+            // Fall back to redirect if popup is strictly blocked
+            if (window.firebaseSignInWithRedirect && (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/operation-not-supported-in-this-environment')) {
+              console.log("[Iveri Firebase] Switching to redirect flow...");
               await window.firebaseSignInWithRedirect(window.firebaseAuth, window.googleAuthProvider);
               return;
             }
             throw popupErr;
           }
-        }
-
-        if (!result || !result.user) return;
-
-        const user = result.user;
-        const idToken = await user.getIdToken();
-
-        const res = await fetch('/api/auth/firebase-login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id_token: idToken,
-            business_name: user.displayName ? `${user.displayName}'s Workspace` : 'Google Business Workspace'
-          })
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
-          alert("Google sign-in error: " + (err.detail || "Authentication token rejected"));
+        } else if (window.firebaseSignInWithRedirect) {
+          await window.firebaseSignInWithRedirect(window.firebaseAuth, window.googleAuthProvider);
           return;
         }
 
-        const data = await res.json();
-        authToken = data.access_token;
-        localStorage.setItem('iveri_token', authToken);
-        toggleAuthModal();
-        await init();
-        alert("🎉 Welcome " + (user.displayName || user.email) + "! Signed in with Google.");
+        if (!user) {
+          if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
+          if (loadingBox) loadingBox.classList.add('hidden');
+          return;
+        }
+
+        // Use global completion helper if available
+        if (window.completeFirebaseSignIn) {
+          await window.completeFirebaseSignIn(user);
+        } else {
+          const idToken = await user.getIdToken();
+          const res = await fetch('/api/auth/firebase-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id_token: idToken,
+              business_name: user.displayName ? `${user.displayName}'s Workspace` : 'Google Business Workspace'
+            })
+          });
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
+            if (loadingBox) loadingBox.classList.add('hidden');
+            alert("Google sign-in error: " + (err.detail || "Authentication token rejected"));
+            return;
+          }
+
+          const data = await res.json();
+          authToken = data.access_token;
+          localStorage.setItem('iveri_token', authToken);
+          document.getElementById('auth-modal')?.classList.add('hidden');
+          if (loadingBox) loadingBox.classList.add('hidden');
+          await init();
+          alert("🎉 Welcome " + (user.displayName || user.email) + "! Signed in with Google.");
+        }
       } catch (e) {
         console.error("Google Auth error:", e);
-        const btnLabel = document.getElementById('google-auth-btn-label');
         if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
-        if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
-          return;
-        }
+        if (loadingBox) loadingBox.classList.add('hidden');
         if (e.code === 'auth/unauthorized-domain') {
           showFirebaseDomainHelper();
           return;
@@ -3735,6 +3836,14 @@
       if (banner && !localStorage.getItem('pwa_banner_dismissed')) {
         banner.classList.remove('hidden');
       }
+    });
+
+    window.addEventListener('appinstalled', (evt) => {
+      console.log('[Iveri PWA] App was successfully installed to OS!');
+      document.getElementById('pwa-install-btn')?.classList.add('hidden');
+      document.getElementById('pwa-mobile-banner')?.classList.add('hidden');
+      closePwaInstallModal();
+      alert("🎉 Iveri has been successfully installed!\n\nAndroid added the 'Iveri' app icon to your phone's Home Screen and App Drawer. You can now tap the Iveri icon to launch the full standalone app.");
     });
 
     function openPwaInstallModal() {
