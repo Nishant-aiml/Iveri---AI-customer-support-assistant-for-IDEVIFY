@@ -4,6 +4,29 @@ from app.config import settings
 
 logger = logging.getLogger("idevify-twilio-service")
 
+def normalize_phone_number(phone: str, default_country_code: str = "+91") -> str:
+    """
+    Normalizes any customer phone number format into strict E.164 (+<country><digits>).
+    Handles 10-digit Indian numbers (prefixing default_country_code), leading zeros, dashes, and spaces.
+    """
+    if not phone:
+        return ""
+    p = str(phone).strip()
+    if p.startswith("whatsapp:"):
+        p = p[9:].strip()
+    digits = "".join(c for c in p if c.isdigit() or c == "+")
+    if digits.startswith("+"):
+        return digits
+    if digits.startswith("0") and len(digits) == 11:
+        digits = digits[1:]
+    if len(digits) == 10 and digits[0] in "6789":
+        return f"{default_country_code}{digits}"
+    if len(digits) == 12 and digits.startswith("91"):
+        return f"+{digits}"
+    if not digits.startswith("+"):
+        return f"+{digits}"
+    return digits
+
 class TwilioService:
     def __init__(self):
         self.account_sid = settings.TWILIO_ACCOUNT_SID
@@ -33,9 +56,8 @@ class TwilioService:
             logger.info(f"[TWILIO_MOCK_DISPATCH] To: {to_number} | Message: {message_text[:60]}...")
             return {"status": "mocked", "detail": "Twilio credentials not configured in environment"}
 
-        clean_to = to_number.strip()
-        if not clean_to.startswith("whatsapp:"):
-            clean_to = f"whatsapp:{clean_to}"
+        norm_number = normalize_phone_number(to_number)
+        clean_to = f"whatsapp:{norm_number}"
 
         url = f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json"
         data = {

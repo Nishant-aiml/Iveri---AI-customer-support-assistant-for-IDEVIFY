@@ -261,6 +261,22 @@ async def resolve_ticket(
     except Exception as e:
         logger.warning(f"Note syncing UnansweredQuestion: {e}")
 
+    # 4c. Append resolution message to customer's chat session if linked
+    if ticket.session_id:
+        try:
+            from app.models.chat import ChatMessage
+            chat_msg = ChatMessage(
+                session_id=ticket.session_id,
+                sender="assistant",
+                content=f"✅ Support Update regarding Ticket #{ticket.ticket_number}:\n\n{req.resolved_answer}",
+                is_answered=True,
+                confidence_score=1.0,
+                llm_provider_used="human_verified"
+            )
+            db.add(chat_msg)
+        except Exception as e:
+            logger.warning(f"Note appending resolution to session {ticket.session_id}: {e}")
+
     # 5. Outbound WhatsApp Notification to Customer (if contact phone exists and WhatsApp is enabled)
     biz_record = (await db.execute(select(Business).where(Business.id == biz_id))).scalar_one_or_none()
     is_whatsapp_enabled = getattr(biz_record, "enable_whatsapp", True) is not False if biz_record else True
@@ -268,13 +284,15 @@ async def resolve_ticket(
     target_phone = ticket.customer_phone or (ticket.customer_email if ticket.channel == "whatsapp" else None)
     if target_phone and is_whatsapp_enabled:
         try:
-            from app.services.twilio_service import twilio_service
-            await twilio_service.notify_customer_ticket_resolved(
-                customer_phone=target_phone,
+            from app.services.twilio_service import twilio_service, normalize_phone_number
+            norm_phone = normalize_phone_number(target_phone)
+            res_wa = await twilio_service.notify_customer_ticket_resolved(
+                customer_phone=norm_phone,
                 ticket_number=ticket.ticket_number,
                 question=ticket.description or ticket.subject or "Inquiry",
                 resolved_answer=req.resolved_answer
             )
+            logger.info(f"Outbound customer WhatsApp resolution result: {res_wa}")
         except Exception as e:
             logger.warning(f"Twilio WhatsApp customer resolution notification note: {e}")
 
@@ -296,3 +314,59 @@ async def resolve_ticket(
     await db.commit()
     await db.refresh(ticket)
     return ticket
+
+
+@router.post("/{ticket_id}/notify-customer")
+async def notify_customer_ticket(
+    ticket_id: str,
+    channel_type: Optional[str] = Query(None, description="'whatsapp', 'email', or 'all'"),
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Explicitly re-sends or dispatches the ticket resolution answer to the customer's phone (WhatsApp) and/or email.
+    Works for open or resolved tickets.
+    """
+    biz_id = owner.business_id
+    query = select(Ticket).where(
+        Ticket.business_id == biz_id,
+        (Ticket.id == ticket_id) | (Ticket.ticket_number == ticket_id)
+    )
+    ticket = (await db.execute(query)).scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found.")
+
+    answer = ticket.resolved_answer or ticket.description
+    if not answer:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No answer or message available to send.")
+
+    results = {}
+    biz_record = (await db.execute(select(Business).where(Business.id == biz_id))).scalar_one_or_none()
+
+    # WhatsApp
+    target_phone = ticket.customer_phone or (ticket.customer_email if ticket.channel == "whatsapp" else None)
+    if target_phone and channel_type in (None, "whatsapp", "all"):
+        from app.services.twilio_service import twilio_service, normalize_phone_number
+        norm_phone = normalize_phone_number(target_phone)
+        wa_res = await twilio_service.notify_customer_ticket_resolved(
+            customer_phone=norm_phone,
+            ticket_number=ticket.ticket_number,
+            question=ticket.description or ticket.subject or "Inquiry",
+            resolved_answer=answer
+        )
+        results["whatsapp"] = wa_res
+
+    # Email
+    if ticket.customer_email and "@" in ticket.customer_email and channel_type in (None, "email", "all"):
+        from app.services.email_service import email_service
+        em_res = await email_service.send_customer_ticket_resolved(
+            to_email=ticket.customer_email,
+            business_name=biz_record.name if biz_record else "Iveri Support",
+            ticket_number=ticket.ticket_number,
+            question_text=ticket.description or ticket.subject or "Inquiry",
+            resolved_answer=answer,
+            customer_name=ticket.customer_name
+        )
+        results["email"] = em_res
+
+    return {"status": "dispatched", "ticket_number": ticket.ticket_number, "results": results}
