@@ -7,7 +7,7 @@ logger = logging.getLogger("idevify-tickets-router")
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import desc
+from sqlalchemy import desc, delete
 from app.database import get_db
 from app.models.user import User
 from app.models.business import Business
@@ -393,3 +393,29 @@ async def notify_customer_ticket(
         results["email"] = em_res
 
     return {"status": "dispatched", "ticket_number": ticket.ticket_number, "results": results}
+
+@router.delete("/{ticket_id}", status_code=status.HTTP_200_OK)
+async def delete_ticket(
+    ticket_id: str,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Permanently deletes a support ticket for the authenticated business owner."""
+    biz_id = owner.business_id
+    query = select(Ticket).where(
+        Ticket.business_id == biz_id,
+        (Ticket.id == ticket_id) | (Ticket.ticket_number == ticket_id)
+    )
+    ticket = (await db.execute(query)).scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found.")
+
+    await db.execute(
+        delete(Notification).where(
+            Notification.business_id == biz_id,
+            Notification.ticket_id == ticket.id
+        )
+    )
+    await db.delete(ticket)
+    await db.commit()
+    return {"status": "success", "message": f"Ticket #{ticket.ticket_number} deleted successfully."}

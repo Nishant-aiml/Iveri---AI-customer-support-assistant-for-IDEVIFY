@@ -6,7 +6,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, delete, update
 from app.database import get_db
 from app.models.user import User
 from app.models.business import Business
@@ -431,6 +431,38 @@ async def get_chat_session_detail(
         has_downvote=has_downvote,
         messages=msg_responses
     )
+
+@router.delete("/chats/{session_id}", status_code=status.HTTP_200_OK)
+async def delete_chat_session(
+    session_id: str,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Permanently deletes a customer conversation session and all its messages."""
+    biz_id = owner.business_id
+    query = select(ChatSession).where(
+        ChatSession.id == session_id,
+        ChatSession.business_id == biz_id
+    )
+    session = (await db.execute(query)).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found.")
+
+    from app.models.ticket import Ticket
+    await db.execute(
+        update(Ticket).where(Ticket.session_id == session.id).values(session_id=None, message_id=None)
+    )
+
+    await db.execute(
+        delete(UnansweredQuestion).where(
+            UnansweredQuestion.session_id == session.id,
+            UnansweredQuestion.business_id == biz_id
+        )
+    )
+
+    await db.delete(session)
+    await db.commit()
+    return {"status": "success", "message": "Conversation session deleted successfully."}
 
 @router.get("/analytics", response_model=BusinessAnalyticsResponse)
 async def get_business_analytics(

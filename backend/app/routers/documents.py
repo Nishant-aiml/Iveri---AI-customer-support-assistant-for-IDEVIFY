@@ -3,7 +3,9 @@ import os
 import uuid
 from datetime import datetime
 from typing import Dict, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query, status
+from fastapi.responses import FileResponse
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc
@@ -13,7 +15,7 @@ from app.models.user import User
 from app.models.document import Document, DocumentChunk
 from app.models.unanswered import UnansweredQuestion
 from app.schemas.document import DocumentResponse, DocumentUploadResponse, DocumentUploadItem, ManualQACreateRequest, ManualQAResponse
-from app.utils.security import get_current_owner
+from app.utils.security import get_current_owner, security_scheme, decode_access_token
 from app.utils.upload_validator import read_and_validate_upload
 from app.services.ingestion_queue import ingestion_queue, IngestionJob
 from app.services.rag_engine import rag_engine
@@ -279,3 +281,110 @@ async def delete_document(
     await db.commit()
 
     return {"status": "success", "message": f"Document '{doc.file_name}' and its knowledge chunks were permanently removed."}
+
+async def _resolve_doc_owner(
+    token: Optional[str] = None,
+    auth: Optional[HTTPAuthorizationCredentials] = None,
+    db: AsyncSession = None
+) -> User:
+    raw_token = auth.credentials if (auth and auth.credentials) else token
+    if not raw_token:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication token required.")
+    payload = decode_access_token(raw_token)
+    user_id = payload.get("sub") if payload else None
+    if not user_id:
+        try:
+            from app.services.firebase_auth import firebase_auth_service
+            fb_decoded = firebase_auth_service.verify_token(raw_token)
+            user_id = fb_decoded.get("uid")
+        except Exception:
+            pass
+    if not user_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token.")
+    user = (await db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+    if not user or user.role != "owner":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied. Business owner role required.")
+    return user
+
+@router.get("/{document_id}/file")
+async def preview_document_file(
+    document_id: str,
+    token: Optional[str] = Query(None),
+    auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
+    db: AsyncSession = Depends(get_db)
+):
+    """Streams the raw uploaded PDF or document file inline so the business owner can cross-verify documents."""
+    owner = await _resolve_doc_owner(token=token, auth=auth, db=db)
+    query = select(Document).where(
+        Document.id == document_id,
+        Document.business_id == owner.business_id
+    )
+    doc = (await db.execute(query)).scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    if not doc.storage_path or not os.path.exists(doc.storage_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Physical document file not found on disk.")
+
+    ext = os.path.splitext(doc.file_name)[1].lower()
+    media_map = {
+        ".pdf": "application/pdf",
+        ".png": "image/png",
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".webp": "image/webp",
+        ".txt": "text/plain; charset=utf-8",
+        ".md": "text/markdown; charset=utf-8",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".xls": "application/vnd.ms-excel",
+    }
+    media_type = media_map.get(ext, "application/octet-stream")
+
+    return FileResponse(
+        path=doc.storage_path,
+        media_type=media_type,
+        filename=doc.file_name,
+        content_disposition_type="inline"
+    )
+
+@router.get("/{document_id}/chunks")
+async def get_document_chunks(
+    document_id: str,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieves all indexed vector & BM25 chunks for an uploaded document for owner cross-verification."""
+    query = select(Document).where(
+        Document.id == document_id,
+        Document.business_id == owner.business_id
+    )
+    doc = (await db.execute(query)).scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    chunks_q = select(DocumentChunk).where(
+        DocumentChunk.document_id == document_id,
+        DocumentChunk.business_id == owner.business_id
+    ).order_by(DocumentChunk.chunk_index)
+    chunks = (await db.execute(chunks_q)).scalars().all()
+
+    return {
+        "document_id": doc.id,
+        "file_name": doc.file_name,
+        "file_type": doc.file_type,
+        "total_chunks": len(chunks),
+        "total_pages": doc.total_pages,
+        "status": doc.status,
+        "parser_used": doc.parser_used,
+        "chunks": [
+            {
+                "id": c.id,
+                "chunk_index": c.chunk_index,
+                "page_number": c.page_number,
+                "content": c.content,
+                "metadata": c.payload
+            }
+            for c in chunks
+        ]
+    }
