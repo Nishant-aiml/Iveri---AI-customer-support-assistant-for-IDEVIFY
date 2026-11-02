@@ -1,10 +1,3 @@
-databases:
-  - name: idevify-db
-    databaseName: idevify_db
-    user: idevify
-    plan: free
-    region: oregon
-
 services:
   - type: web
     name: iveri-customer-support-assistant
@@ -18,9 +11,7 @@ services:
       - key: ENVIRONMENT
         value: production
       - key: DATABASE_URL
-        fromDatabase:
-          name: idevify-db
-          property: connectionString
+        value: sqlite+aiosqlite:///./data/idevify.db
       - key: JWT_SECRET
         generateValue: true
       - key: GEMINI_API_KEY
@@ -29,9 +20,21 @@ services:
         sync: false
       - key: SARVAM_API_KEY
         sync: false
+      - key: SARVAM_LLM_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_API_KEY_SID
+        sync: false
+      - key: TWILIO_API_KEY_SECRET
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        value: whatsapp:+14155238886
+      - key: FIREBASE_PROJECT_ID
+        value: idevify-2d7f1
       - key: CHROMA_PERSIST_DIRECTORY
-        value: ./chroma_db
+        value: ./data/chroma_db
       - key: UPLOAD_DIRECTORY
-        value: ./uploads
+        value: ./data/uploads
       - key: ALLOWED_ORIGINS
         value: "*"
