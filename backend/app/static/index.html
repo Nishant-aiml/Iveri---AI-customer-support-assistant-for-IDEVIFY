@@ -300,8 +300,8 @@
         </button>
         <button onclick="switchTab('settings')" id="tab-settings" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
           <span class="material-symbols-outlined text-[15px] sm:text-[16px]">tune</span>
-          <span class="sm:hidden">Studio</span>
-          <span class="hidden sm:inline">Widget Studio</span>
+          <span class="sm:hidden">Settings</span>
+          <span class="hidden sm:inline">Settings &amp; Studio</span>
         </button>
         <button onclick="switchTab('playground')" id="tab-playground" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
           <span class="material-symbols-outlined text-[15px] sm:text-[16px]">science</span>
@@ -1293,7 +1293,15 @@
 
       </div>
 
-      <!-- RAG Retrieval Playground Section (Directly under Settings) -->
+    </section>
+
+    <!-- 6. DEDICATED RAG PLAYGROUND TAB -->
+    <section id="view-playground" class="hidden space-y-6">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900 tracking-tight">RAG Retrieval Playground &amp; Diagnostics</h2>
+        <p class="text-xs text-slate-500 font-mono">Test queries live, examine BM25 vs Dense ChromaDB scores, inspect RRF fusion ranks, and verify circuit breaker thresholds.</p>
+      </div>
+
       <div id="settings-rag-playground" class="lumina-card p-6 rounded-2xl bg-white border border-slate-200/90 space-y-5 shadow-xs">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
           <div class="flex items-center gap-2.5">
@@ -2960,20 +2968,7 @@
 
     function switchTab(tabId) {
       if (tabId === 'unanswered') tabId = 'tickets';
-      if (tabId === 'playground') {
-        switchTab('settings');
-        const pgTab = document.getElementById('tab-playground');
-        if (pgTab) pgTab.classList.add('tab-active');
-        setTimeout(() => {
-          const pg = document.getElementById('settings-rag-playground');
-          if (pg) {
-            pg.scrollIntoView({ behavior: 'smooth' });
-            document.getElementById('playground-query-input')?.focus();
-          }
-        }, 120);
-        return;
-      }
-      ['overview', 'documents', 'tickets', 'chats', 'playground', 'settings'].forEach(t => {
+      ['overview', 'documents', 'tickets', 'chats', 'settings', 'playground'].forEach(t => {
         const el = document.getElementById(`view-${t}`);
         const tabEl = document.getElementById(`tab-${t}`);
         if (el) el.classList.add('hidden');
@@ -2983,6 +2978,12 @@
       const activeTabEl = document.getElementById(`tab-${tabId}`);
       if (activeEl) activeEl.classList.remove('hidden');
       if (activeTabEl) activeTabEl.classList.add('tab-active');
+
+      if (tabId === 'playground') {
+        setTimeout(() => {
+          document.getElementById('playground-query-input')?.focus();
+        }, 80);
+      }
 
       if (typeof updateMobileBottomNav === 'function') {
         updateMobileBottomNav(tabId);

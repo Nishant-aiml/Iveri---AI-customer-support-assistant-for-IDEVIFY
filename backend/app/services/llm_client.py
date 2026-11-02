@@ -364,7 +364,7 @@ class MultiTierLLMClient:
                     norm_s = " ".join(s.lower().split())
                     if not norm_s or len(norm_s) < 8 or norm_s in seen_contact:
                         continue
-                    if any(w in norm_s for w in ["contact:", "phone:", "phone +", "email:", "support phone", "support email", "appointments@", "clinic hours:", "store hours:", "hours:", "emergencies only", "urgent inquiries"]):
+                    if any(w in norm_s for w in ["contact:", "phone:", "phone +", "phone", "email:", "support phone", "support email", "appointments@", "clinic hours:", "store hours:", "hours:", "emergencies only", "urgent inquiries", "helpline", "emergency", "after-hours", "toll-free"]):
                         seen_contact.add(norm_s)
                         contact_bullets.append(s)
 
@@ -627,10 +627,10 @@ class MultiTierLLMClient:
                     candidate_sentences.append((matches, s))
 
         # Strict grounding check:
-        # If query has 3+ content tokens and the top candidate only matches 1 token,
+        # If query has 4+ content tokens and the top candidate only matches 1 token,
         # it is an accidental single-word collision and NOT an answer.
         max_matches = max([m for m, _ in candidate_sentences], default=0)
-        if not candidate_sentences or (len(q_tokens) >= 3 and max_matches < 2):
+        if not candidate_sentences or (len(q_tokens) >= 4 and max_matches < 2):
             logger.info(f"Extractive synthesis: Insufficient grounded answer found for query tokens {q_tokens} (max matches={max_matches}). Returning [UNKNOWN].")
             return "[UNKNOWN]"
 
