@@ -31,7 +31,7 @@ if "sqlite" in database_url:
         database_url,
         echo=False,
         future=True,
-        connect_args={"check_same_thread": False, "timeout": 30}
+        connect_args={"check_same_thread": False, "timeout": 60}
     )
 
     @event.listens_for(engine.sync_engine, "connect")
@@ -40,7 +40,7 @@ if "sqlite" in database_url:
             cursor = dbapi_connection.cursor()
             cursor.execute("PRAGMA journal_mode=WAL")
             cursor.execute("PRAGMA synchronous=NORMAL")
-            cursor.execute("PRAGMA busy_timeout=5000")
+            cursor.execute("PRAGMA busy_timeout=60000")
             cursor.close()
         except Exception as e:
             logger.warning(f"Failed to apply SQLite WAL pragmas: {e}")
