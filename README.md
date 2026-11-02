@@ -11,10 +11,14 @@
 [![Docker Multi-Stage](https://img.shields.io/badge/Docker-Multi--Stage%20Alpine-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-emerald.svg)](LICENSE)
 [![OWASP LLM Top 10](https://img.shields.io/badge/OWASP-LLM%20Top%2010%20Compliant-red.svg)](DEVOPS_SECURITY_GUARDRAILS.md)
+[![Live Production App](https://img.shields.io/badge/Live%20App-iveri--ai--support.onrender.com-46E3B7?style=for-the-badge&logo=render&logoColor=black)](https://iveri-ai-support.onrender.com)
 
 **Enterprise-grade, multi-tenant AI support platform turning static business policies into sovereign, zero-hallucination support assistants in < 2 minutes.**
 
-[Live Architecture](#-system-architecture) • [Project Blueprints & Specs](#-project-specifications--architectural-blueprints) • [Core Innovations](#-technical-uniqueness--innovations) • [Feature Matrix](#-platform-feature-matrix) • [Tech Stack](#-technology-stack) • [DevOps & Security](#-devops-cicd--cybersecurity-guardrails) • [Team](#-engineering-team--technical-ownership)
+> 🌐 **Live Web Console & API**: **[https://iveri-ai-support.onrender.com](https://iveri-ai-support.onrender.com)**  
+> 📱 **Mobile PWA & Android APK**: Installable on Android & iOS with zero app store friction, or package as a standalone APK in 1 click!
+
+[Live App & Mobile Setup](#-live-production-app--mobile-installation-pwa--android-apk) • [Live Architecture](#-system-architecture) • [Project Blueprints & Specs](#-project-specifications--architectural-blueprints) • [Core Innovations](#-technical-uniqueness--innovations) • [Feature Matrix](#-platform-feature-matrix) • [Tech Stack](#-technology-stack) • [DevOps & Security](#-devops-cicd--cybersecurity-guardrails) • [Team](#-engineering-team--technical-ownership)
 
 <br/>
 
@@ -23,6 +27,24 @@
 </p>
 
 </div>
+
+---
+
+## 📱 Live Production App & Mobile Installation (PWA / Android APK)
+
+| Channel | Platform | Access Link / Instructions |
+| :--- | :--- | :--- |
+| 🌐 **Live Production Console** | Web (Desktop/Mobile) | **[https://iveri-ai-support.onrender.com](https://iveri-ai-support.onrender.com)** |
+| 🤖 **Android (Chrome)** | PWA Native App | Open URL in Chrome ➔ Tap **(⋮)** menu ➔ Tap **"Install app"** or click the in-app **"Install"** button. |
+| 🍎 **iOS (Safari)** | Web App Standalone | Open URL in Safari ➔ Tap **Share (⬆)** ➔ Tap **"Add to Home Screen"** ➔ Tap **Add**. |
+| 📦 **Standalone Android APK** | Direct Package | Convert live PWA into a signed `.apk` in 60s via [PWABuilder](https://www.pwabuilder.com?url=https%3A%2F%2Fiveri-ai-support.onrender.com) (enter `https://iveri-ai-support.onrender.com` ➔ Package for Android). |
+
+> [!IMPORTANT]
+> **Firebase Google Sign-In on Custom Domains**:  
+> To enable Google 1-Click Login from `https://iveri-ai-support.onrender.com`, add `iveri-ai-support.onrender.com` under **Firebase Console ➔ Project Settings ➔ Authentication ➔ Settings ➔ Authorized Domains**.
+>
+> **Twilio WhatsApp Carrier Policy Notice**:  
+> Complete bi-directional WhatsApp chatbot messaging is implemented in `/api/chat/twilio/webhook`. For public production distribution to arbitrary international phone numbers without sandbox join codes (`join mail-simplest`), a paid Twilio Account Upgrade with a verified Meta WhatsApp Business Profile is required.
 
 ---
 

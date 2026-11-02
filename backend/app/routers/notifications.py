@@ -64,6 +64,63 @@ async def mark_notification_read(
     await db.commit()
     return {"status": "success", "id": notification_id, "is_read": True}
 
+@router.post("/{notification_id}/unread", response_model=Dict[str, Any])
+async def mark_notification_unread(
+    notification_id: str,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Marks a single notification as unread."""
+    query = select(Notification).where(
+        Notification.id == notification_id,
+        Notification.business_id == owner.business_id
+    )
+    notif = (await db.execute(query)).scalar_one_or_none()
+    if not notif:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found.")
+
+    notif.is_read = False
+    await db.commit()
+    return {"status": "success", "id": notification_id, "is_read": False}
+
+@router.post("/{notification_id}/toggle-read", response_model=Dict[str, Any])
+async def toggle_notification_read(
+    notification_id: str,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Toggles read/unread status of a single notification."""
+    query = select(Notification).where(
+        Notification.id == notification_id,
+        Notification.business_id == owner.business_id
+    )
+    notif = (await db.execute(query)).scalar_one_or_none()
+    if not notif:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found.")
+
+    notif.is_read = not notif.is_read
+    await db.commit()
+    return {"status": "success", "id": notification_id, "is_read": notif.is_read}
+
+@router.delete("/{notification_id}", response_model=Dict[str, Any])
+async def delete_single_notification(
+    notification_id: str,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Permanently deletes a single notification."""
+    query = select(Notification).where(
+        Notification.id == notification_id,
+        Notification.business_id == owner.business_id
+    )
+    notif = (await db.execute(query)).scalar_one_or_none()
+    if not notif:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found.")
+
+    await db.delete(notif)
+    await db.commit()
+    return {"status": "success", "id": notification_id}
+
 @router.post("/read-all", response_model=Dict[str, Any])
 async def mark_all_notifications_read(
     owner: User = Depends(get_current_owner),

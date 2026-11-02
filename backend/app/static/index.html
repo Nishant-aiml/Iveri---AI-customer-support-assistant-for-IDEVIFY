@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
   <title>Iveri - AI Customer Support Assistant Console</title>
   <!-- PWA & Mobile Web App Meta Tags -->
   <link rel="manifest" href="/manifest.json">
@@ -31,7 +31,7 @@
   <!-- Firebase 10 Web SDK with Google Auth -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCuSu2rb9kOxAU6khZ19W8YpsaE-o4iy9U",
@@ -53,7 +53,32 @@
       window.firebaseAuth = auth;
       window.googleAuthProvider = provider;
       window.firebaseSignInWithPopup = signInWithPopup;
+      window.firebaseSignInWithRedirect = signInWithRedirect;
+      window.firebaseGetRedirectResult = getRedirectResult;
       console.log("[Iveri Firebase] Google Auth SDK initialized successfully.");
+
+      // Automatically handle mobile redirect auth result
+      getRedirectResult(auth).then(async (result) => {
+        if (result && result.user) {
+          console.log("[Iveri Firebase] Redirect sign-in success:", result.user.email);
+          const idToken = await result.user.getIdToken();
+          const res = await fetch('/api/auth/firebase-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id_token: idToken,
+              business_name: result.user.displayName ? `${result.user.displayName}'s Workspace` : 'Google Business Workspace'
+            })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            localStorage.setItem('iveri_token', data.access_token);
+            window.location.reload();
+          }
+        }
+      }).catch((err) => {
+        console.warn("[Iveri Firebase] Redirect result note:", err);
+      });
     } catch (err) {
       console.warn("[Iveri Firebase] SDK initialization note:", err);
     }
@@ -243,23 +268,45 @@
             <span id="notif-badge" class="hidden absolute -top-1 -right-1 min-w-[17px] h-[17px] text-[10px] font-bold text-white bg-rose-500 rounded-full flex items-center justify-center px-1 border-2 border-white">0</span>
           </button>
           
-          <!-- Dropdown Menu -->
-          <div id="notif-dropdown" class="hidden absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 overflow-hidden">
-            <div class="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-              <div class="flex items-center gap-1.5 font-bold text-xs text-slate-800">
-                <span class="material-symbols-outlined text-sm text-primary">notifications_active</span>
+          <!-- Dropdown Menu (Phone & Desktop Responsive) -->
+          <div id="notif-dropdown" class="hidden fixed inset-x-3 top-16 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 w-auto sm:w-[420px] max-w-md bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 overflow-hidden">
+            <div class="p-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900 truncate">
+                <span class="material-symbols-outlined text-base text-primary shrink-0">notifications_active</span>
                 <span>Real-Time Alerts</span>
+                <span id="notif-header-count" class="px-1.5 py-0.5 rounded-full text-[9.5px] font-bold bg-indigo-100 text-indigo-700 font-mono">0 unread</span>
               </div>
-              <div class="flex items-center gap-2">
-                <button onclick="testNotificationAlert()" title="Test audio chime & desktop notification on PC" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-semibold flex items-center gap-0.5 transition">
-                  <span class="material-symbols-outlined text-[12px]">volume_up</span> Test
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button onclick="markAllNotificationsRead()" title="Mark all alerts as read" class="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-[10.5px] font-semibold flex items-center gap-1 transition shadow-2xs">
+                  <span class="material-symbols-outlined text-[13px]">done_all</span> Mark All Read
                 </button>
-                <button onclick="requestPushPermission()" id="push-toggle-btn" class="text-[10px] text-primary hover:underline font-medium">Enable Push</button>
-                <button onclick="markAllNotificationsRead()" class="text-[10px] text-slate-500 hover:text-slate-800 font-medium">Mark Read</button>
               </div>
             </div>
-            <div id="notif-list" class="max-h-80 overflow-y-auto divide-y divide-slate-100 text-xs">
-              <div class="p-6 text-center text-slate-400 font-mono text-xs">No new notifications</div>
+            <!-- Sub-Tabs: All vs Unread Filter -->
+            <div class="px-3 py-1.5 bg-white border-b border-slate-100 flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1">
+                <button id="notif-filter-all" onclick="setNotifFilter('all')" class="px-2.5 py-0.5 rounded-md text-[11px] font-semibold transition bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs">
+                  All (<span id="notif-tab-all-count">0</span>)
+                </button>
+                <button id="notif-filter-unread" onclick="setNotifFilter('unread')" class="px-2.5 py-0.5 rounded-md text-[11px] font-medium transition text-slate-600 hover:bg-slate-100 border border-transparent">
+                  Unread (<span id="notif-tab-unread-count">0</span>)
+                </button>
+              </div>
+              <button onclick="requestPushPermission()" id="push-toggle-btn" class="text-[10px] text-primary hover:underline font-medium flex items-center gap-0.5">
+                <span class="material-symbols-outlined text-[12px]">notifications</span> Push Alerts
+              </button>
+            </div>
+            <div id="notif-list" class="max-h-80 sm:max-h-96 overflow-y-auto divide-y divide-slate-100 text-xs">
+              <div class="p-6 text-center text-slate-400 font-mono text-xs">Loading alerts...</div>
+            </div>
+            <!-- Dropdown Footer -->
+            <div class="px-3 py-2 bg-slate-50 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <span class="flex items-center gap-1 font-mono text-[10px] text-slate-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Live Sync Active
+              </span>
+              <button onclick="switchTab('tickets'); toggleNotifDropdown();" class="text-primary hover:underline font-semibold flex items-center gap-0.5 text-[11px]">
+                Unanswered Queue <span class="material-symbols-outlined text-[13px]">arrow_forward</span>
+              </button>
             </div>
           </div>
         </div>
@@ -289,8 +336,8 @@
         </button>
         <button onclick="switchTab('tickets')" id="tab-tickets" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
           <span class="material-symbols-outlined text-[15px] sm:text-[16px]">confirmation_number</span>
-          <span class="sm:hidden">Tickets</span>
-          <span class="hidden sm:inline">Support Tickets & Escalations</span>
+          <span class="sm:hidden">Unanswered</span>
+          <span class="hidden sm:inline">Unanswered Chat & Tickets</span>
           <span id="tickets-badge-count" class="hidden px-1.5 py-0.2 text-[10px] bg-rose-100 text-rose-800 border border-rose-300 rounded-full font-bold">0</span>
         </button>
         <button onclick="switchTab('chats')" id="tab-chats" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
@@ -608,8 +655,8 @@
       <!-- Top Header & Filter Controls -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Support Tickets & Escalation Queue</h2>
-          <p class="text-xs text-slate-500 mt-0.5 font-mono">Unified inbox for automated tickets, unanswered AI questions, and customer callback requests. Resolving any ticket trains the AI immediately.</p>
+          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Unanswered Chat & Tickets</h2>
+          <p class="text-xs text-slate-500 mt-0.5 font-mono">Unified inbox for automated tickets, unanswered customer inquiries, and callback requests. Resolving any item trains the AI immediately.</p>
         </div>
         <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
           <div class="relative w-full sm:w-64">
@@ -624,20 +671,20 @@
               <span class="material-symbols-outlined text-[15px]">close</span>
             </button>
           </div>
-          <select id="ticket-status-filter" onchange="loadTickets()" class="px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-xs">
+          <select id="ticket-status-filter" onchange="loadTickets()" class="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-xs">
             <option value="">All Statuses</option>
             <option value="open">Open</option>
             <option value="in_progress">In Progress</option>
             <option value="resolved">Resolved</option>
           </select>
-          <select id="ticket-priority-filter" onchange="loadTickets()" class="px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-xs">
+          <select id="ticket-priority-filter" onchange="loadTickets()" class="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-xs">
             <option value="">All Priorities</option>
             <option value="urgent">Urgent</option>
             <option value="high">High</option>
             <option value="medium">Medium</option>
             <option value="low">Low</option>
           </select>
-          <select id="ticket-channel-filter" onchange="loadTickets()" class="px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-xs">
+          <select id="ticket-channel-filter" onchange="loadTickets()" class="flex-1 sm:flex-none px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-xs">
             <option value="">All Channels</option>
             <option value="widget">Web Widget</option>
             <option value="whatsapp">Twilio WhatsApp</option>
@@ -689,7 +736,7 @@
       <!-- Tickets List Table -->
       <div class="lumina-card rounded-2xl overflow-hidden">
         <div class="p-4 border-b border-slate-100 flex items-center justify-between">
-          <span class="font-bold text-xs text-slate-800 font-mono">Support Tickets Table</span>
+          <span class="font-bold text-xs text-slate-800 font-mono">Unanswered Chat & Tickets Table</span>
           <span id="tickets-count-label" class="text-xs text-slate-400 font-mono">0 tickets</span>
         </div>
         <div class="overflow-x-auto">
@@ -718,11 +765,11 @@
 
     <!-- Ticket Resolution Modal (Closed-Loop Learning) -->
     <div id="resolve-ticket-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-150">
+      <div class="bg-white rounded-2xl max-w-xl w-full p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-150">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
           <div class="flex items-center gap-2">
             <span class="px-2 py-0.5 rounded bg-indigo-50 text-primary text-xs font-mono font-bold" id="modal-ticket-number">TICK-XXXX</span>
-            <h3 class="font-bold text-slate-900 text-sm">Resolve Ticket & Train AI Assistant</h3>
+            <h3 class="font-bold text-slate-900 text-sm">Resolve Unanswered Chat & Ticket (Train AI)</h3>
           </div>
           <button onclick="closeResolveTicketModal()" class="text-slate-400 hover:text-slate-600">
             <span class="material-symbols-outlined text-lg">close</span>
@@ -915,7 +962,7 @@
         </div>
 
                 <!-- Segmented Sub-Tab Switcher -->
-        <div class="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/80 gap-1 shrink-0">
+        <div class="inline-flex items-center p-1 bg-slate-100 rounded-xl border border-slate-200/80 gap-1 shrink-0 max-w-full overflow-x-auto no-scrollbar">
           <button type="button" onclick="switchSettingsSubTab('studio')" id="subtab-btn-studio" class="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-white text-slate-900 shadow-xs border border-slate-200/80 flex items-center gap-1.5 transition cursor-pointer">
             <span class="material-symbols-outlined text-[16px] text-indigo-600">palette</span>
             <span>Widget Studio</span>
@@ -1533,14 +1580,14 @@
   </main>
 
   <!-- In-Console Business Owner Navigation Copilot -->
-  <div class="fixed bottom-6 right-6 z-50">
-    <button id="copilot-btn" onclick="toggleCopilot()" class="px-4 py-3 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white rounded-full shadow-lg flex items-center gap-2 font-semibold text-xs font-mono transition transform hover:scale-105">
-      <span class="material-symbols-outlined text-[18px]">assistant</span>
+  <div class="fixed bottom-16 sm:bottom-6 right-3 sm:right-6 z-50">
+    <button id="copilot-btn" onclick="toggleCopilot()" class="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white rounded-full shadow-lg flex items-center gap-1.5 sm:gap-2 font-semibold text-xs font-mono transition transform hover:scale-105">
+      <span class="material-symbols-outlined text-[17px] sm:text-[18px]">assistant</span>
       <span>Console Copilot</span>
     </button>
 
     <!-- Copilot Window -->
-    <div id="copilot-window" class="hidden absolute bottom-14 right-0 w-80 sm:w-96 bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col text-xs font-sans">
+    <div id="copilot-window" class="hidden absolute bottom-14 right-0 w-[calc(100vw-24px)] max-w-sm sm:w-96 bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col text-xs font-sans shadow-2xl">
       <div class="p-3.5 bg-slate-900 text-white flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-primary text-base">explore</span>
@@ -1571,8 +1618,8 @@
   </div>
 
   <!-- Resolve Question Modal -->
-  <div id="resolve-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+  <div id="resolve-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-4 sm:p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-emerald-600 text-lg">school</span>
@@ -1598,8 +1645,8 @@
   </div>
 
   <!-- Auth Modal -->
-  <div id="auth-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-5">
+  <div id="auth-modal" class="hidden fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 shadow-2xl border border-slate-200 space-y-4 sm:space-y-5 max-h-[92vh] overflow-y-auto">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3">
         <div class="flex items-center gap-2.5">
           <div class="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-base">
@@ -1685,6 +1732,140 @@
         </div>
         <button onclick="performRegister()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-mono font-semibold transition shadow-xs">
           Create Business Workspace
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PWA / Mobile App Install Modal -->
+  <div id="pwa-install-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-primary text-white flex items-center justify-center font-bold shadow-md shadow-primary/20">
+            <span class="material-symbols-outlined text-[22px]">install_mobile</span>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-sm sm:text-base font-sans">Install Iveri Mobile App</h3>
+            <p class="text-[11px] font-mono text-slate-500">Fast, Standalone PWA • Zero Bloat • Auto-Updating</p>
+          </div>
+        </div>
+        <button onclick="closePwaInstallModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+
+      <!-- Quick 1-Tap Install Button if Native Prompt Available -->
+      <div id="pwa-native-prompt-box" class="hidden p-3.5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl border border-indigo-200 flex items-center justify-between gap-3">
+        <div>
+          <div class="text-xs font-bold text-indigo-900 font-sans">One-Click Native Install Available</div>
+          <div class="text-[11px] text-slate-600">Your browser supports instant direct installation.</div>
+        </div>
+        <button onclick="triggerDeferredPrompt()" class="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-bold transition shadow-sm whitespace-nowrap flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">download</span>
+          <span>Install Now</span>
+        </button>
+      </div>
+
+      <!-- Platform Instruction Tabs -->
+      <div class="space-y-3">
+        <div class="text-xs font-bold text-slate-700 font-sans uppercase tracking-wider">How to Install on Your Device:</div>
+        
+        <!-- Android Guide -->
+        <div class="p-3.5 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl space-y-2 transition">
+          <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+            <span class="material-symbols-outlined text-emerald-600 text-[18px]">android</span>
+            <span>Android (Chrome / Samsung Internet / Brave)</span>
+          </div>
+          <ol class="text-[11px] text-slate-600 list-decimal list-inside space-y-1 font-sans pl-1">
+            <li>Tap the <strong>three dots (⋮)</strong> at the top-right corner of Chrome.</li>
+            <li>Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong>.</li>
+            <li>The full app will install directly onto your home screen and app drawer with native push support!</li>
+          </ol>
+        </div>
+
+        <!-- iOS Guide -->
+        <div class="p-3.5 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl space-y-2 transition">
+          <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+            <span class="material-symbols-outlined text-blue-600 text-[18px]">apple</span>
+            <span>iPhone / iPad (Apple Safari)</span>
+          </div>
+          <ol class="text-[11px] text-slate-600 list-decimal list-inside space-y-1 font-sans pl-1">
+            <li>Tap the <strong>Share button</strong> (the square with an arrow pointing up ⬆) at the bottom.</li>
+            <li>Scroll down and tap <strong>"Add to Home Screen"</strong>.</li>
+            <li>Tap <strong>"Add"</strong> in the top-right. Iveri opens in full-screen standalone mode with no browser URL bar!</li>
+          </ol>
+        </div>
+
+        <!-- Desktop Guide -->
+        <div class="p-3.5 bg-slate-50 hover:bg-slate-100/70 border border-slate-200 rounded-xl space-y-2 transition">
+          <div class="flex items-center gap-2 text-xs font-bold text-slate-800">
+            <span class="material-symbols-outlined text-indigo-600 text-[18px]">laptop_mac</span>
+            <span>Windows PC / Mac (Chrome / Edge)</span>
+          </div>
+          <p class="text-[11px] text-slate-600 font-sans">Click the <strong>Install icon</strong> in the right side of the address bar (or Menu ➔ "Save and share" ➔ "Install page as app").</p>
+        </div>
+      </div>
+
+      <!-- Direct Share & Link Action -->
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+        <button onclick="copyAppUrl()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-mono font-semibold transition flex items-center gap-1.5">
+          <span class="material-symbols-outlined text-[16px]">content_copy</span>
+          <span id="copy-app-url-btn">Copy App URL</span>
+        </button>
+        <button onclick="closePwaInstallModal()" class="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-semibold transition">
+          Got It
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase Domain Authorization Modal -->
+  <div id="firebase-domain-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 z-50">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl border border-amber-200 space-y-4 max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-amber-100 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center font-bold">
+            <span class="material-symbols-outlined text-[20px]">security_update_warning</span>
+          </div>
+          <div>
+            <h3 class="font-bold text-slate-900 text-sm font-sans">Firebase Domain Authorization Required</h3>
+            <p class="text-[11px] font-mono text-slate-500">Google OAuth Security Policy</p>
+          </div>
+        </div>
+        <button onclick="closeFirebaseDomainModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-800 transition">
+          <span class="material-symbols-outlined text-base">close</span>
+        </button>
+      </div>
+
+      <div class="p-3 bg-amber-50/70 border border-amber-200 rounded-xl text-xs text-amber-900 font-sans space-y-1.5">
+        <p class="font-semibold">Why is Google Sign-In asking for this?</p>
+        <p class="text-[11px] text-amber-800">Google Firebase protects your users by only allowing sign-ins from authorized domains. Your Render production domain must be added to your Firebase project whitelist.</p>
+      </div>
+
+      <div class="space-y-2">
+        <div class="text-xs font-bold text-slate-800 font-sans uppercase tracking-wider">How to Fix in 10 Seconds (One-Time Setup):</div>
+        <ol class="text-xs text-slate-700 list-decimal list-inside space-y-2 font-sans pl-1">
+          <li>Open the <a href="https://console.firebase.google.com/project/idevify-2d7f1/authentication/settings" target="_blank" class="text-primary underline font-bold">Firebase Console ➔ Authentication Settings</a>.</li>
+          <li>Click the <strong>"Authorized domains"</strong> tab.</li>
+          <li>Click <strong>"Add domain"</strong>, paste <code class="px-1.5 py-0.5 rounded bg-slate-100 font-mono text-[11px] text-primary font-bold">iveri-ai-support.onrender.com</code>, and click <strong>Save</strong>.</li>
+        </ol>
+      </div>
+
+      <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-2">
+        <div class="truncate font-mono text-xs text-slate-700">iveri-ai-support.onrender.com</div>
+        <button onclick="navigator.clipboard.writeText('iveri-ai-support.onrender.com'); alert('Copied domain to clipboard!');" class="px-3 py-1.5 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-mono font-semibold shrink-0 transition flex items-center gap-1">
+          <span class="material-symbols-outlined text-[14px]">content_copy</span>
+          <span>Copy Domain</span>
+        </button>
+      </div>
+
+      <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
+        <button onclick="closeFirebaseDomainModal(); switchAuthMode('login');" class="text-xs text-primary font-semibold hover:underline">
+          Sign In with Email / Password instead
+        </button>
+        <button onclick="closeFirebaseDomainModal()" class="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-semibold transition">
+          Close
         </button>
       </div>
     </div>
@@ -2431,6 +2612,12 @@
         if (res.ok) {
           const s = await res.json();
           renderSessionDetail(s);
+          if (window.innerWidth < 1024) {
+            const detailContainer = document.getElementById('session-detail-container');
+            if (detailContainer) {
+              detailContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+          }
         }
       } catch (err) {
         console.error("Session detail error:", err);
@@ -2443,6 +2630,11 @@
       const dtStart = formatExactDateTime(s.started_at);
 
       detailContainer.innerHTML = `
+        <div class="lg:hidden pb-2 mb-1 border-b border-slate-100">
+          <button onclick="document.getElementById('chat-sessions-list').scrollIntoView({behavior:'smooth', block:'start'})" class="text-xs text-primary font-semibold flex items-center gap-1 hover:underline">
+            <span class="material-symbols-outlined text-[15px]">arrow_upward</span> Back to Conversations List
+          </button>
+        </div>
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-100 gap-2">
           <div>
             <div class="flex items-center gap-2">
@@ -2852,14 +3044,39 @@
 
     async function loginWithGoogleFirebase() {
       try {
-        if (!window.firebaseAuth || !window.firebaseSignInWithPopup || !window.googleAuthProvider) {
+        if (!window.firebaseAuth || !window.googleAuthProvider) {
           alert("Google Firebase Auth SDK is initializing. Please check your internet connection and try again.");
           return;
         }
         const btnLabel = document.getElementById('google-auth-btn-label');
         if (btnLabel) btnLabel.innerText = "Connecting to Google...";
 
-        const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleAuthProvider);
+        // Check if device is mobile or popup blocked
+        const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        
+        let result = null;
+        if (isMobileDevice && window.firebaseSignInWithRedirect) {
+          // On mobile devices, redirect prevents popup blocker issues
+          console.log("[Iveri Firebase] Mobile device detected, initiating redirect flow...");
+          await window.firebaseSignInWithRedirect(window.firebaseAuth, window.googleAuthProvider);
+          return;
+        }
+
+        if (window.firebaseSignInWithPopup) {
+          try {
+            result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.googleAuthProvider);
+          } catch (popupErr) {
+            if (popupErr.code === 'auth/popup-blocked' && window.firebaseSignInWithRedirect) {
+              console.log("[Iveri Firebase] Popup blocked, falling back to redirect flow...");
+              await window.firebaseSignInWithRedirect(window.firebaseAuth, window.googleAuthProvider);
+              return;
+            }
+            throw popupErr;
+          }
+        }
+
+        if (!result || !result.user) return;
+
         const user = result.user;
         const idToken = await user.getIdToken();
 
@@ -2890,6 +3107,10 @@
         const btnLabel = document.getElementById('google-auth-btn-label');
         if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
         if (e.code === 'auth/popup-closed-by-user' || e.code === 'auth/cancelled-popup-request') {
+          return;
+        }
+        if (e.code === 'auth/unauthorized-domain') {
+          showFirebaseDomainHelper();
           return;
         }
         alert("Google Sign-In note: " + (e.message || e));
@@ -3124,6 +3345,39 @@
       }
     }
 
+    // --- Global Toast Notification Utility ---
+    function showToast(message, type = 'info') {
+      let container = document.getElementById('global-toast-container');
+      if (!container) {
+        container = document.createElement('div');
+        container.id = 'global-toast-container';
+        container.className = 'fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 max-w-sm pointer-events-none';
+        document.body.appendChild(container);
+      }
+      const toast = document.createElement('div');
+      const isError = type === 'error';
+      const bgClass = isError
+        ? 'bg-rose-900/95 text-white border-rose-700 shadow-rose-950/40'
+        : (type === 'success' ? 'bg-emerald-900/95 text-white border-emerald-700 shadow-emerald-950/40' : 'bg-slate-900/95 text-white border-slate-700 shadow-black/30');
+      const icon = isError ? 'error' : (type === 'success' ? 'check_circle' : 'info');
+      const iconColor = isError ? 'text-rose-400' : (type === 'success' ? 'text-emerald-400' : 'text-indigo-400');
+
+      toast.className = `flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border text-xs font-medium shadow-xl pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0 ${bgClass}`;
+      toast.innerHTML = `
+        <span class="material-symbols-outlined text-[18px] ${iconColor} shrink-0">${icon}</span>
+        <span class="flex-1 text-[12px] leading-tight">${escapeHtml(message)}</span>
+        <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white text-xs ml-1 font-bold p-0.5">✕</button>
+      `;
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
     // --- Delete Chat Session ---
     async function deleteChatSession(sessionId) {
       if (!confirm("Are you sure you want to permanently delete this customer conversation? All messages will be erased.")) {
@@ -3135,9 +3389,9 @@
           headers: { 'Authorization': `Bearer ${authToken}` }
         });
         if (res.ok) {
-          showToast("Conversation deleted successfully.");
-          selectedSessionId = null;
-          await loadChatHistory();
+          showToast("Conversation deleted successfully.", "success");
+        } else if (res.status === 404) {
+          showToast("Conversation was already removed.", "info");
         } else {
           const err = await res.json().catch(() => ({}));
           showToast(err.detail || "Failed to delete conversation", "error");
@@ -3145,6 +3399,10 @@
       } catch (err) {
         console.error("Delete conversation error:", err);
         showToast("Network error deleting conversation", "error");
+      } finally {
+        selectedSessionId = null;
+        await loadChatHistory();
+        if (typeof loadDashboardData === 'function') loadDashboardData();
       }
     }
 
@@ -3159,9 +3417,9 @@
           headers: { 'Authorization': `Bearer ${authToken}` }
         });
         if (res.ok) {
-          showToast(`Ticket #${ticketNum} deleted successfully.`);
-          await loadTickets();
-          if (typeof loadDashboardData === 'function') loadDashboardData();
+          showToast(`Ticket #${ticketNum} deleted successfully.`, "success");
+        } else if (res.status === 404) {
+          showToast(`Ticket #${ticketNum} was already removed.`, "info");
         } else {
           const err = await res.json().catch(() => ({}));
           showToast(err.detail || "Failed to delete ticket", "error");
@@ -3169,6 +3427,10 @@
       } catch (err) {
         console.error("Delete ticket error:", err);
         showToast("Network error deleting ticket", "error");
+      } finally {
+        await loadTickets();
+        if (typeof loadDashboardData === 'function') loadDashboardData();
+        if (typeof loadNotifications === 'function') loadNotifications();
       }
     }
 
@@ -3453,9 +3715,17 @@
 
     
     // =========================================================================
-    // MOBILE PWA INSTALL LOGIC
+    // MOBILE PWA INSTALL & DOMAIN HELPER MODAL LOGIC
     // =========================================================================
     let deferredPrompt = null;
+    
+    // Check if running in standalone mode (already installed)
+    const isStandaloneApp = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    if (!isStandaloneApp) {
+      // Ensure install button is accessible to users on mobile and desktop
+      document.getElementById('pwa-install-btn')?.classList.remove('hidden');
+    }
+
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
       deferredPrompt = e;
@@ -3467,9 +3737,26 @@
       }
     });
 
-    async function installPWA() {
+    function openPwaInstallModal() {
+      const modal = document.getElementById('pwa-install-modal');
+      if (modal) modal.classList.remove('hidden');
+      const promptBox = document.getElementById('pwa-native-prompt-box');
+      if (promptBox) {
+        if (deferredPrompt) {
+          promptBox.classList.remove('hidden');
+        } else {
+          promptBox.classList.add('hidden');
+        }
+      }
+    }
+
+    function closePwaInstallModal() {
+      document.getElementById('pwa-install-modal')?.classList.add('hidden');
+    }
+
+    async function triggerDeferredPrompt() {
       if (!deferredPrompt) {
-        alert("To install on iOS Safari: tap the Share button at the bottom and choose 'Add to Home Screen'.\n\nOn Chrome/Edge: tap the install icon in the address bar.");
+        alert("Native install prompt is not currently available in this browser window. Please follow the step-by-step instructions below for your device.");
         return;
       }
       deferredPrompt.prompt();
@@ -3477,8 +3764,35 @@
       if (outcome === 'accepted') {
         document.getElementById('pwa-install-btn')?.classList.add('hidden');
         document.getElementById('pwa-mobile-banner')?.classList.add('hidden');
+        closePwaInstallModal();
       }
       deferredPrompt = null;
+    }
+
+    function copyAppUrl() {
+      const url = window.location.origin;
+      navigator.clipboard.writeText(url).then(() => {
+        const btn = document.getElementById('copy-app-url-btn');
+        if (btn) btn.innerText = "Copied to Clipboard! ✓";
+        setTimeout(() => {
+          if (btn) btn.innerText = "Copy App URL";
+        }, 2500);
+      }).catch(() => {
+        alert("App URL: " + url);
+      });
+    }
+
+    function installPWA() {
+      // Opens the modern responsive install modal with one-click direct prompt or device guides
+      openPwaInstallModal();
+    }
+
+    function showFirebaseDomainHelper() {
+      document.getElementById('firebase-domain-modal')?.classList.remove('hidden');
+    }
+
+    function closeFirebaseDomainModal() {
+      document.getElementById('firebase-domain-modal')?.classList.add('hidden');
     }
 
     function dismissPWABanner() {
@@ -3903,6 +4217,10 @@
     // =========================================================================
     // IN-APP NOTIFICATION CENTER & WEB PUSH
     // =========================================================================
+    let cachedNotifications = [];
+    let currentNotifFilter = 'all'; // 'all' or 'unread'
+    let lastUnreadCount = -1;
+
     function toggleNotifDropdown() {
       const drop = document.getElementById('notif-dropdown');
       if (drop) drop.classList.toggle('hidden');
@@ -3911,7 +4229,194 @@
       }
     }
 
-    let lastUnreadCount = -1;
+    // Dismiss dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+      const drop = document.getElementById('notif-dropdown');
+      const btn = document.getElementById('notif-bell-btn');
+      if (drop && !drop.classList.contains('hidden')) {
+        if (!drop.contains(e.target) && !btn.contains(e.target)) {
+          drop.classList.add('hidden');
+        }
+      }
+    });
+
+    function parseUtcDate(dateInput) {
+      if (!dateInput) return null;
+      let s = String(dateInput).trim();
+      if (!s.includes('Z') && !s.includes('+') && !s.slice(10).includes('-')) {
+        s = s.replace(' ', 'T') + 'Z';
+      }
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    }
+
+    function formatNotificationTime(dateInput) {
+      const d = parseUtcDate(dateInput);
+      if (!d) return { display: 'Just now', fullTooltip: 'Unknown time', exactTime: '' };
+      const now = new Date();
+      const diffMs = now.getTime() - d.getTime();
+      const diffSec = Math.max(0, Math.floor(diffMs / 1000));
+      const diffMin = Math.floor(diffSec / 60);
+      const diffHour = Math.floor(diffMin / 60);
+      const diffDay = Math.floor(diffHour / 24);
+
+      const exactTime = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+      const exactDate = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      const fullTooltip = d.toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+
+      let display = '';
+      if (diffSec < 45) {
+        display = 'Just now';
+      } else if (diffMin < 60) {
+        display = `${diffMin}m ago`;
+      } else if (diffHour < 24 && d.getDate() === now.getDate()) {
+        display = `${diffHour}h ago • ${exactTime}`;
+      } else if (diffDay === 1 || (diffHour < 48 && d.getDate() === now.getDate() - 1)) {
+        display = `Yesterday • ${exactTime}`;
+      } else {
+        display = `${exactDate} • ${exactTime}`;
+      }
+
+      return { display, fullTooltip, exactTime };
+    }
+
+    function setNotifFilter(filter) {
+      currentNotifFilter = filter;
+      const allBtn = document.getElementById('notif-filter-all');
+      const unreadBtn = document.getElementById('notif-filter-unread');
+      if (allBtn && unreadBtn) {
+        if (filter === 'all') {
+          allBtn.className = 'px-2.5 py-0.5 rounded-md text-[11px] font-semibold transition bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs';
+          unreadBtn.className = 'px-2.5 py-0.5 rounded-md text-[11px] font-medium transition text-slate-600 hover:bg-slate-100 border border-transparent';
+        } else {
+          unreadBtn.className = 'px-2.5 py-0.5 rounded-md text-[11px] font-semibold transition bg-indigo-50 text-indigo-700 border border-indigo-200 shadow-2xs';
+          allBtn.className = 'px-2.5 py-0.5 rounded-md text-[11px] font-medium transition text-slate-600 hover:bg-slate-100 border border-transparent';
+        }
+      }
+      renderNotificationList();
+    }
+
+    function renderNotificationList() {
+      const listEl = document.getElementById('notif-list');
+      if (!listEl) return;
+
+      const totalCount = cachedNotifications.length;
+      const unreadCount = cachedNotifications.filter(n => !n.is_read).length;
+
+      const allCountEl = document.getElementById('notif-tab-all-count');
+      const unreadCountEl = document.getElementById('notif-tab-unread-count');
+      const headerCountEl = document.getElementById('notif-header-count');
+      if (allCountEl) allCountEl.innerText = totalCount;
+      if (unreadCountEl) unreadCountEl.innerText = unreadCount;
+      if (headerCountEl) headerCountEl.innerText = `${unreadCount} unread`;
+
+      const displayList = currentNotifFilter === 'unread'
+        ? cachedNotifications.filter(n => !n.is_read)
+        : cachedNotifications;
+
+      if (displayList.length === 0) {
+        if (currentNotifFilter === 'unread') {
+          listEl.innerHTML = `
+            <div class="p-8 text-center space-y-2">
+              <span class="material-symbols-outlined text-3xl text-emerald-500">task_alt</span>
+              <div class="font-bold text-slate-800 text-xs">All caught up!</div>
+              <p class="text-[11px] text-slate-500">No unread notifications at this time.</p>
+              <button onclick="setNotifFilter('all')" class="mt-2 px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition">
+                View All Alerts (${totalCount})
+              </button>
+            </div>`;
+        } else {
+          listEl.innerHTML = `
+            <div class="p-8 text-center text-slate-400 font-mono text-xs">
+              <span class="material-symbols-outlined text-3xl mb-1 text-slate-300">notifications_paused</span>
+              <p>No notifications yet.</p>
+            </div>`;
+        }
+        return;
+      }
+
+      listEl.innerHTML = displayList.slice(0, 30).map(n => {
+        const timeInfo = formatNotificationTime(n.created_at);
+        const isUnread = !n.is_read;
+
+        let icon = 'notifications';
+        let categoryColor = 'text-primary bg-indigo-50 border-indigo-200';
+        let categoryLabel = 'ALERT';
+
+        if (n.type === 'contact_request' || n.category === 'urgent_contact') {
+          icon = 'contact_phone';
+          categoryColor = 'text-amber-700 bg-amber-50 border-amber-200';
+          categoryLabel = 'URGENT';
+        } else if (n.type === 'ticket_created' || n.category === 'auto_ticket') {
+          icon = 'confirmation_number';
+          categoryColor = 'text-blue-700 bg-blue-50 border-blue-200';
+          categoryLabel = 'TICKET';
+        } else if (n.type === 'ticket_resolved') {
+          icon = 'psychology';
+          categoryColor = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+          categoryLabel = 'RESOLVED';
+        } else if (n.category === 'whatsapp') {
+          icon = 'chat';
+          categoryColor = 'text-emerald-700 bg-emerald-50 border-emerald-200';
+          categoryLabel = 'WHATSAPP';
+        }
+
+        const containerClasses = isUnread
+          ? 'bg-indigo-50/70 hover:bg-indigo-100/70 border-l-4 border-l-indigo-600'
+          : 'bg-white hover:bg-slate-50 border-l-4 border-l-transparent';
+
+        const dotIndicator = isUnread
+          ? '<span class="w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-indigo-200/80 shrink-0 mt-1" title="Unread alert"></span>'
+          : '<span class="material-symbols-outlined text-slate-300 text-[16px] shrink-0 mt-0.5">check_circle</span>';
+
+        const statusBadge = isUnread
+          ? '<span class="px-1.5 py-0.2 text-[9px] font-black bg-indigo-600 text-white rounded font-mono uppercase tracking-wider shadow-2xs">NEW</span>'
+          : '<span class="px-1.5 py-0.2 text-[9px] font-medium bg-slate-100 text-slate-500 rounded font-mono">READ</span>';
+
+        const toggleReadBtn = isUnread
+          ? `<button onclick="event.stopPropagation(); markNotificationReadById('${n.id}')" title="Mark as read" class="p-1 text-slate-400 hover:text-indigo-600 hover:bg-white rounded border border-transparent hover:border-slate-200 transition shadow-2xs flex items-center justify-center">
+              <span class="material-symbols-outlined text-[15px]">done</span>
+            </button>`
+          : `<button onclick="event.stopPropagation(); markNotificationUnreadById('${n.id}')" title="Mark as unread" class="p-1 text-slate-300 hover:text-slate-700 hover:bg-slate-100 rounded transition flex items-center justify-center">
+              <span class="material-symbols-outlined text-[15px]">mark_email_unread</span>
+            </button>`;
+
+        const deleteBtn = `<button onclick="event.stopPropagation(); deleteNotificationById('${n.id}')" title="Dismiss notification" class="p-1 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded transition flex items-center justify-center">
+          <span class="material-symbols-outlined text-[14px]">close</span>
+        </button>`;
+
+        const titleClass = isUnread ? 'font-bold text-slate-900' : 'font-medium text-slate-700';
+        const msgClass = isUnread ? 'text-slate-700 font-normal' : 'text-slate-500 font-normal';
+        const timeClass = isUnread ? 'text-indigo-700 font-semibold' : 'text-slate-400';
+
+        return `
+          <div class="p-3 transition flex items-start gap-2.5 cursor-pointer border-b border-slate-100 last:border-0 ${containerClasses}" onclick="handleNotificationClick('${n.id}', '${n.ticket_id || ''}')">
+            ${dotIndicator}
+            <div class="flex-1 min-w-0 space-y-1">
+              <div class="flex items-center justify-between gap-1">
+                <div class="flex items-center gap-1.5 truncate">
+                  <span class="px-1.5 py-0.2 text-[9px] font-bold rounded border ${categoryColor} font-mono">${categoryLabel}</span>
+                  ${statusBadge}
+                  <span class="text-[12px] truncate ${titleClass}">${escapeHtml(n.title)}</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0" onclick="event.stopPropagation()">
+                  ${toggleReadBtn}
+                  ${deleteBtn}
+                </div>
+              </div>
+              <div class="text-[11.5px] line-clamp-2 ${msgClass}">${escapeHtml(n.message)}</div>
+              <div class="flex items-center justify-between pt-0.5 text-[10px] font-mono">
+                <span class="${timeClass} flex items-center gap-1" title="${timeInfo.fullTooltip}">
+                  <span class="material-symbols-outlined text-[12px]">schedule</span>
+                  <span>${timeInfo.display}</span>
+                </span>
+                ${n.ticket_id ? '<span class="text-primary hover:underline font-semibold flex items-center gap-0.5">Open Ticket →</span>' : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
 
     function playNotificationChime() {
       try {
@@ -3954,7 +4459,7 @@
       }
     }
 
-    async function loadNotifications() {
+    async function loadNotifications(silent = false) {
       if (!authToken) return;
       try {
         const res = await fetch('/api/notifications', {
@@ -3971,15 +4476,17 @@
           ? data.items
           : (Array.isArray(data) ? data : []);
 
+        cachedNotifications = notifs;
+
         // 1. Audio and Desktop Notification if new alert arrived
         if (lastUnreadCount === -1) {
           lastUnreadCount = unreadCount;
-        } else if (unreadCount > lastUnreadCount) {
+        } else if (unreadCount > lastUnreadCount && !silent) {
           playNotificationChime();
           if (window.Notification && Notification.permission === 'granted' && notifs.length > 0) {
             const latest = notifs[0];
             try {
-              const desktopNotif = new Notification(latest.title || '🚨 New Support Ticket Alert', {
+              const desktopNotif = new Notification(latest.title || '🚨 New Support Alert', {
                 body: latest.message || 'A customer query requires owner resolution.',
                 icon: '/static/icons/icon-192.png',
                 badge: '/static/icons/icon-192.png'
@@ -3991,7 +4498,7 @@
             } catch (nErr) {
               if (navigator.serviceWorker && navigator.serviceWorker.ready) {
                 navigator.serviceWorker.ready.then(reg => {
-                  reg.showNotification(latest.title || '🚨 New Support Ticket Alert', {
+                  reg.showNotification(latest.title || '🚨 New Support Alert', {
                     body: latest.message,
                     icon: '/static/icons/icon-192.png'
                   });
@@ -4023,36 +4530,58 @@
         }
 
         // 4. Render Items
-        const listEl = document.getElementById('notif-list');
-        if (!listEl) return;
-
-        if (notifs.length === 0) {
-          listEl.innerHTML = '<div class="p-6 text-center text-slate-400 font-mono text-xs">No alerts at this time.</div>';
-          return;
-        }
-
-        listEl.innerHTML = notifs.slice(0, 20).map(n => {
-          const dateStr = new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const unreadClass = !n.is_read ? 'bg-indigo-50/50 font-semibold' : 'opacity-80';
-          let icon = 'notifications';
-          if (n.category === 'urgent_contact') icon = 'contact_phone';
-          if (n.category === 'auto_ticket') icon = 'confirmation_number';
-          if (n.category === 'whatsapp') icon = 'chat';
-
-          return '<div class="p-3 hover:bg-slate-50 transition flex items-start gap-2.5 ' + unreadClass + ' cursor-pointer border-b border-slate-100 last:border-0" onclick="handleNotificationClick(\'' + n.id + '\', \'' + (n.ticket_id || '') + '\')">' +
-            '<span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">' + icon + '</span>' +
-            '<div class="flex-1 min-w-0">' +
-              '<div class="flex items-center justify-between">' +
-                '<div class="text-[12px] text-slate-900 truncate font-medium">' + escapeHtml(n.title) + '</div>' +
-                '<span class="text-[10px] text-slate-400 font-mono">' + dateStr + '</span>' +
-              '</div>' +
-              '<div class="text-[11px] text-slate-600 font-normal line-clamp-2 mt-0.5">' + escapeHtml(n.message) + '</div>' +
-            '</div>' +
-          '</div>';
-        }).join('');
+        renderNotificationList();
       } catch (e) {
         console.warn("loadNotifications error:", e);
       }
+    }
+
+    async function markNotificationReadById(notifId) {
+      if (!notifId || !authToken) return;
+      const notif = cachedNotifications.find(n => n.id === notifId);
+      if (notif) notif.is_read = true;
+      renderNotificationList();
+      try {
+        await fetch(`/api/notifications/${encodeURIComponent(notifId)}/read`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+      } catch (e) {
+        console.warn("markNotificationReadById error:", e);
+      }
+      loadNotifications(true);
+    }
+
+    async function markNotificationUnreadById(notifId) {
+      if (!notifId || !authToken) return;
+      const notif = cachedNotifications.find(n => n.id === notifId);
+      if (notif) notif.is_read = false;
+      renderNotificationList();
+      try {
+        await fetch(`/api/notifications/${encodeURIComponent(notifId)}/unread`, {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+      } catch (e) {
+        console.warn("markNotificationUnreadById error:", e);
+      }
+      loadNotifications(true);
+    }
+
+    async function deleteNotificationById(notifId) {
+      if (!notifId || !authToken) return;
+      cachedNotifications = cachedNotifications.filter(n => n.id !== notifId);
+      renderNotificationList();
+      try {
+        await fetch(`/api/notifications/${encodeURIComponent(notifId)}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        showToast("Notification dismissed.", "info");
+      } catch (e) {
+        console.warn("deleteNotificationById error:", e);
+      }
+      loadNotifications(true);
     }
 
     async function handleNotificationClick(notifId, ticketId) {
@@ -4257,7 +4786,7 @@
     </button>
     <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
       <span class="material-symbols-outlined text-[19px] nav-icon">confirmation_number</span>
-      <span class="text-[9.5px] font-medium font-sans mt-0.5">Tickets</span>
+      <span class="text-[9.5px] font-medium font-sans mt-0.5">Unanswered</span>
       <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-2 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
     </button>
     <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
