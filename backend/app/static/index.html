@@ -149,7 +149,7 @@
       scrollbar-width: none !important;
     }
 
-    @media (max-width: 767px) {
+    @media (max-width: 1023px) {
       #biz-header-badge {
         display: none !important;
       }
@@ -171,22 +171,22 @@
 
   <!-- Top Navigation Bar -->
   <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
-    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
       
-      <!-- Brand -->
-      <div class="flex items-center space-x-2.5 sm:space-x-3">
+      <!-- Brand & Mobile Status -->
+      <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0 shrink">
         <img src="/static/icons/iveri-avatar.svg" alt="Iveri AI" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-sm shrink-0 object-cover border border-indigo-200">
-        <div>
+        <div class="min-w-0">
           <div class="flex items-center gap-1.5 sm:gap-2">
-            <span class="text-sm sm:text-base font-bold text-slate-900 tracking-tight">Iveri Console</span>
-            <span class="px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] sm:text-[10px] font-mono font-medium whitespace-nowrap">Owner Portal</span>
+            <span class="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate">Iveri Console</span>
+            <span class="hidden sm:inline-flex px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] sm:text-[10px] font-mono font-medium whitespace-nowrap">Owner Portal</span>
           </div>
           <span class="text-[10px] sm:text-[11px] text-slate-500 font-mono hidden xs:inline">Grounded Support Engine</span>
         </div>
       </div>
 
-      <!-- Business Status Pill -->
-      <div id="biz-header-badge" class="hidden md:flex items-center space-x-2 text-xs font-mono text-slate-600 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-200">
+      <!-- Business Status Pill (Desktop Only: >= 1024px to prevent any mobile/tablet navbar crowding) -->
+      <div id="biz-header-badge" class="hidden lg:flex items-center space-x-2 text-xs font-mono text-slate-600 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-200 shrink-0 whitespace-nowrap">
         <span class="relative flex h-2 w-2">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -198,14 +198,14 @@
       </div>
 
       <!-- Action Buttons -->
-      <div class="flex items-center space-x-2 sm:space-x-3">
-                <!-- In-App Notification Center -->
+      <div class="flex items-center space-x-1.5 sm:space-x-3 shrink-0">
         <!-- PWA Install Button (Shown on installable browsers) -->
-        <button id="pwa-install-btn" onclick="installPWA()" class="hidden px-2.5 sm:px-3 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-primary border border-primary/20 rounded-lg transition-all flex items-center gap-1 shadow-xs" title="Install App">
+        <button id="pwa-install-btn" onclick="installPWA()" class="hidden px-2 sm:px-3 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-primary border border-primary/20 rounded-lg transition-all flex items-center gap-1 shadow-xs" title="Install App">
           <span class="material-symbols-outlined text-[16px]">install_mobile</span>
-          <span class="hidden sm:inline">Install App</span>
+          <span class="hidden sm:inline">Install</span>
         </button>
 
+        <!-- In-App Notification Center -->
         <div class="relative">
           <button id="notif-bell-btn" onclick="toggleNotifDropdown()" class="p-2 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-all shadow-xs flex items-center justify-center relative" title="Notifications">
             <span class="material-symbols-outlined text-[19px]">notifications</span>
@@ -230,49 +230,57 @@
           </div>
         </div>
 
-        <button onclick="openPublicChat()" class="px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-lg transition-all flex items-center gap-1 sm:gap-1.5 shadow-xs">
+        <button onclick="openPublicChat()" class="px-2.5 sm:px-3.5 py-1.5 text-xs font-semibold bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-300 rounded-lg transition-all flex items-center gap-1 sm:gap-1.5 shadow-xs" title="Open Public Chat">
           <span class="material-symbols-outlined text-[15px] text-primary">open_in_new</span>
           <span class="hidden sm:inline">Public Chat</span>
         </button>
-        <button id="auth-action-btn" onclick="toggleAuthModal()" class="px-3 sm:px-4 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-hover text-white rounded-lg transition-all shadow-xs">
+        <button id="auth-action-btn" onclick="toggleAuthModal()" class="px-3 sm:px-4 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-hover text-white rounded-lg transition-all shadow-xs whitespace-nowrap">
           Sign In
         </button>
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 flex space-x-2 sm:space-x-8 overflow-x-auto text-xs border-t border-slate-200/80 font-mono no-scrollbar py-0.5">
-      <button onclick="switchTab('overview')" id="tab-overview" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition tab-active flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
-        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">monitoring</span>
-        <span>Overview & Analytics</span>
-      </button>
-      <button onclick="switchTab('documents')" id="tab-documents" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
-        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">folder</span>
-        <span>Documents & Scale</span>
-      </button>
-      <button onclick="switchTab('unanswered')" id="tab-unanswered" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
-        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">help_outline</span>
-        <span>Unanswered Queue</span>
-        <span id="unanswered-badge-count" class="hidden px-1.5 py-0.2 text-[10px] bg-amber-100 text-amber-800 border border-amber-300 rounded-full font-bold">0</span>
-      </button>
-      <button onclick="switchTab('tickets')" id="tab-tickets" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
-        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">confirmation_number</span>
-        <span>Support Tickets</span>
-        <span id="tickets-badge-count" class="hidden px-1.5 py-0.2 text-[10px] bg-rose-100 text-rose-800 border border-rose-300 rounded-full font-bold">0</span>
-      </button>
-
-      <button onclick="switchTab('chats')" id="tab-chats" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
-        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">chat</span>
-        <span>Chat History (2-Pane)</span>
-      </button>
-      <button onclick="switchTab('settings')" id="tab-settings" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
-        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">tune</span>
-        <span>Widget Studio</span>
-      </button>
-      <button onclick="switchTab('playground')" id="tab-playground" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
-        <span class="material-symbols-outlined text-[15px] sm:text-[16px]">science</span>
-        <span>RAG Playground</span>
-      </button>
+    <!-- Navigation Tabs with touch-friendly scrolling -->
+    <div class="border-t border-slate-200/80 bg-white/95 backdrop-blur-xs">
+      <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 flex space-x-1 sm:space-x-6 overflow-x-auto text-xs border-transparent font-mono no-scrollbar py-0.5 scroll-smooth" style="-webkit-overflow-scrolling: touch;">
+        <button onclick="switchTab('overview')" id="tab-overview" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition tab-active flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+          <span class="material-symbols-outlined text-[15px] sm:text-[16px]">monitoring</span>
+          <span class="sm:hidden">Overview</span>
+          <span class="hidden sm:inline">Overview & Analytics</span>
+        </button>
+        <button onclick="switchTab('documents')" id="tab-documents" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+          <span class="material-symbols-outlined text-[15px] sm:text-[16px]">folder</span>
+          <span class="sm:hidden">Docs</span>
+          <span class="hidden sm:inline">Documents & Scale</span>
+        </button>
+        <button onclick="switchTab('unanswered')" id="tab-unanswered" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+          <span class="material-symbols-outlined text-[15px] sm:text-[16px]">help_outline</span>
+          <span class="sm:hidden">Unanswered</span>
+          <span class="hidden sm:inline">Unanswered Queue</span>
+          <span id="unanswered-badge-count" class="hidden px-1.5 py-0.2 text-[10px] bg-amber-100 text-amber-800 border border-amber-300 rounded-full font-bold">0</span>
+        </button>
+        <button onclick="switchTab('tickets')" id="tab-tickets" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+          <span class="material-symbols-outlined text-[15px] sm:text-[16px]">confirmation_number</span>
+          <span class="sm:hidden">Tickets</span>
+          <span class="hidden sm:inline">Support Tickets</span>
+          <span id="tickets-badge-count" class="hidden px-1.5 py-0.2 text-[10px] bg-rose-100 text-rose-800 border border-rose-300 rounded-full font-bold">0</span>
+        </button>
+        <button onclick="switchTab('chats')" id="tab-chats" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+          <span class="material-symbols-outlined text-[15px] sm:text-[16px]">chat</span>
+          <span class="sm:hidden">History</span>
+          <span class="hidden sm:inline">Chat History (2-Pane)</span>
+        </button>
+        <button onclick="switchTab('settings')" id="tab-settings" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+          <span class="material-symbols-outlined text-[15px] sm:text-[16px]">tune</span>
+          <span class="sm:hidden">Studio</span>
+          <span class="hidden sm:inline">Widget Studio</span>
+        </button>
+        <button onclick="switchTab('playground')" id="tab-playground" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
+          <span class="material-symbols-outlined text-[15px] sm:text-[16px]">science</span>
+          <span class="sm:hidden">Playground</span>
+          <span class="hidden sm:inline">RAG Playground</span>
+        </button>
+      </div>
     </div>
   </header>
 
@@ -542,6 +550,160 @@
         </div>
       </div>
     </section>
+
+    <!-- SUPPORT TICKETS TAB (Auto-Created & Closed-Loop Learning) -->
+    <section id="view-tickets" class="hidden space-y-6">
+      
+      <!-- Top Header & Filter Controls -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900 tracking-tight">Support Tickets & Closed-Loop Learning</h2>
+          <p class="text-xs text-slate-500 mt-0.5 font-mono">Automated tickets created when the AI cannot answer or when customers request human callbacks. Resolving tickets trains the AI immediately.</p>
+        </div>
+        <div class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto">
+          <input 
+            type="text" 
+            id="ticket-search-input" 
+            placeholder="Search tickets, customers, phone..." 
+            oninput="debouncedTicketSearch()"
+            class="w-full sm:w-64 px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary shadow-xs"
+          />
+          <select id="ticket-status-filter" onchange="loadTickets()" class="px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-xs">
+            <option value="">All Statuses</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+          </select>
+          <select id="ticket-priority-filter" onchange="loadTickets()" class="px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-xs">
+            <option value="">All Priorities</option>
+            <option value="urgent">Urgent</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+          <select id="ticket-channel-filter" onchange="loadTickets()" class="px-3 py-2 sm:py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-700 shadow-xs">
+            <option value="">All Channels</option>
+            <option value="widget">Web Widget</option>
+            <option value="whatsapp">Twilio WhatsApp</option>
+            <option value="public_link">Public Link</option>
+          </select>
+          <button onclick="loadTickets()" class="px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 text-xs font-mono font-semibold rounded-lg text-slate-700 transition flex items-center justify-center gap-1.5 shadow-xs">
+            <span class="material-symbols-outlined text-[15px] text-primary">sync</span>
+            <span class="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Tickets Metric Summary Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="lumina-card p-4 rounded-2xl space-y-1">
+          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+            <span>Open Tickets</span>
+            <span class="material-symbols-outlined text-[18px] text-amber-500">pending_actions</span>
+          </div>
+          <div class="text-2xl font-bold font-mono text-slate-900" id="stat-open-tickets">0</div>
+          <p class="text-[10px] text-slate-400 font-mono">Awaiting owner response</p>
+        </div>
+        <div class="lumina-card p-4 rounded-2xl space-y-1">
+          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+            <span>Urgent Callbacks</span>
+            <span class="material-symbols-outlined text-[18px] text-rose-500">priority_high</span>
+          </div>
+          <div class="text-2xl font-bold font-mono text-rose-600" id="stat-urgent-tickets">0</div>
+          <p class="text-[10px] text-slate-400 font-mono">Direct human contact requests</p>
+        </div>
+        <div class="lumina-card p-4 rounded-2xl space-y-1">
+          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+            <span>WhatsApp Tickets</span>
+            <span class="material-symbols-outlined text-[18px] text-emerald-500">chat</span>
+          </div>
+          <div class="text-2xl font-bold font-mono text-emerald-600" id="stat-whatsapp-tickets">0</div>
+          <p class="text-[10px] text-slate-400 font-mono">From Twilio WhatsApp channel</p>
+        </div>
+        <div class="lumina-card p-4 rounded-2xl space-y-1">
+          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+            <span>Resolved & Trained</span>
+            <span class="material-symbols-outlined text-[18px] text-primary">psychology</span>
+          </div>
+          <div class="text-2xl font-bold font-mono text-primary" id="stat-resolved-tickets">0</div>
+          <p class="text-[10px] text-slate-400 font-mono">Permanently indexed into RAG</p>
+        </div>
+      </div>
+
+      <!-- Tickets List Table -->
+      <div class="lumina-card rounded-2xl overflow-hidden">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+          <span class="font-bold text-xs text-slate-800 font-mono">Support Tickets Table</span>
+          <span id="tickets-count-label" class="text-xs text-slate-400 font-mono">0 tickets</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs font-mono">
+            <thead class="bg-slate-50 text-slate-500 border-b border-slate-100">
+              <tr>
+                <th class="py-3 px-4">Ticket</th>
+                <th class="py-3 px-4">Priority</th>
+                <th class="py-3 px-4">Channel</th>
+                <th class="py-3 px-4">Customer</th>
+                <th class="py-3 px-4">Inquiry / Subject</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">Created</th>
+                <th class="py-3 px-4 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="tickets-table-body" class="divide-y divide-slate-100">
+              <tr>
+                <td colspan="8" class="text-center py-12 text-slate-400">Loading support tickets...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- Ticket Resolution Modal (Closed-Loop Learning) -->
+    <div id="resolve-ticket-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-xl w-full p-6 space-y-5 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-150">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded bg-indigo-50 text-primary text-xs font-mono font-bold" id="modal-ticket-number">TICK-XXXX</span>
+            <h3 class="font-bold text-slate-900 text-sm">Resolve Ticket & Train AI Assistant</h3>
+          </div>
+          <button onclick="closeResolveTicketModal()" class="text-slate-400 hover:text-slate-600">
+            <span class="material-symbols-outlined text-lg">close</span>
+          </button>
+        </div>
+
+        <div class="space-y-3 text-xs font-mono">
+          <div class="p-3 bg-slate-50 rounded-xl space-y-1 border border-slate-200">
+            <div class="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">Customer Inquiry</div>
+            <div id="modal-ticket-question" class="text-slate-800 font-sans font-medium text-sm">Loading...</div>
+            <div id="modal-ticket-customer" class="text-[11px] text-slate-500 pt-1"></div>
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-700 mb-1">
+              Verified Owner Answer <span class="text-primary font-normal">(will be permanently learned by RAG AI)</span>
+            </label>
+            <textarea 
+              id="modal-resolve-answer" 
+              rows="4" 
+              placeholder="Enter the official, accurate answer to resolve this ticket and train your AI assistant..." 
+              class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-sans text-slate-900 focus:outline-none focus:border-primary shadow-xs"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-3 pt-2">
+          <button onclick="closeResolveTicketModal()" class="px-4 py-2 border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-xl text-xs font-mono font-semibold transition">
+            Cancel
+          </button>
+          <button id="modal-resolve-submit-btn" onclick="submitTicketResolution()" class="px-5 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-mono font-semibold transition flex items-center gap-1.5 shadow-sm">
+            <span class="material-symbols-outlined text-[16px]">school</span>
+            <span>Resolve & Train AI</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- 4. CHAT HISTORY (MASTER-DETAIL 2-PANE) TAB -->
     <section id="view-chats" class="hidden space-y-6">
@@ -1211,7 +1373,10 @@
         if (res.ok) {
           currentBusiness = await res.json();
           document.getElementById('biz-header-name').innerText = currentBusiness.name;
-          document.getElementById('biz-header-badge').classList.remove('hidden');
+          const mobileSub = document.getElementById('biz-header-name-sub');
+          if (mobileSub) mobileSub.innerText = currentBusiness.name;
+          const desktopBadge = document.getElementById('biz-header-badge');
+          if (desktopBadge) desktopBadge.classList.remove('hidden');
           if (typeof loadTwilioConfig === 'function') loadTwilioConfig();
           document.getElementById('auth-action-btn').innerText = 'Sign Out';
           document.getElementById('auth-action-btn').onclick = logout;
@@ -1268,8 +1433,17 @@
 
           if (stats.unanswered_count > 0) {
             const badge = document.getElementById('unanswered-badge-count');
-            badge.innerText = stats.unanswered_count;
-            badge.classList.remove('hidden');
+            if (badge) {
+              badge.innerText = stats.unanswered_count;
+              badge.classList.remove('hidden');
+            }
+            const mobBadge = document.getElementById('mobile-unanswered-badge');
+            if (mobBadge) mobBadge.classList.remove('hidden');
+          } else {
+            const badge = document.getElementById('unanswered-badge-count');
+            if (badge) badge.classList.add('hidden');
+            const mobBadge = document.getElementById('mobile-unanswered-badge');
+            if (mobBadge) mobBadge.classList.add('hidden');
           }
         }
       } catch (e) {
@@ -1943,120 +2117,16 @@
         area.value = `${origin}/chat/${slug}`;
         if (help) help.innerText = "Standalone customer chat link. Share directly with customers via WhatsApp, email signatures, SMS, or link in your social media bio.";
       } else if (platform === 'shopify') {
-        area.value = `<!-- Paste right before 
-  <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-2 px-1 shadow-lg">
-    <button onclick="switchTab('overview')" id="mobile-nav-overview" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition mobile-nav-active">
-      <span class="material-symbols-outlined text-[20px] nav-icon">monitoring</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Overview</span>
-    </button>
-    <button onclick="switchTab('documents')" id="mobile-nav-documents" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">folder</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Docs</span>
-    </button>
-    <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
-      <span class="material-symbols-outlined text-[20px] nav-icon">confirmation_number</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Tickets</span>
-      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
-    </button>
-    <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">chat</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Chats</span>
-    </button>
-    <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">tune</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Studio</span>
-    </button>
-  </nav>
-
-</body> in your Shopify theme.liquid file -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
-        if (help) help.innerText = "Shopify integration: Go to Online Store -> Themes -> Edit code -> theme.liquid and paste before 
-  <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-2 px-1 shadow-lg">
-    <button onclick="switchTab('overview')" id="mobile-nav-overview" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition mobile-nav-active">
-      <span class="material-symbols-outlined text-[20px] nav-icon">monitoring</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Overview</span>
-    </button>
-    <button onclick="switchTab('documents')" id="mobile-nav-documents" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">folder</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Docs</span>
-    </button>
-    <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
-      <span class="material-symbols-outlined text-[20px] nav-icon">confirmation_number</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Tickets</span>
-      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
-    </button>
-    <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">chat</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Chats</span>
-    </button>
-    <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">tune</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Studio</span>
-    </button>
-  </nav>
-
-</body>.";
+        area.value = `<!-- Paste right before </body> in your Shopify theme.liquid file -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
+        if (help) help.innerText = "Shopify integration: Go to Online Store -> Themes -> Edit code -> theme.liquid and paste before </body>.";
       } else if (platform === 'wordpress') {
-        area.value = `<!-- WordPress: Paste in WPCode plugin, Custom HTML widget, or footer.php before 
-  <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-2 px-1 shadow-lg">
-    <button onclick="switchTab('overview')" id="mobile-nav-overview" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition mobile-nav-active">
-      <span class="material-symbols-outlined text-[20px] nav-icon">monitoring</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Overview</span>
-    </button>
-    <button onclick="switchTab('documents')" id="mobile-nav-documents" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">folder</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Docs</span>
-    </button>
-    <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
-      <span class="material-symbols-outlined text-[20px] nav-icon">confirmation_number</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Tickets</span>
-      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
-    </button>
-    <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">chat</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Chats</span>
-    </button>
-    <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">tune</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Studio</span>
-    </button>
-  </nav>
-
-</body> -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
+        area.value = `<!-- WordPress: Paste in WPCode plugin, Custom HTML widget, or footer.php before </body> -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
         if (help) help.innerText = "WordPress integration: Use the free 'WPCode' plugin (Footer script) or paste directly into footer.php.";
       } else if (platform === 'react') {
         area.value = `import Script from 'next/script';\n\n// Place inside your RootLayout or SupportPage component:\n<Script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  strategy="lazyOnload" \n/>`;
         if (help) help.innerText = "React / Next.js integration: Zero-layout-shift script loader with lazyOnload strategy.";
       } else {
-        area.value = `<!-- Universal Floating Widget: Paste before 
-  <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-2 px-1 shadow-lg">
-    <button onclick="switchTab('overview')" id="mobile-nav-overview" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition mobile-nav-active">
-      <span class="material-symbols-outlined text-[20px] nav-icon">monitoring</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Overview</span>
-    </button>
-    <button onclick="switchTab('documents')" id="mobile-nav-documents" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">folder</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Docs</span>
-    </button>
-    <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
-      <span class="material-symbols-outlined text-[20px] nav-icon">confirmation_number</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Tickets</span>
-      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
-    </button>
-    <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">chat</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Chats</span>
-    </button>
-    <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">tune</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Studio</span>
-    </button>
-  </nav>
-
-</body> on any HTML, Webflow, Squarespace, or Wix site -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
+        area.value = `<!-- Universal Floating Widget: Paste before </body> on any HTML, Webflow, Squarespace, or Wix site -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
         if (help) help.innerText = "Standard 1-line installation for any website. Automatically displays the floating bubble with your custom branding.";
       }
     }
@@ -2568,7 +2638,7 @@
     }
 
     function updateMobileBottomNav(tabId) {
-      ['overview', 'documents', 'tickets', 'chats', 'settings'].forEach(t => {
+      ['overview', 'documents', 'unanswered', 'tickets', 'chats', 'settings'].forEach(t => {
         const btn = document.getElementById(`mobile-nav-${t}`);
         if (btn) {
           if (t === tabId) {
@@ -2934,27 +3004,32 @@
   </script>
 
   <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-2 px-1 shadow-lg">
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-1.5 px-0.5 shadow-lg">
     <button onclick="switchTab('overview')" id="mobile-nav-overview" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition mobile-nav-active">
-      <span class="material-symbols-outlined text-[20px] nav-icon">monitoring</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Overview</span>
+      <span class="material-symbols-outlined text-[19px] nav-icon">monitoring</span>
+      <span class="text-[9.5px] font-medium font-sans mt-0.5">Overview</span>
     </button>
     <button onclick="switchTab('documents')" id="mobile-nav-documents" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">folder</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Docs</span>
+      <span class="material-symbols-outlined text-[19px] nav-icon">folder</span>
+      <span class="text-[9.5px] font-medium font-sans mt-0.5">Docs</span>
+    </button>
+    <button onclick="switchTab('unanswered')" id="mobile-nav-unanswered" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
+      <span class="material-symbols-outlined text-[19px] nav-icon">help_outline</span>
+      <span class="text-[9.5px] font-medium font-sans mt-0.5">Queue</span>
+      <span id="mobile-unanswered-badge" class="hidden absolute top-0.5 right-2 w-2 h-2 bg-amber-500 rounded-full border border-white"></span>
     </button>
     <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
-      <span class="material-symbols-outlined text-[20px] nav-icon">confirmation_number</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Tickets</span>
-      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
+      <span class="material-symbols-outlined text-[19px] nav-icon">confirmation_number</span>
+      <span class="text-[9.5px] font-medium font-sans mt-0.5">Tickets</span>
+      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-2 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
     </button>
     <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">chat</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Chats</span>
+      <span class="material-symbols-outlined text-[19px] nav-icon">chat</span>
+      <span class="text-[9.5px] font-medium font-sans mt-0.5">Chats</span>
     </button>
     <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
-      <span class="material-symbols-outlined text-[20px] nav-icon">tune</span>
-      <span class="text-[10px] font-medium font-sans mt-0.5">Studio</span>
+      <span class="material-symbols-outlined text-[19px] nav-icon">tune</span>
+      <span class="text-[9.5px] font-medium font-sans mt-0.5">Studio</span>
     </button>
   </nav>
 

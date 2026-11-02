@@ -43,10 +43,24 @@ async def lifespan(app: FastAPI):
     await init_db()
     await bm25_store_service.warmup_from_db()
     ingestion_queue.start()
+
+    # Pre-warm Laya System 1 Neural Router to eliminate cold start latency on first request
+    try:
+        from app.services.laya_router import laya_service
+        laya_service.classify_intent("startup warmup ping")
+        logger.info("Laya System 1 Neural Router pre-warmed successfully.")
+    except Exception as e:
+        logger.warning(f"Laya neural router pre-warmup notice: {e}")
+
     yield
     # Shutdown
     logger.info("Shutting down backend services...")
     await ingestion_queue.shutdown()
+    try:
+        from app.services.llm_client import close_shared_client
+        await close_shared_client()
+    except Exception:
+        pass
 
 app = FastAPI(
     title="Iveri - AI Customer Support Assistant API",

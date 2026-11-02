@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     
     # Tier 2: Sarvam AI LLM (Indic & Multilingual Freemium)
     SARVAM_LLM_KEY: str = ""
-    SARVAM_LLM_MODEL: str = "sarvam-105b"
+    SARVAM_LLM_MODEL: str = "sarvam-105b-conversations"
     SARVAM_LLM_URL: str = "https://api.sarvam.ai/v1"
     
     # Tier 3: Groq Freemium Cloud LPU (Zero Cost Open-Source Weights: Qwen / Allam)
