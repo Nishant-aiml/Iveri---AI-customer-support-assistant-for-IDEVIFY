@@ -180,6 +180,8 @@ class IngestionWorkerQueue:
                     # Explicit memory cleanup for 1,000-page stability
                     del batch_chunks
                     gc.collect()
+                    # Yield event loop so concurrent HTTP chat & UI requests are never starved
+                    await asyncio.sleep(0.02)
 
                 # 6. Final completion state
                 doc.status = "INDEXED"

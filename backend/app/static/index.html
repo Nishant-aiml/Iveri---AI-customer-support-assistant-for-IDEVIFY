@@ -2317,6 +2317,10 @@
                     </span>
                     <div class="text-[10px] text-slate-500 font-mono">${d.processed_pages || 0} / ${d.total_pages || '?'} pages</div>
                   </div>
+                ` : d.status === 'QUEUED' ? `
+                  <span class="px-2 py-0.5 text-[10px] rounded-full font-bold bg-indigo-50 text-indigo-700 border border-indigo-200 animate-pulse">
+                    QUEUED
+                  </span>
                 ` : `
                   <span class="px-2 py-0.5 text-[10px] rounded-full font-bold ${d.status==='INDEXED'?'bg-emerald-50 text-emerald-700 border border-emerald-200':'bg-rose-50 text-rose-700 border border-rose-200'}">
                     ${d.status}
@@ -2395,14 +2399,17 @@
           return;
         }
         await loadDocuments();
-        const hasStreaming = document.querySelector('#documents-tbody tr td span.bg-amber-50');
         const spans = Array.from(document.querySelectorAll('#documents-tbody tr td span'));
-        const hasQueued = spans.some(s => s.textContent.includes('QUEUED') || s.textContent.includes('INDEXING'));
-        const hasActiveJobs = Boolean(hasStreaming || hasQueued);
-        if (!hasActiveJobs && attempts > 3) {
+        const hasActiveJobs = spans.some(s => 
+          s.textContent.includes('STREAMING') || 
+          s.textContent.includes('QUEUED') || 
+          s.textContent.includes('PROCESSING') ||
+          s.textContent.includes('INDEXING')
+        );
+        if (!hasActiveJobs && attempts > 2) {
           clearInterval(docPollInterval);
         }
-      }, 2500);
+      }, 1500);
     }
 
     let isUploadingDocs = false;
@@ -2443,6 +2450,30 @@
         progressBox.classList.remove('hidden');
         progressTitle.innerText = `Ingesting ${fileList.length} Document${fileList.length > 1 ? 's' : ''}...`;
         progressDetail.innerText = fileList.map(f => f.name).join(', ');
+      }
+
+      // Optimistic row rendering: immediately show uploaded items in table so user never has to refresh
+      const tbody = document.getElementById('documents-tbody');
+      if (tbody) {
+        const optimisticRows = fileList.map(f => `
+          <tr class="bg-indigo-50/20 transition animate-pulse" id="opt-doc-${escapeHtml(f.name.replace(/\W/g, ''))}">
+            <td class="px-6 py-3.5 font-medium text-slate-900">${escapeHtml(f.name)}</td>
+            <td class="px-6 py-3.5 uppercase text-xs font-mono text-slate-500">${escapeHtml(f.name.split('.').pop() || 'doc')}</td>
+            <td class="px-6 py-3.5">
+              <span class="px-2 py-0.5 text-[10px] rounded-full font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                QUEUED
+              </span>
+            </td>
+            <td class="px-6 py-3.5 font-mono text-xs text-slate-400">...</td>
+            <td class="px-6 py-3.5 text-xs font-mono text-slate-400">Just now</td>
+            <td class="px-6 py-3.5 text-right font-mono text-xs text-indigo-600">Uploading...</td>
+          </tr>
+        `).join('');
+        if (tbody.innerHTML.includes('No documents uploaded yet')) {
+          tbody.innerHTML = optimisticRows;
+        } else {
+          tbody.innerHTML = optimisticRows + tbody.innerHTML;
+        }
       }
 
       const formData = new FormData();
@@ -2502,6 +2533,7 @@
           headers: {'Authorization': `Bearer ${authToken}`}
         });
         if (res.ok) {
+          if (typeof tabLastFetched === 'object') tabLastFetched['documents'] = 0;
           loadDocuments();
           loadDashboardData();
         }
@@ -3648,7 +3680,8 @@
       `).join('');
     }
 
-    function switchTab(tabId) {
+    const tabLastFetched = {};
+    function switchTab(tabId, forceRefresh = false) {
       if (tabId === 'unanswered') tabId = 'tickets';
       if (tabId === 'playground') {
         tabId = 'settings';
@@ -3675,12 +3708,18 @@
         updateMobileBottomNav(tabId);
       }
 
-      if (tabId === 'overview') { loadDashboardData(); loadAnalyticsCharts(); }
-      if (tabId === 'documents') loadDocuments();
-      if (tabId === 'unanswered') loadUnansweredQuestions();
-      if (tabId === 'tickets') loadTickets();
-      if (tabId === 'chats') loadChatHistory();
-      if (tabId === 'settings') { updateWidgetPreview(); loadTwilioConfig(); }
+      const now = Date.now();
+      const last = tabLastFetched[tabId] || 0;
+      // Fast tab switching: only hit the network if older than 20 seconds or forced
+      if (forceRefresh || (now - last) > 20000) {
+        tabLastFetched[tabId] = now;
+        if (tabId === 'overview') { loadDashboardData(); loadAnalyticsCharts(); }
+        if (tabId === 'documents') loadDocuments();
+        if (tabId === 'unanswered') loadUnansweredQuestions();
+        if (tabId === 'tickets') loadTickets();
+        if (tabId === 'chats') loadChatHistory();
+        if (tabId === 'settings') { updateWidgetPreview(); loadTwilioConfig(); }
+      }
     }
 
     async function toggleAuthModal() {

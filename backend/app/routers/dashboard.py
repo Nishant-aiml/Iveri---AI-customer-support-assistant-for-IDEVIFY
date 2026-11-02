@@ -46,69 +46,44 @@ async def get_dashboard_stats(
         select(func.count(ChatSession.id)).where(ChatSession.business_id == biz_id)
     )).scalar() or 0
 
-    # 2. Total customer questions asked
-    questions_count = (await db.execute(
-        select(func.count(ChatMessage.id))
-        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
-        .where(ChatSession.business_id == biz_id, ChatMessage.sender == "customer")
-    )).scalar() or 0
-
-    # 3. Answered & Unanswered counts
-    answered_count = (await db.execute(
-        select(func.count(ChatMessage.id))
-        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
-        .where(
-            ChatSession.business_id == biz_id,
-            ChatMessage.sender == "assistant",
-            ChatMessage.is_answered.is_(True)
+    # 2. Aggregated message statistics in a single optimized pass
+    msg_stats = (await db.execute(
+        select(
+            func.count(ChatMessage.id).filter(ChatMessage.sender == "customer").label("questions_count"),
+            func.count(ChatMessage.id).filter(ChatMessage.sender == "assistant", ChatMessage.is_answered.is_(True)).label("answered_count"),
+            func.count(ChatMessage.id).filter(ChatMessage.sender == "assistant", ChatMessage.is_answered.is_(False)).label("unanswered_count"),
+            func.avg(ChatMessage.latency_ms).filter(ChatMessage.sender == "assistant").label("avg_latency"),
+            func.count(ChatMessage.id).filter(ChatMessage.feedback == "up").label("thumbs_up"),
+            func.count(ChatMessage.id).filter(ChatMessage.feedback == "down").label("thumbs_down")
         )
-    )).scalar() or 0
-
-    unanswered_count = (await db.execute(
-        select(func.count(ChatMessage.id))
         .join(ChatSession, ChatMessage.session_id == ChatSession.id)
-        .where(
-            ChatSession.business_id == biz_id,
-            ChatMessage.sender == "assistant",
-            ChatMessage.is_answered.is_(False)
-        )
-    )).scalar() or 0
+        .where(ChatSession.business_id == biz_id)
+    )).one()
 
-    # 4. Resolution rate %
+    questions_count = msg_stats.questions_count or 0
+    answered_count = msg_stats.answered_count or 0
+    unanswered_count = msg_stats.unanswered_count or 0
+    avg_latency = msg_stats.avg_latency or 0.0
+    thumbs_up = msg_stats.thumbs_up or 0
+    thumbs_down = msg_stats.thumbs_down or 0
+
+    # 3. Resolution rate %
     total_assistant_replies = answered_count + unanswered_count
     resolution_rate = (
         round((answered_count / total_assistant_replies) * 100.0, 1)
         if total_assistant_replies > 0 else 100.0
     )
 
-    # 5. Average latency in ms
-    avg_latency = (await db.execute(
-        select(func.avg(ChatMessage.latency_ms))
-        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
-        .where(ChatSession.business_id == biz_id, ChatMessage.sender == "assistant")
-    )).scalar() or 0.0
+    # 4. Document & Chunk inventory in a single pass
+    doc_stats = (await db.execute(
+        select(
+            func.count(Document.id).label("total_docs"),
+            func.coalesce(func.sum(Document.chunk_count), 0).label("indexed_chunks")
+        ).where(Document.business_id == biz_id)
+    )).one()
 
-    # 6. Customer feedback totals
-    thumbs_up = (await db.execute(
-        select(func.count(ChatMessage.id))
-        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
-        .where(ChatSession.business_id == biz_id, ChatMessage.feedback == "up")
-    )).scalar() or 0
-
-    thumbs_down = (await db.execute(
-        select(func.count(ChatMessage.id))
-        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
-        .where(ChatSession.business_id == biz_id, ChatMessage.feedback == "down")
-    )).scalar() or 0
-
-    # 7. Document & Chunk inventory
-    docs_count = (await db.execute(
-        select(func.count(Document.id)).where(Document.business_id == biz_id)
-    )).scalar() or 0
-
-    chunks_count = (await db.execute(
-        select(func.count(DocumentChunk.id)).where(DocumentChunk.business_id == biz_id)
-    )).scalar() or 0
+    docs_count = doc_stats.total_docs or 0
+    chunks_count = doc_stats.indexed_chunks or 0
 
     return DashboardStatsResponse(
         total_chats=chats_count,

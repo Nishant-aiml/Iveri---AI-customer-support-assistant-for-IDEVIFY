@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -97,6 +98,9 @@ app.add_middleware(AuditLoggerMiddleware)
 # In-Memory Rate Limiting (Anti-DoS & Brute Force Defense)
 app.add_middleware(SlidingWindowRateLimiter)
 
+# Response GZip Compression (Reduces payload sizes by ~80% for fast surfing)
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+
 # Mount Routers
 app.include_router(auth.router)
 app.include_router(business.router)
@@ -125,6 +129,15 @@ async def health_check():
 # Static Asset Directory
 _static_dir = os.path.join(os.path.dirname(__file__), "static")
 app.mount("/static", StaticFiles(directory=_static_dir), name="static")
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def serve_favicon():
+    """Serves the favicon or returns 204 no content to eliminate browser 404 console errors."""
+    icon_path = os.path.join(_static_dir, "icons", "icon-192.png")
+    if os.path.exists(icon_path):
+        return FileResponse(icon_path, media_type="image/png")
+    from fastapi.responses import Response
+    return Response(status_code=204)
 
 @app.get("/manifest.json", tags=["PWA"])
 async def serve_pwa_manifest():

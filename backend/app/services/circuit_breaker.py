@@ -126,7 +126,8 @@ class PreLLMCircuitBreaker:
         "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves", "he",
         "him", "his", "himself", "she", "her", "hers", "herself", "it", "its", "itself", "they",
         "them", "their", "theirs", "themselves", "this", "that", "these", "those", "am", "please",
-        "section", "sections", "page", "pages", "part", "parts", "chapter", "chapters", "clause", "clauses", "paragraph", "article", "doc", "document", "faq"
+        "section", "sections", "page", "pages", "part", "parts", "chapter", "chapters", "clause", "clauses", "paragraph", "article", "doc", "document", "faq",
+        "name", "names", "title", "details", "info", "information", "about", "tell"
     }
 
     PRODUCT_SYNONYMS = {
@@ -134,10 +135,21 @@ class PreLLMCircuitBreaker:
         "service", "services", "catalog", "pricing", "broadband"
     }
 
+    COMPANY_SYNONYMS = {
+        "company", "co", "brand", "store", "business", "firm", "organization", "shop", "enterprise", "roaster", "provider"
+    }
+
     _PRODUCT_RE = re.compile(
         r"\b(" + "|".join(re.escape(s) for s in [
             "product", "products", "item", "items", "plan", "plans", "package", "packages",
             "service", "services", "catalog", "pricing", "broadband"
+        ]) + r")\b",
+        re.IGNORECASE
+    )
+
+    _COMPANY_RE = re.compile(
+        r"\b(" + "|".join(re.escape(s) for s in [
+            "company", "co", "brand", "store", "business", "firm", "organization", "shop", "enterprise", "roaster", "provider"
         ]) + r")\b",
         re.IGNORECASE
     )
@@ -178,7 +190,10 @@ class PreLLMCircuitBreaker:
                     "reason": "query_contains_no_domain_entities"
                 }
             if tokens:
-                top_text = " ".join([c.get("content", "").lower() for c in fused_chunks[:3]])
+                top_text = " ".join([
+                    (c.get("content", "") + " " + c.get("metadata", {}).get("document_name", "")).lower()
+                    for c in fused_chunks[:3]
+                ])
                 # Filter out boilerplate test disclaimers from entity matching
                 top_text_clean = re.sub(r"(?i)fictional document created for testing.*?\.", "", top_text)
                 top_text_clean = re.sub(r"(?i)created for testing an? ai customer support.*?assistant\b", "", top_text_clean)
@@ -188,6 +203,8 @@ class PreLLMCircuitBreaker:
                 entity_hits = []
                 for t in tokens:
                     if t in self.PRODUCT_SYNONYMS and self._PRODUCT_RE.search(top_text_clean):
+                        entity_hits.append(t)
+                    elif t in self.COMPANY_SYNONYMS and self._COMPANY_RE.search(top_text_clean):
                         entity_hits.append(t)
                     elif re.search(r"\b" + re.escape(t) + r"\b", top_text_clean):
                         entity_hits.append(t)

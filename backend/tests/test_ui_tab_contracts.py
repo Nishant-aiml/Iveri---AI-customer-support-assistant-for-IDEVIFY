@@ -1,6 +1,9 @@
 import os
+import sys
 import re
 import unittest
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 class TestUiTabContracts(unittest.TestCase):
     """Verifies that the single-page application UI maintains strict settings sub-tab hierarchy,
@@ -60,6 +63,35 @@ class TestUiTabContracts(unittest.TestCase):
         """Ensures switchTab('playground') programmatically activates settings and selects testing-rag."""
         self.assertIn("tabId = 'settings';", self.html)
         self.assertIn("switchSettingsSubTab('testing-rag');", self.html)
+
+    def test_06_performance_optimizations_and_favicon(self):
+        """Ensures GZip compression and favicon handling are registered in main.py."""
+        main_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "main.py"))
+        with open(main_path, "r", encoding="utf-8") as f:
+            main_code = f.read()
+
+        self.assertIn("GZipMiddleware", main_code)
+        self.assertIn("/favicon.ico", main_code)
+
+    def test_07_circuit_breaker_company_and_product_synonyms(self):
+        """Ensures circuit breaker validates company synonyms so queries like 'name of the company' are answered."""
+        from app.services.circuit_breaker import circuit_breaker
+        fused_chunks = [{
+            "id": "c1",
+            "content": "BrewNest Coffee Co. is an online specialty coffee roaster based in Pune, India.",
+            "rrf_score": 0.033,
+            "dense_similarity": 0.65,
+            "sparse_score": 0.5,
+            "metadata": {"document_name": "BrewNest_Help_Guide.pdf"}
+        }]
+        eval_result = circuit_breaker.evaluate(fused_chunks, query="name of the company")
+        self.assertTrue(eval_result["can_answer"], f"Circuit breaker should allow company queries: {eval_result}")
+
+    def test_08_optimistic_document_upload_and_fast_tab_caching(self):
+        """Ensures index.html provides instant tab switching and optimistic upload row rendering."""
+        self.assertIn("tabLastFetched", self.html)
+        self.assertIn("Uploading...", self.html)
+        self.assertIn("QUEUED", self.html)
 
 if __name__ == "__main__":
     unittest.main()

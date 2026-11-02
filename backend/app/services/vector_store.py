@@ -1,6 +1,7 @@
 import os
 import hashlib
 import logging
+import asyncio
 import httpx
 from typing import List, Dict, Any, Optional
 from app.config import settings
@@ -17,6 +18,7 @@ class VectorStoreService:
     def __init__(self, persist_directory: Optional[str] = None):
         self.persist_directory = persist_directory or settings.CHROMA_PERSIST_DIRECTORY
         os.makedirs(self.persist_directory, exist_ok=True)
+        self._default_ef = None
         self._init_chroma()
 
     def _init_chroma(self):
@@ -31,6 +33,16 @@ class VectorStoreService:
             name="idevify_knowledge_chunks",
             metadata={"hnsw:space": "cosine"}
         )
+
+    def _get_default_ef(self):
+        """Reuses a singleton DefaultEmbeddingFunction instance to avoid repeated ONNX re-initialization."""
+        if self._default_ef is None:
+            try:
+                from chromadb.utils import embedding_functions
+                self._default_ef = embedding_functions.DefaultEmbeddingFunction()
+            except Exception as e:
+                logger.warning(f"Failed to initialize Chroma DefaultEmbeddingFunction: {e}")
+        return self._default_ef
 
     async def get_embeddings(self, texts: List[str]) -> List[List[float]]:
         """Computes dense vector embeddings using Google Gemini (or local fallback) in batches of 50."""
@@ -49,15 +61,15 @@ class VectorStoreService:
         return all_embeddings
 
     async def _get_embeddings_batch(self, texts: List[str]) -> List[List[float]]:
-        # 1. Local Semantic ONNX all-MiniLM-L6-v2 Embeddings (Deterministic 384-dim Cosine Space)
-        # Keeps embeddings 100% matched with ChromaDB index and runs in-process with 0 external API calls
-        try:
-            from chromadb.utils import embedding_functions
-            default_ef = embedding_functions.DefaultEmbeddingFunction()
-            embeddings = default_ef(texts)
-            return [list(map(float, emb)) for emb in embeddings]
-        except Exception as e:
-            logger.warning(f"Chroma ONNX embedding failed ({str(e)}). Trying Google Gemini embedding...")
+        # 1. Local Semantic ONNX all-MiniLM-L6-v2 Embeddings in non-blocking worker thread
+        # Keeps embeddings 100% matched with ChromaDB index without blocking the asyncio event loop
+        ef = self._get_default_ef()
+        if ef is not None:
+            try:
+                embeddings = await asyncio.to_thread(ef, texts)
+                return [list(map(float, emb)) for emb in embeddings]
+            except Exception as e:
+                logger.warning(f"Chroma ONNX embedding failed ({str(e)}). Trying Google Gemini embedding...")
 
         # 2. Google Gemini Embeddings (Cloud Fallback)
         if settings.GEMINI_API_KEY:
@@ -127,7 +139,8 @@ class VectorStoreService:
 
             embeddings = await self.get_embeddings(texts)
 
-            self.collection.upsert(
+            await asyncio.to_thread(
+                self.collection.upsert,
                 ids=ids,
                 embeddings=embeddings,
                 documents=texts,
@@ -138,7 +151,8 @@ class VectorStoreService:
     async def delete_document(self, business_id: str, document_id: str):
         """Removes all chunks belonging to a document under the specified business."""
         try:
-            self.collection.delete(
+            await asyncio.to_thread(
+                self.collection.delete,
                 where={
                     "$and": [
                         {"business_id": {"$eq": str(business_id)}},
@@ -153,7 +167,10 @@ class VectorStoreService:
     async def delete_business(self, business_id: str):
         """Removes all chunks belonging to a business from ChromaDB."""
         try:
-            self.collection.delete(where={"business_id": {"$eq": str(business_id)}})
+            await asyncio.to_thread(
+                self.collection.delete,
+                where={"business_id": {"$eq": str(business_id)}}
+            )
             logger.info(f"ChromaDB purged all chunks for business {business_id}.")
         except Exception as e:
             logger.error(f"Error purging business chunks from ChromaDB: {str(e)}")
@@ -165,7 +182,8 @@ class VectorStoreService:
             return []
 
         try:
-            results = self.collection.query(
+            results = await asyncio.to_thread(
+                self.collection.query,
                 query_embeddings=query_embeddings,
                 n_results=top_k,
                 where={"business_id": {"$eq": str(business_id)}}
