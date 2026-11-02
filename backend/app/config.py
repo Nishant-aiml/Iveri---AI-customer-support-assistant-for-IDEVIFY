@@ -25,14 +25,24 @@ class Settings(BaseSettings):
     # Sarvam AI Document Intelligence API
     SARVAM_API_KEY: str = ""
     SARVAM_API_URL: str = "https://api.sarvam.ai"
+    SARVAM_FALLBACK_API_KEY: str = ""
     
     # LLM Cascade Settings
+    # Tier 1: Google Gemini (Generous Free Tier)
     GEMINI_API_KEY: str = ""
-    GEMINI_MODEL: str = "gemini-1.5-flash"
+    GEMINI_MODEL: str = "gemini-3.5-flash"
+    GEMINI_EMBEDDING_MODEL: str = "gemini-embedding-001"
     
+    # Tier 2: Groq High-Speed Cloud LPU
     GROQ_API_KEY: str = ""
-    GROQ_MODEL: str = "llama-3.1-8b-instant"
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
     
+    # Tier 3: Sarvam AI LLM (Indic & Multilingual)
+    SARVAM_LLM_KEY: str = ""
+    SARVAM_LLM_MODEL: str = "sarvam-105b"
+    SARVAM_LLM_URL: str = "https://api.sarvam.ai/v1"
+    
+    # Optional Tier: OpenAI (if configured)
     OPENAI_API_KEY: str = ""
     
     # Vector & Storage

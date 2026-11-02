@@ -28,9 +28,11 @@ Or briefly guide the customer on what topics are covered in the store's verified
 class MultiTierLLMClient:
     """Multi-Tier LLM Cascade engineered for Render Free Tier (512MB RAM safe).
     
-    Tier 1 (Primary): Google Gemini 1.5/2.0 Flash (Free 15 RPM, 1M TPM)
-    Tier 2 (Fallback): Groq LPUs with Llama 3.1 8B Instant (Free 30 RPM, 300+ tok/s)
-    Tier 3 (Local/Offline): Extractive synthesis fallback
+    Tier 1 (Primary): Google Gemini Flash (gemini-3.5-flash / gemini-flash-latest)
+    Tier 2 (High-Speed Fallback): Groq LPUs (openai/gpt-oss-120b / llama-3.1-8b-instant)
+    Tier 3 (Indic/Multilingual Fallback): Sarvam AI 105B LLM (sarvam-105b)
+    Tier 4 (Optional Enterprise): OpenAI (gpt-4o-mini / gpt-3.5-turbo)
+    Tier 5 (Offline/Deterministic): Local Grounded Extractive Synthesis
     """
 
     @staticmethod
@@ -50,7 +52,7 @@ class MultiTierLLMClient:
         tone: str = "friendly",
         custom_prompt: str = ""
     ) -> Tuple[str, str]:
-        """Generates grounded answer through the cascade.
+        """Generates grounded answer through the multi-tier failover cascade.
         
         Returns:
             Tuple[str, str]: (answer_text, provider_name)
@@ -67,55 +69,102 @@ class MultiTierLLMClient:
         user_content = f"Customer Question: {query}"
 
         # -----------------------------------------------------------------
-        # TIER 1: Google Gemini 1.5/2.0 Flash
+        # TIER 1: Google Gemini Flash (Primary)
         # -----------------------------------------------------------------
         if settings.GEMINI_API_KEY:
-            try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{settings.GEMINI_MODEL}:generateContent?key={settings.GEMINI_API_KEY}"
-                payload = {
-                    "system_instruction": {
-                        "parts": [{"text": prompt}]
-                    },
-                    "contents": [
-                        {
-                            "role": "user",
-                            "parts": [
-                                {"text": user_content}
-                            ]
+            gemini_models = [settings.GEMINI_MODEL, "gemini-3.5-flash", "gemini-flash-latest"]
+            # Deduplicate while preserving order
+            gemini_models = list(dict.fromkeys([m for m in gemini_models if m]))
+            
+            for g_model in gemini_models:
+                try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{g_model}:generateContent?key={settings.GEMINI_API_KEY}"
+                    payload = {
+                        "system_instruction": {
+                            "parts": [{"text": prompt}]
+                        },
+                        "contents": [
+                            {
+                                "role": "user",
+                                "parts": [
+                                    {"text": user_content}
+                                ]
+                            }
+                        ],
+                        "generationConfig": {
+                            "temperature": 0.1,  # Low temperature to suppress hallucinations
+                            "maxOutputTokens": 600
                         }
-                    ],
-                    "generationConfig": {
-                        "temperature": 0.1,  # Low temperature to suppress hallucinations
-                        "maxOutputTokens": 600
                     }
-                }
-                async with httpx.AsyncClient(timeout=15.0) as client:
-                    resp = await client.post(url, json=payload)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        candidates = data.get("candidates", [])
-                        if candidates and "content" in candidates[0]:
-                            parts = candidates[0]["content"].get("parts", [])
-                            if parts and "text" in parts[0]:
-                                text = parts[0]["text"].strip()
-                                logger.info("Answer generated successfully via Tier 1 (Gemini Flash).")
-                                return text, "gemini"
-                    logger.warning(f"Tier 1 (Gemini) returned HTTP {resp.status_code}. Falling back to Tier 2 (Groq)...")
-            except Exception as e:
-                logger.warning(f"Tier 1 (Gemini) encountered error: {str(e)}. Falling back to Tier 2 (Groq)...")
+                    async with httpx.AsyncClient(timeout=15.0) as client:
+                        resp = await client.post(url, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            candidates = data.get("candidates", [])
+                            if candidates and "content" in candidates[0]:
+                                parts = candidates[0]["content"].get("parts", [])
+                                if parts and "text" in parts[0]:
+                                    text = parts[0]["text"].strip()
+                                    logger.info(f"Answer generated successfully via Tier 1 (Gemini: {g_model}).")
+                                    return text, "gemini"
+                        logger.warning(f"Tier 1 (Gemini {g_model}) returned HTTP {resp.status_code}: {resp.text[:120]}")
+                except Exception as e:
+                    logger.warning(f"Tier 1 (Gemini {g_model}) encountered error: {str(e)}")
+
+            logger.warning("All Tier 1 (Gemini) candidates failed. Cascading to Tier 2 (Groq)...")
 
         # -----------------------------------------------------------------
-        # TIER 2: Groq LPUs with Llama 3.1 8B
+        # TIER 2: Groq LPUs (High-Speed Fallback)
         # -----------------------------------------------------------------
         if settings.GROQ_API_KEY:
+            groq_models = [settings.GROQ_MODEL, "openai/gpt-oss-120b", "llama-3.1-8b-instant"]
+            groq_models = list(dict.fromkeys([m for m in groq_models if m]))
+            
+            for groq_m in groq_models:
+                try:
+                    url = "https://api.groq.com/openai/v1/chat/completions"
+                    headers = {
+                        "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+                        "Content-Type": "application/json"
+                    }
+                    payload = {
+                        "model": groq_m,
+                        "messages": [
+                            {"role": "system", "content": prompt},
+                            {"role": "user", "content": user_content}
+                        ],
+                        "temperature": 0.1,
+                        "max_tokens": 600
+                    }
+                    async with httpx.AsyncClient(timeout=12.0) as client:
+                        resp = await client.post(url, headers=headers, json=payload)
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            choices = data.get("choices", [])
+                            if choices and "message" in choices[0]:
+                                text = choices[0]["message"].get("content", "").strip()
+                                logger.info(f"Answer generated successfully via Tier 2 (Groq: {groq_m}).")
+                                return text, "groq"
+                        logger.warning(f"Tier 2 (Groq {groq_m}) returned HTTP {resp.status_code}: {resp.text[:120]}")
+                except Exception as e:
+                    logger.warning(f"Tier 2 (Groq {groq_m}) encountered error: {str(e)}")
+
+            logger.warning("All Tier 2 (Groq) models failed. Cascading to Tier 3 (Sarvam AI LLM)...")
+
+        # -----------------------------------------------------------------
+        # TIER 3: Sarvam AI 105B LLM (Indic & Multilingual Fallback)
+        # -----------------------------------------------------------------
+        sarvam_key = getattr(settings, "SARVAM_LLM_KEY", "") or getattr(settings, "SARVAM_API_KEY", "")
+        if sarvam_key:
             try:
-                url = "https://api.groq.com/openai/v1/chat/completions"
+                base_sarvam_url = getattr(settings, "SARVAM_LLM_URL", "https://api.sarvam.ai/v1").rstrip("/")
+                url = f"{base_sarvam_url}/chat/completions"
                 headers = {
-                    "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+                    "api-subscription-key": sarvam_key,
                     "Content-Type": "application/json"
                 }
                 payload = {
-                    "model": settings.GROQ_MODEL,
+                    "model": getattr(settings, "SARVAM_LLM_MODEL", "sarvam-105b"),
                     "messages": [
                         {"role": "system", "content": prompt},
                         {"role": "user", "content": user_content}
@@ -123,21 +172,23 @@ class MultiTierLLMClient:
                     "temperature": 0.1,
                     "max_tokens": 600
                 }
-                async with httpx.AsyncClient(timeout=12.0) as client:
+                async with httpx.AsyncClient(timeout=18.0) as client:
                     resp = await client.post(url, headers=headers, json=payload)
                     if resp.status_code == 200:
                         data = resp.json()
                         choices = data.get("choices", [])
                         if choices and "message" in choices[0]:
                             text = choices[0]["message"].get("content", "").strip()
-                            logger.info("Answer generated successfully via Tier 2 (Groq Llama).")
-                            return text, "groq"
-                    logger.warning(f"Tier 2 (Groq) returned HTTP {resp.status_code}.")
+                            logger.info("Answer generated successfully via Tier 3 (Sarvam 105B LLM).")
+                            return text, "sarvam"
+                    logger.warning(f"Tier 3 (Sarvam AI) returned HTTP {resp.status_code}: {resp.text[:120]}")
             except Exception as e:
-                logger.warning(f"Tier 2 (Groq) encountered error: {str(e)}.")
+                logger.warning(f"Tier 3 (Sarvam AI) encountered error: {str(e)}")
+
+            logger.warning("Tier 3 (Sarvam AI) failed. Cascading to Tier 4 / Extractive Synthesis...")
 
         # -----------------------------------------------------------------
-        # TIER 3: OpenAI (GPT-4o-mini / GPT-3.5-turbo)
+        # TIER 4: OpenAI (Optional Enterprise Fallback)
         # -----------------------------------------------------------------
         if settings.OPENAI_API_KEY:
             try:
@@ -162,16 +213,16 @@ class MultiTierLLMClient:
                         choices = data.get("choices", [])
                         if choices and "message" in choices[0]:
                             text = choices[0]["message"].get("content", "").strip()
-                            logger.info("Answer generated successfully via Tier 3 (OpenAI).")
+                            logger.info("Answer generated successfully via Tier 4 (OpenAI).")
                             return text, "openai"
-                    logger.warning(f"Tier 3 (OpenAI) returned HTTP {resp.status_code}.")
+                    logger.warning(f"Tier 4 (OpenAI) returned HTTP {resp.status_code}.")
             except Exception as e:
-                logger.warning(f"Tier 3 (OpenAI) encountered error: {str(e)}.")
+                logger.warning(f"Tier 4 (OpenAI) encountered error: {str(e)}.")
 
         # -----------------------------------------------------------------
-        # TIER 4: Local Extractive Synthesis (Zero-API / Deterministic Grounding)
+        # TIER 5: Local Extractive Synthesis (Zero-API / Deterministic Grounding)
         # -----------------------------------------------------------------
-        logger.info("Using Tier 4 deterministic extractive synthesis from grounded chunks...")
+        logger.info("Using Tier 5 deterministic extractive synthesis from grounded chunks...")
         if retrieved_chunks:
             answer = self._synthesize_grounded_extractive(query, retrieved_chunks)
             if answer and answer.strip():
