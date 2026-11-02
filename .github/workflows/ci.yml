@@ -67,6 +67,7 @@ jobs:
           python -m unittest backend/tests/test_phase5_dashboard.py
           python -m unittest backend/tests/test_tickets_notifications_twilio.py
           python -m unittest backend/tests/test_multi_doc_excel_ocr.py
+          python -m unittest backend/tests/test_owner_rag_hygiene.py
         env:
           ENVIRONMENT: testing
           DATABASE_URL: sqlite+aiosqlite:///./test_ci.db
