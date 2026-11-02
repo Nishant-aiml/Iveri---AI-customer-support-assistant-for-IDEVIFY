@@ -168,9 +168,11 @@ class HybridRAGEngine:
         elif any(w in q_lower for w in ["gst", "tax", "vat"]):
             expanded_query = f"{clean_query} 18% gst taxes billing"
 
-        # Step 2: Multi-Hybrid Retrieval (Dense Vector + Sparse BM25)
-        dense_hits = await vector_store_service.search(business_id, expanded_query, top_k=10)
-        sparse_hits = bm25_store_service.search(business_id, expanded_query, top_k=10)
+        # Step 2: Concurrent Multi-Hybrid Retrieval (Dense Vector + Sparse BM25 in parallel)
+        import asyncio
+        dense_task = vector_store_service.search(business_id, expanded_query, top_k=10)
+        sparse_task = asyncio.to_thread(bm25_store_service.search, business_id, expanded_query, 10)
+        dense_hits, sparse_hits = await asyncio.gather(dense_task, sparse_task)
 
         # Step 3: Reciprocal Rank Fusion (RRF)
         fused_chunks = reciprocal_rank_fusion(

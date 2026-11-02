@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import time
 import httpx
@@ -8,16 +9,23 @@ logger = logging.getLogger(__name__)
 
 # Shared high-performance HTTP client with persistent connection pooling
 _SHARED_CLIENT: Optional[httpx.AsyncClient] = None
+_client_loop = None
 _gemini_cooldown_until: float = 0.0
 
 def get_shared_client() -> httpx.AsyncClient:
     """Returns singleton AsyncClient with keep-alive connection pooling to eliminate TLS handshakes."""
-    global _SHARED_CLIENT
-    if _SHARED_CLIENT is None or _SHARED_CLIENT.is_closed:
+    global _SHARED_CLIENT, _client_loop
+    try:
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        current_loop = None
+
+    if _SHARED_CLIENT is None or _SHARED_CLIENT.is_closed or _client_loop != current_loop:
         _SHARED_CLIENT = httpx.AsyncClient(
             timeout=httpx.Timeout(connect=2.5, read=10.0, write=5.0, pool=5.0),
             limits=httpx.Limits(max_keepalive_connections=20, max_connections=50, keepalive_expiry=60.0)
         )
+        _client_loop = current_loop
     return _SHARED_CLIENT
 
 async def close_shared_client():
@@ -97,17 +105,59 @@ class MultiTierLLMClient:
         user_content = f"Customer Question: {query}"
 
         # -----------------------------------------------------------------
-        # TIER 1: Google Gemini Flash (Primary Generous Free Tier)
+        # TIER 1: Groq Cloud LPUs (Ultra-Fast 500+ tokens/sec, ~0.26s generation)
+        # -----------------------------------------------------------------
+        if settings.GROQ_API_KEY:
+            # Active fast models on Groq
+            groq_models = ["qwen/qwen3.8-27b", "openai/gpt-oss-20b", "allam-2-7b"]
+            if settings.GROQ_MODEL and settings.GROQ_MODEL not in groq_models:
+                groq_models.insert(0, settings.GROQ_MODEL)
+            client = get_shared_client()
+            
+            for groq_m in groq_models:
+                try:
+                    url = "https://api.groq.com/openai/v1/chat/completions"
+                    headers = {
+                        "Authorization": f"Bearer {settings.GROQ_API_KEY}",
+                        "Content-Type": "application/json"
+                    }
+                    payload = {
+                        "model": groq_m,
+                        "messages": [
+                            {"role": "system", "content": prompt},
+                            {"role": "user", "content": user_content}
+                        ],
+                        "temperature": 0.1,
+                        "max_tokens": 350
+                    }
+                    resp = await client.post(url, headers=headers, json=payload, timeout=2.5)
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        choices = data.get("choices", [])
+                        if choices and "message" in choices[0]:
+                            text = (choices[0]["message"].get("content") or "").strip()
+                            if text:
+                                logger.info(f"Answer generated successfully via Tier 1 (Groq Ultra-Fast LPU: {groq_m}).")
+                                return text, "groq"
+                    logger.warning(f"Tier 1 (Groq {groq_m}) returned HTTP {resp.status_code}: {resp.text[:120]}")
+                except Exception as e:
+                    logger.warning(f"Tier 1 (Groq {groq_m}) encountered error: {str(e)}")
+
+            logger.info("Tier 1 (Groq) unavailable or quota exhausted. Failing over to Tier 2 (Gemini Flash)...")
+
+        # -----------------------------------------------------------------
+        # TIER 2: Google Gemini Flash (Generous Free Tier Fallback)
         # -----------------------------------------------------------------
         global _gemini_cooldown_until
         if settings.GEMINI_API_KEY:
             now_ts = time.time()
             if now_ts < _gemini_cooldown_until:
                 remaining_cd = int(_gemini_cooldown_until - now_ts)
-                logger.info(f"Gemini free-tier in rate-limit/quota cooldown ({remaining_cd}s remaining). Fast fail-forward to Tier 2 (Sarvam AI)...")
+                logger.info(f"Gemini in rate-limit cooldown ({remaining_cd}s remaining). Fast fail-forward to Tier 3...")
             else:
-                gemini_models = [settings.GEMINI_MODEL, "gemini-3.5-flash", "gemini-flash-latest"]
-                gemini_models = list(dict.fromkeys([m for m in gemini_models if m]))
+                gemini_models = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash"]
+                if settings.GEMINI_MODEL and settings.GEMINI_MODEL not in gemini_models:
+                    gemini_models.insert(0, settings.GEMINI_MODEL)
                 
                 client = get_shared_client()
                 for g_model in gemini_models:
@@ -126,11 +176,11 @@ class MultiTierLLMClient:
                                 }
                             ],
                             "generationConfig": {
-                                "temperature": 0.1,  # Low temperature to suppress hallucinations
+                                "temperature": 0.1,
                                 "maxOutputTokens": 350
                             }
                         }
-                        resp = await client.post(url, json=payload, timeout=3.0)
+                        resp = await client.post(url, json=payload, timeout=2.8)
                         if resp.status_code == 200:
                             data = resp.json()
                             candidates = data.get("candidates", [])
@@ -138,21 +188,22 @@ class MultiTierLLMClient:
                                 parts = candidates[0]["content"].get("parts", [])
                                 if parts and "text" in parts[0]:
                                     text = parts[0]["text"].strip()
-                                    logger.info(f"Answer generated successfully via Tier 1 (Gemini: {g_model}).")
+                                    logger.info(f"Answer generated successfully via Tier 2 (Gemini: {g_model}).")
                                     return text, "gemini"
                         elif resp.status_code in (429, 401, 403):
-                            # Fail-fast: If quota is exceeded, do NOT retry other Gemini models with the same exhausted key!
-                            logger.warning(f"Tier 1 (Gemini {g_model}) returned HTTP {resp.status_code} ({resp.text[:80]}). Activating 180s circuit-breaker and failing over immediately.")
+                            logger.warning(f"Tier 2 (Gemini {g_model}) returned HTTP {resp.status_code}. Activating 180s circuit breaker...")
                             _gemini_cooldown_until = time.time() + 180.0
                             break
-                        logger.warning(f"Tier 1 (Gemini {g_model}) returned HTTP {resp.status_code}: {resp.text[:120]}")
+                        elif resp.status_code == 404:
+                            continue
+                        logger.warning(f"Tier 2 (Gemini {g_model}) returned HTTP {resp.status_code}: {resp.text[:120]}")
                     except Exception as e:
-                        logger.warning(f"Tier 1 (Gemini {g_model}) encountered error: {str(e)}")
+                        logger.warning(f"Tier 2 (Gemini {g_model}) encountered error: {str(e)}")
 
-                logger.warning("All Tier 1 (Gemini) candidates failed. Cascading to Tier 2 (Sarvam AI LLM)...")
+                logger.info("Tier 2 (Gemini) failed. Cascading to Tier 3 (Sarvam AI)...")
 
         # -----------------------------------------------------------------
-        # TIER 2: Sarvam AI Conversational LLM (Indic & Multilingual Freemium)
+        # TIER 3: Sarvam AI Conversational LLM (Indic & Multilingual Freemium)
         # -----------------------------------------------------------------
         sarvam_key = getattr(settings, "SARVAM_LLM_KEY", "") or getattr(settings, "SARVAM_API_KEY", "")
         if sarvam_key:
@@ -181,60 +232,20 @@ class MultiTierLLMClient:
                         "temperature": 0.1,
                         "max_tokens": 350
                     }
-                    resp = await client.post(url, headers=headers, json=payload, timeout=5.5)
+                    resp = await client.post(url, headers=headers, json=payload, timeout=4.0)
                     if resp.status_code == 200:
                         data = resp.json()
                         choices = data.get("choices", [])
                         if choices and "message" in choices[0]:
                             text = (choices[0]["message"].get("content") or "").strip()
                             if text:
-                                logger.info(f"Answer generated successfully via Tier 2 (Sarvam: {s_model}).")
+                                logger.info(f"Answer generated successfully via Tier 3 (Sarvam: {s_model}).")
                                 return text, "sarvam"
-                    logger.warning(f"Tier 2 (Sarvam {s_model}) returned HTTP {resp.status_code}: {resp.text[:120]}")
+                    logger.warning(f"Tier 3 (Sarvam {s_model}) returned HTTP {resp.status_code}: {resp.text[:120]}")
                 except Exception as e:
-                    logger.warning(f"Tier 2 (Sarvam {s_model}) encountered error: {str(e)}")
+                    logger.warning(f"Tier 3 (Sarvam {s_model}) encountered error: {str(e)}")
 
-            logger.warning("Tier 2 (Sarvam AI) failed. Cascading to Tier 3 (Groq Freemium LPUs)...")
-
-        # -----------------------------------------------------------------
-        # TIER 3: Groq Freemium Cloud LPUs (Zero Cost Open-Source Weights)
-        # -----------------------------------------------------------------
-        if settings.GROQ_API_KEY:
-            # Free-tier accessible open-source models on Groq
-            groq_models = [settings.GROQ_MODEL, "qwen/qwen3.8-27b", "allam-2-7b", "openai/gpt-oss-20b"]
-            groq_models = list(dict.fromkeys([m for m in groq_models if m]))
-            client = get_shared_client()
-            
-            for groq_m in groq_models:
-                try:
-                    url = "https://api.groq.com/openai/v1/chat/completions"
-                    headers = {
-                        "Authorization": f"Bearer {settings.GROQ_API_KEY}",
-                        "Content-Type": "application/json"
-                    }
-                    payload = {
-                        "model": groq_m,
-                        "messages": [
-                            {"role": "system", "content": prompt},
-                            {"role": "user", "content": user_content}
-                        ],
-                        "temperature": 0.1,
-                        "max_tokens": 350
-                    }
-                    resp = await client.post(url, headers=headers, json=payload, timeout=4.5)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        choices = data.get("choices", [])
-                        if choices and "message" in choices[0]:
-                            text = (choices[0]["message"].get("content") or "").strip()
-                            if text:
-                                logger.info(f"Answer generated successfully via Tier 3 (Groq Freemium: {groq_m}).")
-                                return text, "groq"
-                    logger.warning(f"Tier 3 (Groq {groq_m}) returned HTTP {resp.status_code}: {resp.text[:120]}")
-                except Exception as e:
-                    logger.warning(f"Tier 3 (Groq {groq_m}) encountered error: {str(e)}")
-
-            logger.warning("All Tier 3 (Groq) models failed. Cascading to Tier 4 / Extractive Synthesis...")
+            logger.warning("All Tier 3 (Sarvam AI) models failed. Cascading to Tier 4 / Extractive Synthesis...")
 
         # -----------------------------------------------------------------
         # TIER 4: OpenAI (Optional Enterprise Fallback)

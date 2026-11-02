@@ -131,9 +131,40 @@ class TestPhase3Phase4AnalyticsAndShare(unittest.IsolatedAsyncioTestCase):
         self.assertIn("sentiment_breakdown", data)
         self.assertIn("top_topics", data)
         self.assertIn("daily_trend", data)
+        self.assertIn("trend_data", data)
+        self.assertIn("summary", data)
         self.assertIn("funnel", data)
         self.assertIn("latency_metrics", data)
         self.assertGreaterEqual(data["total_queries"], 2)
+
+    async def test_multigrain_youtube_analytics(self):
+        """Verifies YouTube Analytics-style date, day-of-week, and year grain switches."""
+        # 1. Day of Week Switch
+        res_day = await self.client.get("/api/dashboard/analytics?granularity=day", headers=self.headers)
+        self.assertEqual(res_day.status_code, 200)
+        day_data = res_day.json()
+        self.assertEqual(day_data["granularity"], "day")
+        self.assertEqual(len(day_data["trend_data"]), 7)  # Monday - Sunday
+        day_labels = [item["label"] for item in day_data["trend_data"]]
+        self.assertEqual(day_labels, ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
+        self.assertIn("summary", day_data)
+        self.assertIn("Aggregated by Day of Week", day_data["summary"]["window_description"])
+
+        # 2. Year Macro Switch
+        res_year = await self.client.get("/api/dashboard/analytics?granularity=year", headers=self.headers)
+        self.assertEqual(res_year.status_code, 200)
+        year_data = res_year.json()
+        self.assertEqual(year_data["granularity"], "year")
+        self.assertEqual(len(year_data["trend_data"]), 12)  # 12 Months
+        self.assertIn("12-Month Annual Trend", year_data["summary"]["window_description"])
+
+        # 3. 30 Days Date Switch
+        res_30d = await self.client.get("/api/dashboard/analytics?granularity=date&days=30", headers=self.headers)
+        self.assertEqual(res_30d.status_code, 200)
+        d30_data = res_30d.json()
+        self.assertEqual(d30_data["granularity"], "date")
+        self.assertEqual(len(d30_data["trend_data"]), 30)
+
 
     async def test_powerbi_dataset_export(self):
         """Verifies GET /api/dashboard/export/powerbi generates CSV with correct headers."""

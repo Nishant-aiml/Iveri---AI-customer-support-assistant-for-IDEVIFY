@@ -2,11 +2,14 @@ import os
 import hashlib
 import logging
 import asyncio
-import httpx
 from typing import List, Dict, Any, Optional
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+# LRU In-Memory Cache for Single Search Query Embeddings (0ms latency on repeated queries)
+_QUERY_EMBED_CACHE: Dict[str, List[float]] = {}
+_MAX_QUERY_CACHE = 1000
 
 class VectorStoreService:
     """Persistent dense vector store powered by ChromaDB with strict multi-tenant isolation.
@@ -49,6 +52,18 @@ class VectorStoreService:
         if not texts:
             return []
 
+        # Fast-path for single query (search retrieval) with in-memory caching (0ms latency)
+        if len(texts) == 1:
+            q_clean = texts[0].strip().lower()
+            if q_clean in _QUERY_EMBED_CACHE:
+                return [_QUERY_EMBED_CACHE[q_clean]]
+            embs = await self._get_embeddings_batch(texts)
+            if embs:
+                if len(_QUERY_EMBED_CACHE) >= _MAX_QUERY_CACHE:
+                    _QUERY_EMBED_CACHE.pop(next(iter(_QUERY_EMBED_CACHE)))
+                _QUERY_EMBED_CACHE[q_clean] = embs[0]
+            return embs
+
         # Batch texts into chunks of 50 to honor external API limits
         BATCH_SIZE = 50
         all_embeddings: List[List[float]] = []
@@ -80,15 +95,16 @@ class VectorStoreService:
                     for t in texts
                 ]
                 
-                async with httpx.AsyncClient(timeout=15.0) as client:
-                    resp = await client.post(url, json={"requests": requests_payload})
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        embeddings = [emb_obj["values"] for emb_obj in data.get("embeddings", [])]
-                        if len(embeddings) == len(texts):
-                            return embeddings
-                    else:
-                        logger.warning(f"Gemini embedding API returned {resp.status_code}. Falling back to ONNX...")
+                from app.services.llm_client import get_shared_client
+                client = get_shared_client()
+                resp = await client.post(url, json={"requests": requests_payload}, timeout=3.5)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    embeddings = [emb_obj["values"] for emb_obj in data.get("embeddings", [])]
+                    if len(embeddings) == len(texts):
+                        return embeddings
+                else:
+                    logger.warning(f"Gemini embedding API returned {resp.status_code}. Falling back to ONNX...")
             except Exception as e:
                 logger.warning(f"Gemini cloud embedding failed ({str(e)}). Falling back to ONNX...")
 

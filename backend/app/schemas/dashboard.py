@@ -92,6 +92,26 @@ class DailyTrendItem(BaseModel):
     positive: int = 0
     negative: int = 0
 
+class TrendBucketItem(BaseModel):
+    label: str = Field(..., description="Display label e.g. 'Nov 02', 'Monday', or 'Nov 2026'")
+    date: str = Field(..., description="Raw ISO / key for bucket")
+    total_queries: int = 0
+    answered: int = 0
+    unanswered: int = 0
+    resolution_rate: float = 0.0
+    positive: int = 0
+    negative: int = 0
+
+class AnalyticsSummary(BaseModel):
+    total_handled: int = 0
+    total_answered: int = 0
+    total_unanswered: int = 0
+    resolution_rate: float = 0.0
+    peak_label: str = "N/A"
+    peak_count: int = 0
+    time_grain: str = "date"
+    window_description: str = "Last 7 Days"
+
 class ResolutionFunnel(BaseModel):
     total_sessions: int = 0
     total_queries: int = 0
@@ -110,5 +130,8 @@ class BusinessAnalyticsResponse(BaseModel):
     sentiment_breakdown: SentimentBreakdown
     top_topics: List[TopicCount] = []
     daily_trend: List[DailyTrendItem] = []
+    trend_data: List[TrendBucketItem] = []
+    granularity: str = "date"
+    summary: Optional[AnalyticsSummary] = None
     funnel: ResolutionFunnel
     latency_metrics: LatencySummary

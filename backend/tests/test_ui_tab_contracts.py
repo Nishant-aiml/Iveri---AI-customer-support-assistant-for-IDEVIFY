@@ -107,5 +107,20 @@ class TestUiTabContracts(unittest.TestCase):
         twilio_idx = self.html.find("Twilio WhatsApp Business Gateway")
         self.assertGreater(twilio_idx, embed_idx, "Twilio WhatsApp card should appear at the very last of the Studio view")
 
+    def test_10_youtube_analytics_visualization_and_time_grain_switches(self):
+        """Ensures index.html provides YouTube Analytics-style Date, Day, Year switchers and Answered vs Unanswered visuals."""
+        self.assertIn("Customer Inquiry & Resolution Analytics", self.html)
+        self.assertIn("YouTube Studio Engine", self.html)
+        self.assertIn("yt-btn-date-7", self.html)
+        self.assertIn("yt-btn-date-30", self.html)
+        self.assertIn("yt-btn-day", self.html)
+        self.assertIn("yt-btn-year", self.html)
+        self.assertIn("switchAnalyticsGrain", self.html)
+        self.assertIn("yt-stat-total", self.html)
+        self.assertIn("yt-stat-answered", self.html)
+        self.assertIn("yt-stat-unanswered", self.html)
+        self.assertIn("AI Answered", self.html)
+        self.assertIn("Unanswered / Human Escalated", self.html)
+
 if __name__ == "__main__":
     unittest.main()

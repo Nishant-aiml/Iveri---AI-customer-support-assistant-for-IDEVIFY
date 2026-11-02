@@ -22,6 +22,7 @@ from app.schemas.dashboard import (
     PlaygroundTestRequest, PlaygroundTestResponse, PlaygroundChunkDetail,
     ChatSessionSummary, BusinessAnalyticsResponse,
     SentimentBreakdown, TopicCount, DailyTrendItem,
+    TrendBucketItem, AnalyticsSummary,
     ResolutionFunnel, LatencySummary
 )
 from app.services.vector_store import vector_store_service
@@ -452,17 +453,28 @@ async def delete_chat_session(
 
 @router.get("/analytics", response_model=BusinessAnalyticsResponse)
 async def get_business_analytics(
-    days: int = Query(7, ge=1, le=90),
+    days: int = Query(7, ge=1, le=365),
+    granularity: str = Query("date", pattern="^(date|day|year)$"),
     owner: User = Depends(get_current_owner),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Executive Business Analytics:
-    Calculates customer sentiment distribution, top inquiry topics,
-    resolution funnel, and daily volume trends for executive decision-making.
+    Calculates customer sentiment distribution, top inquiry topics, resolution funnel,
+    and switchable YouTube Analytics-style trends (Date, Day of Week, Year) comparing
+    Answered vs. Unanswered volume for executive decision-making.
     """
     biz_id = owner.business_id
-    cutoff = datetime.utcnow() - timedelta(days=days)
+
+    # Determine window cutoff based on granularity
+    if granularity == "year":
+        effective_days = max(days, 365)
+    elif granularity == "day":
+        effective_days = max(days, 90)
+    else:
+        effective_days = days
+
+    cutoff = datetime.utcnow() - timedelta(days=effective_days)
 
     # 1. Fetch all customer & assistant messages within date window
     query = (
@@ -520,43 +532,206 @@ async def get_business_analytics(
         if v > 0
     ]
 
-    # 4. Daily Trends (last N days)
-    daily_groups = {}
-    for d in range(days):
-        day_date = (datetime.utcnow() - timedelta(days=days - 1 - d)).strftime("%Y-%m-%d")
-        daily_groups[day_date] = {
-            "total_queries": 0, "answered": 0, "unanswered": 0, "positive": 0, "negative": 0
-        }
+    # 4. Multi-Granular Trends (Date, Day of Week, Year)
+    trend_buckets = []
+    daily_trend = []
 
-    for m in customer_msgs:
-        day_str = m.created_at.strftime("%Y-%m-%d")
-        if day_str in daily_groups:
-            daily_groups[day_str]["total_queries"] += 1
-            s = m.sentiment or sentiment_analyzer.analyze(m.content)[0]
-            if s == "positive":
-                daily_groups[day_str]["positive"] += 1
-            elif s == "negative":
-                daily_groups[day_str]["negative"] += 1
+    if granularity == "day":
+        # Day of week aggregation (Monday - Sunday)
+        day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        day_short = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+        day_stats = {name: {"label": short, "total_queries": 0, "answered": 0, "unanswered": 0, "positive": 0, "negative": 0}
+                     for name, short in zip(day_names, day_short)}
 
-    for m in assistant_msgs:
-        day_str = m.created_at.strftime("%Y-%m-%d")
-        if day_str in daily_groups:
-            if m.is_answered:
-                daily_groups[day_str]["answered"] += 1
-            else:
-                daily_groups[day_str]["unanswered"] += 1
+        for m in customer_msgs:
+            d_name = m.created_at.strftime("%A")
+            if d_name in day_stats:
+                day_stats[d_name]["total_queries"] += 1
+                s = m.sentiment or sentiment_analyzer.analyze(m.content)[0]
+                if s == "positive":
+                    day_stats[d_name]["positive"] += 1
+                elif s == "negative":
+                    day_stats[d_name]["negative"] += 1
 
-    daily_trend = [
-        DailyTrendItem(
-            date=k,
-            total_queries=v["total_queries"],
-            answered=v["answered"],
-            unanswered=v["unanswered"],
-            positive=v["positive"],
-            negative=v["negative"]
-        )
-        for k, v in daily_groups.items()
-    ]
+        for m in assistant_msgs:
+            d_name = m.created_at.strftime("%A")
+            if d_name in day_stats:
+                if m.is_answered:
+                    day_stats[d_name]["answered"] += 1
+                else:
+                    day_stats[d_name]["unanswered"] += 1
+
+        for name in day_names:
+            v = day_stats[name]
+            resolved = v["answered"]
+            unres = v["unanswered"]
+            rate = round((resolved / max(resolved + unres, 1)) * 100, 1) if (resolved + unres) > 0 else 100.0
+            item = TrendBucketItem(
+                label=v["label"],
+                date=name,
+                total_queries=v["total_queries"],
+                answered=resolved,
+                unanswered=unres,
+                resolution_rate=rate,
+                positive=v["positive"],
+                negative=v["negative"]
+            )
+            trend_buckets.append(item)
+            daily_trend.append(DailyTrendItem(
+                date=name,
+                total_queries=v["total_queries"],
+                answered=resolved,
+                unanswered=unres,
+                positive=v["positive"],
+                negative=v["negative"]
+            ))
+        window_desc = f"Aggregated by Day of Week (Last {effective_days} Days)"
+
+    elif granularity == "year":
+        # 12-Month Annual Macro Trend
+        now = datetime.utcnow()
+        months = []
+        for i in range(11, -1, -1):
+            y = now.year
+            m = now.month - i
+            while m <= 0:
+                m += 12
+                y -= 1
+            key = f"{y:04d}-{m:02d}"
+            dt_repr = datetime(y, m, 1)
+            lbl = dt_repr.strftime("%b %y")
+            months.append((key, lbl))
+
+        month_stats = {k: {"label": lbl, "total_queries": 0, "answered": 0, "unanswered": 0, "positive": 0, "negative": 0}
+                       for k, lbl in months}
+
+        for m in customer_msgs:
+            m_key = m.created_at.strftime("%Y-%m")
+            if m_key in month_stats:
+                month_stats[m_key]["total_queries"] += 1
+                s = m.sentiment or sentiment_analyzer.analyze(m.content)[0]
+                if s == "positive":
+                    month_stats[m_key]["positive"] += 1
+                elif s == "negative":
+                    month_stats[m_key]["negative"] += 1
+
+        for m in assistant_msgs:
+            m_key = m.created_at.strftime("%Y-%m")
+            if m_key in month_stats:
+                if m.is_answered:
+                    month_stats[m_key]["answered"] += 1
+                else:
+                    month_stats[m_key]["unanswered"] += 1
+
+        for key, lbl in months:
+            v = month_stats[key]
+            resolved = v["answered"]
+            unres = v["unanswered"]
+            rate = round((resolved / max(resolved + unres, 1)) * 100, 1) if (resolved + unres) > 0 else 100.0
+            item = TrendBucketItem(
+                label=v["label"],
+                date=key,
+                total_queries=v["total_queries"],
+                answered=resolved,
+                unanswered=unres,
+                resolution_rate=rate,
+                positive=v["positive"],
+                negative=v["negative"]
+            )
+            trend_buckets.append(item)
+            daily_trend.append(DailyTrendItem(
+                date=key,
+                total_queries=v["total_queries"],
+                answered=resolved,
+                unanswered=unres,
+                positive=v["positive"],
+                negative=v["negative"]
+            ))
+        window_desc = "12-Month Annual Trend"
+
+    else:
+        # Default: "date" granularity (last N days)
+        daily_groups = {}
+        for d in range(days):
+            day_dt = datetime.utcnow() - timedelta(days=days - 1 - d)
+            day_str = day_dt.strftime("%Y-%m-%d")
+            day_lbl = day_dt.strftime("%b %d") if days <= 14 else day_dt.strftime("%m/%d")
+            daily_groups[day_str] = {
+                "label": day_lbl,
+                "total_queries": 0,
+                "answered": 0,
+                "unanswered": 0,
+                "positive": 0,
+                "negative": 0
+            }
+
+        for m in customer_msgs:
+            day_str = m.created_at.strftime("%Y-%m-%d")
+            if day_str in daily_groups:
+                daily_groups[day_str]["total_queries"] += 1
+                s = m.sentiment or sentiment_analyzer.analyze(m.content)[0]
+                if s == "positive":
+                    daily_groups[day_str]["positive"] += 1
+                elif s == "negative":
+                    daily_groups[day_str]["negative"] += 1
+
+        for m in assistant_msgs:
+            day_str = m.created_at.strftime("%Y-%m-%d")
+            if day_str in daily_groups:
+                if m.is_answered:
+                    daily_groups[day_str]["answered"] += 1
+                else:
+                    daily_groups[day_str]["unanswered"] += 1
+
+        for k, v in daily_groups.items():
+            resolved = v["answered"]
+            unres = v["unanswered"]
+            rate = round((resolved / max(resolved + unres, 1)) * 100, 1) if (resolved + unres) > 0 else 100.0
+            item = TrendBucketItem(
+                label=v["label"],
+                date=k,
+                total_queries=v["total_queries"],
+                answered=resolved,
+                unanswered=unres,
+                resolution_rate=rate,
+                positive=v["positive"],
+                negative=v["negative"]
+            )
+            trend_buckets.append(item)
+            daily_trend.append(DailyTrendItem(
+                date=k,
+                total_queries=v["total_queries"],
+                answered=resolved,
+                unanswered=unres,
+                positive=v["positive"],
+                negative=v["negative"]
+            ))
+        window_desc = f"Last {days} Days Rolling Window"
+
+    # Compute KPI Summary for the selected granularity
+    total_handled = sum(item.total_queries for item in trend_buckets)
+    total_ans = sum(item.answered for item in trend_buckets)
+    total_unans = sum(item.unanswered for item in trend_buckets)
+    overall_res_rate = round((total_ans / max(total_ans + total_unans, 1)) * 100, 1) if (total_ans + total_unans) > 0 else 100.0
+
+    peak_bucket = max(trend_buckets, key=lambda x: x.total_queries, default=None)
+    if peak_bucket and peak_bucket.total_queries > 0:
+        peak_label = f"{peak_bucket.label} ({peak_bucket.total_queries} queries)"
+        peak_count = peak_bucket.total_queries
+    else:
+        peak_label = "No volume yet"
+        peak_count = 0
+
+    analytics_summary = AnalyticsSummary(
+        total_handled=total_handled,
+        total_answered=total_ans,
+        total_unanswered=total_unans,
+        resolution_rate=overall_res_rate,
+        peak_label=peak_label,
+        peak_count=peak_count,
+        time_grain=granularity,
+        window_description=window_desc
+    )
 
     # 5. Funnel
     total_sessions = (await db.execute(
@@ -595,6 +770,9 @@ async def get_business_analytics(
         sentiment_breakdown=sentiment_breakdown,
         top_topics=top_topics,
         daily_trend=daily_trend,
+        trend_data=trend_buckets,
+        granularity=granularity,
+        summary=analytics_summary,
         funnel=funnel,
         latency_metrics=latency_metrics
     )

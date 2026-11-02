@@ -595,61 +595,104 @@
         </div>
       </div>
 
-      <!-- Executive Analytics Charts Section -->
-      <div class="lumina-card p-6 rounded-2xl space-y-6">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4 gap-2">
+      <!-- YouTube Analytics-Style Customer Inquiry & Resolution Engine -->
+      <div class="lumina-card p-6 rounded-2xl space-y-5">
+        
+        <!-- Header & Time Grain Switcher Pills -->
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between pb-4 border-b border-slate-100 gap-3">
           <div>
-            <h3 class="font-bold text-slate-900 text-base">Customer Intelligence & Topic Analysis</h3>
-            <p class="text-xs text-slate-500 font-mono">Visual breakdown of sentiment, recurring inquiry themes, and volume trends.</p>
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined text-primary text-xl">analytics</span>
+              <h3 class="font-bold text-slate-900 text-base">Customer Inquiry & Resolution Analytics</h3>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-50 text-primary border border-indigo-200">YouTube Studio Engine</span>
+            </div>
+            <p class="text-xs text-slate-500 font-mono mt-0.5">Continuous temporal breakdown of customer demand, AI answers, and unhandled inquiries.</p>
           </div>
-          <span class="text-[11px] font-mono text-slate-500 bg-slate-100 px-3 py-1 rounded-full border border-slate-200">Last 7 Days Rolling Window</span>
+
+          <!-- Switcher Pills: Date (7D/30D), Day of Week, Year -->
+          <div class="flex items-center gap-1.5 p-1 bg-slate-100/90 rounded-xl border border-slate-200 self-start md:self-auto overflow-x-auto max-w-full">
+            <button id="yt-btn-date-7" onclick="switchAnalyticsGrain('date', 7)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white shadow-xs transition shrink-0">
+              📅 7 Days
+            </button>
+            <button id="yt-btn-date-30" onclick="switchAnalyticsGrain('date', 30)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-transparent hover:bg-slate-200/80 text-slate-700 transition shrink-0">
+              📅 30 Days
+            </button>
+            <button id="yt-btn-day" onclick="switchAnalyticsGrain('day', 90)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-transparent hover:bg-slate-200/80 text-slate-700 transition shrink-0">
+              📆 Day of Week
+            </button>
+            <button id="yt-btn-year" onclick="switchAnalyticsGrain('year', 365)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-transparent hover:bg-slate-200/80 text-slate-700 transition shrink-0">
+              📈 Year (12M)
+            </button>
+          </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          <!-- Chart 1: Volume Trend -->
-          <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-bold text-slate-900">Inquiry Volume & Answers</span>
-              <span class="material-symbols-outlined text-[16px] text-primary">show_chart</span>
-            </div>
-            <div class="h-52 relative flex items-center justify-center">
-              <canvas id="chart-volume"></canvas>
-            </div>
+        <!-- Metric KPI Strip (YouTube Studio Style) -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
+            <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Total Inquiries</div>
+            <div id="yt-stat-total" class="text-xl font-extrabold text-slate-900 mt-0.5">0</div>
+            <div id="yt-stat-window" class="text-[10px] font-mono text-slate-400 mt-0.5 truncate">Last 7 Days Window</div>
           </div>
+          <div class="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/80">
+            <div class="text-[10px] font-mono text-emerald-700 uppercase tracking-wider flex items-center justify-between">
+              <span>AI Answered</span>
+              <span id="yt-stat-rate" class="px-1.5 py-0.2 text-[9px] font-bold rounded bg-emerald-100 text-emerald-800">100%</span>
+            </div>
+            <div id="yt-stat-answered" class="text-xl font-extrabold text-emerald-600 mt-0.5">0</div>
+            <div class="text-[10px] font-mono text-emerald-600/80 mt-0.5">Resolved from documents</div>
+          </div>
+          <div class="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80">
+            <div class="text-[10px] font-mono text-amber-700 uppercase tracking-wider">Unanswered / Escalated</div>
+            <div id="yt-stat-unanswered" class="text-xl font-extrabold text-amber-600 mt-0.5">0</div>
+            <div class="text-[10px] font-mono text-amber-600/80 mt-0.5">Logged for human review</div>
+          </div>
+          <div class="p-3 bg-indigo-50/60 rounded-xl border border-indigo-200/80">
+            <div class="text-[10px] font-mono text-indigo-700 uppercase tracking-wider">Peak Traffic</div>
+            <div id="yt-stat-peak" class="text-xs sm:text-sm font-bold text-indigo-900 mt-1 truncate">No volume yet</div>
+            <div class="text-[10px] font-mono text-indigo-600/80 mt-0.5">Highest query window</div>
+          </div>
+        </div>
 
-          <!-- Chart 2: Sentiment Breakdown -->
+        <!-- Primary Featured Trends Chart -->
+        <div class="p-4 bg-slate-50/70 rounded-xl border border-slate-200">
+          <div class="h-64 sm:h-72 relative">
+            <canvas id="chart-volume"></canvas>
+          </div>
+        </div>
+
+        <!-- Secondary Diagnostics: Sentiment & Topics -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          <!-- Customer Sentiment -->
           <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-1.5">
-                <span class="text-xs font-bold text-slate-900">Customer Sentiment</span>
-                <span class="text-[10px] font-mono text-primary bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded cursor-pointer" title="Click any slice to view corresponding chats">Interactive Filter</span>
+                <span class="text-xs font-bold text-slate-900">Customer Sentiment Breakdown</span>
+                <span class="text-[10px] font-mono text-primary bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded cursor-pointer" title="Click any slice to view corresponding chats">Filter Chats</span>
               </div>
               <span class="material-symbols-outlined text-[16px] text-emerald-600">sentiment_satisfied</span>
             </div>
-            <div class="h-52 relative flex items-center justify-center cursor-pointer">
+            <div class="h-48 relative flex items-center justify-center cursor-pointer">
               <canvas id="chart-sentiment"></canvas>
             </div>
           </div>
 
-          <!-- Chart 3: Top Topics -->
+          <!-- Top Inquiry Topics -->
           <div class="p-4 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-1.5">
                 <span class="text-xs font-bold text-slate-900">Top Inquiry Topics</span>
-                <span class="text-[10px] font-mono text-purple-700 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded cursor-pointer" title="Click any bar to filter chats by topic">Interactive Filter</span>
+                <span class="text-[10px] font-mono text-purple-700 bg-purple-50 border border-purple-100 px-1.5 py-0.5 rounded cursor-pointer" title="Click any bar to filter chats by topic">Filter Chats</span>
               </div>
               <span class="material-symbols-outlined text-[16px] text-purple-600">category</span>
             </div>
-            <div class="h-52 relative flex items-center justify-center cursor-pointer">
+            <div class="h-48 relative flex items-center justify-center cursor-pointer">
               <canvas id="chart-topics"></canvas>
             </div>
           </div>
-
         </div>
-      </div>
 
-    </section>
+      </div>
+</section>
 
     <!-- 2. DOCUMENTS & SCALE TAB -->
     <section id="view-documents" class="hidden space-y-6">
@@ -2120,38 +2163,157 @@
       }
     }
 
+    let currentAnalyticsGrain = 'date';
+    let currentAnalyticsDays = 7;
+
+    async function switchAnalyticsGrain(grain, days) {
+      currentAnalyticsGrain = grain;
+      currentAnalyticsDays = days || (grain === 'year' ? 365 : (grain === 'day' ? 90 : 7));
+
+      const btnIds = ['yt-btn-date-7', 'yt-btn-date-30', 'yt-btn-day', 'yt-btn-year'];
+      const activeId = grain === 'date' ? (currentAnalyticsDays === 30 ? 'yt-btn-date-30' : 'yt-btn-date-7') : (grain === 'day' ? 'yt-btn-day' : 'yt-btn-year');
+
+      btnIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (id === activeId) {
+          el.className = "px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white shadow-xs transition shrink-0";
+        } else {
+          el.className = "px-3 py-1.5 rounded-lg text-xs font-semibold bg-transparent hover:bg-slate-200/80 text-slate-700 transition shrink-0";
+        }
+      });
+
+      await loadAnalyticsCharts();
+    }
+
     async function loadAnalyticsCharts() {
       if (!authToken) return;
       try {
-        const res = await fetch('/api/dashboard/analytics?days=7', {
+        const url = `/api/dashboard/analytics?granularity=${encodeURIComponent(currentAnalyticsGrain)}&days=${encodeURIComponent(currentAnalyticsDays)}`;
+        const res = await fetch(url, {
           headers: {'Authorization': `Bearer ${authToken}`}
         });
         if (!res.ok) return;
         const data = await res.json();
 
-        // 1. Volume Chart
+        // 1. Update YouTube Studio KPI Chips
+        const sum = data.summary || {};
+        const totalEl = document.getElementById('yt-stat-total');
+        if (totalEl) totalEl.innerText = (sum.total_handled !== undefined ? sum.total_handled : (data.total_queries || 0));
+
+        const ansEl = document.getElementById('yt-stat-answered');
+        if (ansEl) ansEl.innerText = (sum.total_answered !== undefined ? sum.total_answered : 0);
+
+        const rateEl = document.getElementById('yt-stat-rate');
+        if (rateEl) {
+          const r = sum.resolution_rate !== undefined ? sum.resolution_rate : (data.funnel?.resolution_rate || 100);
+          rateEl.innerText = `${r}% Resolved`;
+        }
+
+        const unansEl = document.getElementById('yt-stat-unanswered');
+        if (unansEl) unansEl.innerText = (sum.total_unanswered !== undefined ? sum.total_unanswered : 0);
+
+        const peakEl = document.getElementById('yt-stat-peak');
+        if (peakEl) peakEl.innerText = sum.peak_label || 'No volume yet';
+
+        const winEl = document.getElementById('yt-stat-window');
+        if (winEl) winEl.innerText = sum.window_description || 'Traffic Window';
+
+        // 2. YouTube Studio Volume & Answered vs Unanswered Chart
         const ctxVol = document.getElementById('chart-volume');
         if (ctxVol) {
           if (charts.vol) charts.vol.destroy();
+          const trendList = data.trend_data || data.daily_trend || [];
+          const labels = trendList.map(d => d.label || (d.date.length > 5 ? d.date.slice(5) : d.date));
+          const answeredData = trendList.map(d => d.answered || 0);
+          const unansweredData = trendList.map(d => d.unanswered || 0);
+          const isBarMode = currentAnalyticsGrain === 'day';
+
           charts.vol = new Chart(ctxVol, {
-            type: 'bar',
+            type: isBarMode ? 'bar' : 'line',
             data: {
-              labels: (data.daily_trend || []).map(d => d.date.slice(5)),
+              labels: labels,
               datasets: [
-                { label: 'Queries Asked', data: data.daily_trend.map(d => d.total_queries), backgroundColor: '#4F46E5', borderRadius: 4 },
-                { label: 'AI Answered', data: data.daily_trend.map(d => d.answered), backgroundColor: '#10B981', borderRadius: 4 }
+                {
+                  label: 'AI Answered',
+                  data: answeredData,
+                  backgroundColor: isBarMode ? '#10B981' : 'rgba(16, 185, 129, 0.12)',
+                  borderColor: '#10B981',
+                  borderWidth: 2.5,
+                  fill: !isBarMode,
+                  tension: 0.35,
+                  pointRadius: 4,
+                  pointHoverRadius: 6,
+                  pointBackgroundColor: '#10B981',
+                  borderRadius: isBarMode ? 4 : 0
+                },
+                {
+                  label: 'Unanswered / Human Escalated',
+                  data: unansweredData,
+                  backgroundColor: isBarMode ? '#F59E0B' : 'rgba(245, 158, 11, 0.12)',
+                  borderColor: '#F59E0B',
+                  borderWidth: 2.5,
+                  fill: !isBarMode,
+                  tension: 0.35,
+                  pointRadius: 4,
+                  pointHoverRadius: 6,
+                  pointBackgroundColor: '#F59E0B',
+                  borderRadius: isBarMode ? 4 : 0
+                }
               ]
             },
             options: {
               responsive: true,
               maintainAspectRatio: false,
-              plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, font: { size: 10 } } } },
-              scales: { y: { beginAtZero: true, grid: { color: '#F1F5F9' } }, x: { grid: { display: false } } }
+              interaction: {
+                mode: 'index',
+                intersect: false
+              },
+              plugins: {
+                legend: {
+                  position: 'top',
+                  align: 'end',
+                  labels: {
+                    boxWidth: 10,
+                    boxHeight: 10,
+                    usePointStyle: true,
+                    pointStyle: 'circle',
+                    font: { size: 11, weight: '600' }
+                  }
+                },
+                tooltip: {
+                  backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                  titleFont: { size: 12, weight: 'bold' },
+                  bodyFont: { size: 11 },
+                  padding: 10,
+                  cornerRadius: 8,
+                  callbacks: {
+                    afterBody: function(context) {
+                      const idx = context[0].dataIndex;
+                      const item = trendList[idx];
+                      if (!item) return '';
+                      const rate = item.resolution_rate !== undefined ? item.resolution_rate : 100;
+                      return `Total Queries: ${item.total_queries || 0}\nResolution Rate: ${rate}%`;
+                    }
+                  }
+                }
+              },
+              scales: {
+                y: {
+                  beginAtZero: true,
+                  ticks: { precision: 0, font: { size: 10 } },
+                  grid: { color: '#F1F5F9' }
+                },
+                x: {
+                  ticks: { font: { size: 10 } },
+                  grid: { display: false }
+                }
+              }
             }
           });
         }
 
-        // 2. Sentiment Doughnut
+        // 3. Sentiment Doughnut
         const ctxSent = document.getElementById('chart-sentiment');
         if (ctxSent) {
           if (charts.sent) charts.sent.destroy();
@@ -2189,7 +2351,7 @@
           });
         }
 
-        // 3. Topics Horizontal Bar
+        // 4. Topics Horizontal Bar
         const ctxTop = document.getElementById('chart-topics');
         if (ctxTop) {
           if (charts.top) charts.top.destroy();
