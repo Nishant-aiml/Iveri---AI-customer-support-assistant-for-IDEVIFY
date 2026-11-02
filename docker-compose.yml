@@ -17,9 +17,25 @@ services:
       - SARVAM_API_KEY=${SARVAM_API_KEY:-}
       - CHROMA_PERSIST_DIRECTORY=./data/chroma_db
       - UPLOAD_DIRECTORY=./data/uploads
+      - MAX_FILE_SIZE_MB=15
     volumes:
       - ./backend/data:/app/backend/data
     restart: unless-stopped
+    # Hard Resource Safeguards: Never exceed free tier memory and CPU limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: 2048M
+        reservations:
+          cpus: '0.2'
+          memory: 256M
+    # Log rotation guard: prevents Docker logs from filling up server disk
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "3"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 20s
