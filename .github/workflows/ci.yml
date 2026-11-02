@@ -47,6 +47,11 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Install System Dependencies for OCR
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-eng
+
       - name: Install Application Dependencies
         run: |
           python -m pip install --upgrade pip
@@ -59,7 +64,9 @@ jobs:
           python -m unittest backend/tests/test_phase1_phase2.py
           python -m unittest backend/tests/test_phase3_rag.py
           python -m unittest backend/tests/test_phase4_chat.py
-          python -m unittest backend/tests/test_phase5_dashboard.py\n          python -m unittest backend/tests/test_tickets_notifications_twilio.py
+          python -m unittest backend/tests/test_phase5_dashboard.py
+          python -m unittest backend/tests/test_tickets_notifications_twilio.py
+          python -m unittest backend/tests/test_multi_doc_excel_ocr.py
         env:
           ENVIRONMENT: testing
           DATABASE_URL: sqlite+aiosqlite:///./test_ci.db

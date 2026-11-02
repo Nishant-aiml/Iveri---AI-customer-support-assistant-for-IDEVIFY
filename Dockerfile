@@ -32,10 +32,12 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app/backend \
     PORT=8000
 
-# Install runtime libraries for PyMuPDF (fitz)
+# Install runtime libraries for PyMuPDF (fitz) and Tesseract OCR
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     ca-certificates \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy installed wheels and dependencies from builder
