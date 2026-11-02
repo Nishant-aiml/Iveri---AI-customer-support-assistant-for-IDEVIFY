@@ -21,6 +21,29 @@ from app.services.bm25_store import bm25_store_service
 
 router = APIRouter(prefix="/api/tickets", tags=["Support Tickets"])
 
+@router.get("/summary/stats")
+async def get_ticket_stats(
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieves authoritative ticket summary counts for the business owner cards."""
+    biz_id = owner.business_id
+    from sqlalchemy import func
+
+    total = (await db.execute(select(func.count(Ticket.id)).where(Ticket.business_id == biz_id))).scalar() or 0
+    open_count = (await db.execute(select(func.count(Ticket.id)).where(Ticket.business_id == biz_id, Ticket.status == "open"))).scalar() or 0
+    urgent_count = (await db.execute(select(func.count(Ticket.id)).where(Ticket.business_id == biz_id, Ticket.priority == "urgent", Ticket.status != "resolved"))).scalar() or 0
+    wa_count = (await db.execute(select(func.count(Ticket.id)).where(Ticket.business_id == biz_id, Ticket.channel == "whatsapp"))).scalar() or 0
+    resolved_count = (await db.execute(select(func.count(Ticket.id)).where(Ticket.business_id == biz_id, Ticket.status == "resolved"))).scalar() or 0
+
+    return {
+        "total": total,
+        "open": open_count,
+        "urgent": urgent_count,
+        "whatsapp": wa_count,
+        "resolved": resolved_count
+    }
+
 @router.get("", response_model=List[TicketResponse])
 async def list_tickets(
     status_filter: Optional[str] = Query(None, alias="status", description="Filter by status: 'open', 'in_progress', 'resolved'"),

@@ -27,6 +27,37 @@
   </script>
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase 10 Web SDK with Google Auth -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCuSu2rb9kOxAU6khZ19W8YpsaE-o4iy9U",
+      authDomain: "idevify-2d7f1.firebaseapp.com",
+      projectId: "idevify-2d7f1",
+      storageBucket: "idevify-2d7f1.firebasestorage.app",
+      messagingSenderId: "327582279142",
+      appId: "1:327582279142:web:aae03afb94c466e3c0a227",
+      measurementId: "G-T852YR47V6"
+    };
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      window.firebaseApp = app;
+      window.firebaseAuth = auth;
+      window.googleAuthProvider = provider;
+      window.firebaseSignInWithPopup = signInWithPopup;
+      console.log("[Iveri Firebase] Google Auth SDK initialized successfully.");
+    } catch (err) {
+      console.warn("[Iveri Firebase] SDK initialization note:", err);
+    }
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -220,6 +251,9 @@
                 <span>Real-Time Alerts</span>
               </div>
               <div class="flex items-center gap-2">
+                <button onclick="testNotificationAlert()" title="Test audio chime & desktop notification on PC" class="px-1.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[10px] font-semibold flex items-center gap-0.5 transition">
+                  <span class="material-symbols-outlined text-[12px]">volume_up</span> Test
+                </button>
                 <button onclick="requestPushPermission()" id="push-toggle-btn" class="text-[10px] text-primary hover:underline font-medium">Enable Push</button>
                 <button onclick="markAllNotificationsRead()" class="text-[10px] text-slate-500 hover:text-slate-800 font-medium">Mark Read</button>
               </div>
@@ -1409,6 +1443,22 @@
         <button id="auth-tab-register" onclick="switchAuthMode('register')" class="py-2 rounded-lg font-semibold text-slate-600 hover:text-slate-900 transition">
           Register Business
         </button>
+      </div>
+
+      <!-- Google Firebase Sign-In / Register Button -->
+      <button type="button" onclick="loginWithGoogleFirebase()" class="w-full py-2.5 px-4 bg-white hover:bg-slate-50 border border-slate-300 hover:border-slate-400 text-slate-800 rounded-xl text-xs font-mono font-semibold transition shadow-xs flex items-center justify-center gap-2.5 cursor-pointer">
+        <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+        </svg>
+        <span id="google-auth-btn-label">Continue with Google (Firebase)</span>
+      </button>
+
+      <div class="relative flex items-center justify-center my-0.5">
+        <div class="border-t border-slate-200 w-full"></div>
+        <span class="bg-white px-2.5 text-[10px] font-mono text-slate-400 uppercase tracking-wider relative">or password credentials</span>
       </div>
 
       <div id="auth-form-login" class="space-y-3.5">
@@ -2918,32 +2968,31 @@
         if (!res.ok) return;
         const tickets = await res.json();
 
-        // Calculate summary counters (only update global cards when unfiltered, so search never zeroes out stats)
-        if (!statusFilter && !priorityFilter && !channelFilter && !searchVal) {
-          const openCount = tickets.filter(t => t.status === 'open').length;
-          const urgentCount = tickets.filter(t => t.priority === 'urgent' && t.status !== 'resolved').length;
-          const waCount = tickets.filter(t => t.channel === 'whatsapp').length;
-          const resolvedCount = tickets.filter(t => t.status === 'resolved').length;
+        // Authoritative ticket statistics from backend (immune to search input or local filters)
+        fetch('/api/tickets/summary/stats', {
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        }).then(r => r.ok ? r.json() : null).then(stats => {
+          if (stats) {
+            const statOpen = document.getElementById('stat-open-tickets');
+            if (statOpen) statOpen.innerText = stats.open;
+            const statUrgent = document.getElementById('stat-urgent-tickets');
+            if (statUrgent) statUrgent.innerText = stats.urgent;
+            const statWa = document.getElementById('stat-whatsapp-tickets');
+            if (statWa) statWa.innerText = stats.whatsapp;
+            const statResolved = document.getElementById('stat-resolved-tickets');
+            if (statResolved) statResolved.innerText = stats.resolved;
 
-          const statOpen = document.getElementById('stat-open-tickets');
-          if (statOpen) statOpen.innerText = openCount;
-          const statUrgent = document.getElementById('stat-urgent-tickets');
-          if (statUrgent) statUrgent.innerText = urgentCount;
-          const statWa = document.getElementById('stat-whatsapp-tickets');
-          if (statWa) statWa.innerText = waCount;
-          const statResolved = document.getElementById('stat-resolved-tickets');
-          if (statResolved) statResolved.innerText = resolvedCount;
-
-          const badge = document.getElementById('tickets-badge-count');
-          const mobileDot = document.getElementById('mobile-tickets-badge');
-          if (openCount > 0) {
-            if (badge) { badge.innerText = openCount; badge.classList.remove('hidden'); }
-            if (mobileDot) mobileDot.classList.remove('hidden');
-          } else {
-            if (badge) badge.classList.add('hidden');
-            if (mobileDot) mobileDot.classList.add('hidden');
+            const badge = document.getElementById('tickets-badge-count');
+            const mobileDot = document.getElementById('mobile-tickets-badge');
+            if (stats.open > 0) {
+              if (badge) { badge.innerText = stats.open; badge.classList.remove('hidden'); }
+              if (mobileDot) mobileDot.classList.remove('hidden');
+            } else {
+              if (badge) badge.classList.add('hidden');
+              if (mobileDot) mobileDot.classList.add('hidden');
+            }
           }
-        }
+        }).catch(err => console.error("Ticket stats load error:", err));
 
         const countLabel = document.getElementById('tickets-count-label');
         if (countLabel) countLabel.innerText = tickets.length + ' tickets';
@@ -2959,33 +3008,45 @@
         tbody.innerHTML = tickets.map(t => {
           let priorityPill = '';
           if (t.priority === 'urgent') {
-            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold border border-rose-300 animate-pulse">URGENT</span>';
+            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold border border-rose-300 animate-pulse whitespace-nowrap">URGENT</span>';
           } else if (t.priority === 'high') {
-            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold border border-amber-300">HIGH</span>';
+            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold border border-amber-300 whitespace-nowrap">HIGH</span>';
           } else if (t.priority === 'medium') {
-            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">MEDIUM</span>';
+            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200 whitespace-nowrap">MEDIUM</span>';
           } else {
-            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">LOW</span>';
+            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium whitespace-nowrap">LOW</span>';
           }
 
           let chanPill = '';
           if (t.channel === 'whatsapp') {
-            chanPill = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold"><span class="material-symbols-outlined text-[13px]">chat</span> WhatsApp</span>';
+            chanPill = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold whitespace-nowrap"><span class="material-symbols-outlined text-[13px]">chat</span> WhatsApp</span>';
           } else {
-            chanPill = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold"><span class="material-symbols-outlined text-[13px]">widgets</span> Web Widget</span>';
+            chanPill = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold whitespace-nowrap"><span class="material-symbols-outlined text-[13px]">widgets</span> Web Widget</span>';
           }
 
           let statusPill = '';
           if (t.status === 'resolved') {
-            statusPill = '<span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold">Resolved & Trained</span>';
+            statusPill = '<span class="px-2.5 py-1 rounded-md bg-emerald-100 text-emerald-800 font-bold whitespace-nowrap">Resolved & Trained</span>';
           } else if (t.status === 'in_progress') {
-            statusPill = '<span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 font-bold">In Progress</span>';
+            statusPill = '<span class="px-2.5 py-1 rounded-md bg-blue-100 text-blue-800 font-bold whitespace-nowrap">In Progress</span>';
           } else {
-            statusPill = '<span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold">Open</span>';
+            statusPill = '<span class="px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 font-bold whitespace-nowrap">Open</span>';
           }
 
-          const customerDisplay = t.customer_name || t.customer_email || t.customer_phone || '<span class="text-slate-400">Anonymous Visitor</span>';
-          const contactInfo = [t.customer_phone, t.customer_email].filter(Boolean).join(' • ');
+          let customerDisplay = t.customer_name;
+          let contactInfo = [t.customer_phone, t.customer_email].filter(Boolean).join(' • ');
+
+          if (!customerDisplay) {
+            customerDisplay = t.customer_phone || t.customer_email || '<span class="text-slate-400">Visitor</span>';
+            // Deduplicate if name falls back to phone/email
+            if (customerDisplay === t.customer_phone) {
+              contactInfo = t.customer_email || '<span class="text-slate-400">Phone Verified</span>';
+            } else if (customerDisplay === t.customer_email) {
+              contactInfo = t.customer_phone || '<span class="text-slate-400">Email Contact</span>';
+            }
+          } else if (customerDisplay === t.customer_phone) {
+            contactInfo = t.customer_email || '<span class="text-slate-400">Phone Contact</span>';
+          }
           const dateStr = new Date(t.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
           const safeTicket = t.ticket_number;
@@ -3016,12 +3077,12 @@
 
           let actionBtn = '';
           if (t.status === 'resolved') {
-            actionBtn = '<div class="flex items-center gap-1.5 justify-end">' + rowQuickIcons +
+            actionBtn = '<div class="flex items-center gap-1.5 justify-end whitespace-nowrap">' + rowQuickIcons +
               '<button onclick="reNotifyCustomer(\'' + safeTicket + '\')" title="Send automated WhatsApp / Email resolution notification to customer" class="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-semibold flex items-center gap-1 transition shadow-2xs"><span class="material-symbols-outlined text-[13px]">send</span> Notify</button>' +
               '<span class="text-[11px] text-emerald-700 font-bold flex items-center gap-0.5"><span class="material-symbols-outlined text-[14px]">check_circle</span> Trained</span>' +
               '</div>';
           } else {
-            actionBtn = '<div class="flex items-center gap-1.5 justify-end">' + rowQuickIcons +
+            actionBtn = '<div class="flex items-center gap-1.5 justify-end whitespace-nowrap">' + rowQuickIcons +
               '<button onclick="openResolveTicketModal(\'' + safeTicket + '\', \'' + safeDesc + '\', \'' + safeName + '\', \'' + safePhone + '\', \'' + safeEmail + '\', \'' + safeChan + '\')" class="px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded-lg text-[11px] font-semibold transition flex items-center gap-1 shadow-xs"><span class="material-symbols-outlined text-[13px]">school</span> Resolve & Train</button>' +
               '</div>';
           }
@@ -3271,13 +3332,16 @@
       }
     }
 
-        let lastUnreadCount = 0;
+    let lastUnreadCount = -1;
 
     function playNotificationChime() {
       try {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (!AudioCtx) return;
         const ctx = new AudioCtx();
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
@@ -3285,11 +3349,30 @@
         osc.type = 'sine';
         osc.frequency.setValueAtTime(587.33, ctx.currentTime);
         osc.frequency.setValueAtTime(880, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
         osc.start(ctx.currentTime);
         osc.stop(ctx.currentTime + 0.4);
-      } catch (e) {}
+      } catch (e) {
+        console.info("Chime audio note:", e);
+      }
+    }
+
+    function testNotificationAlert() {
+      playNotificationChime();
+      if (window.Notification && Notification.permission === 'granted') {
+        try {
+          const testNotif = new Notification("🔔 Test Alert: Iveri Alerts Active!", {
+            body: "Sound chime and desktop notifications are working properly on your device!",
+            icon: "/static/icons/icon-192.png"
+          });
+          testNotif.onclick = function() {
+            window.focus();
+          };
+        } catch(e) {}
+      } else {
+        requestPushPermission();
+      }
     }
 
     async function loadNotifications() {
@@ -3310,16 +3393,22 @@
           : (Array.isArray(data) ? data : []);
 
         // 1. Audio and Desktop Notification if new alert arrived
-        if (unreadCount > lastUnreadCount && lastUnreadCount > 0) {
+        if (lastUnreadCount === -1) {
+          lastUnreadCount = unreadCount;
+        } else if (unreadCount > lastUnreadCount) {
           playNotificationChime();
           if (window.Notification && Notification.permission === 'granted' && notifs.length > 0) {
             const latest = notifs[0];
             try {
-              new Notification(latest.title || '🚨 New Support Ticket Alert', {
+              const desktopNotif = new Notification(latest.title || '🚨 New Support Ticket Alert', {
                 body: latest.message || 'A customer query requires owner resolution.',
                 icon: '/static/icons/icon-192.png',
                 badge: '/static/icons/icon-192.png'
               });
+              desktopNotif.onclick = function() {
+                window.focus();
+                switchTab('tickets');
+              };
             } catch (nErr) {
               if (navigator.serviceWorker && navigator.serviceWorker.ready) {
                 navigator.serviceWorker.ready.then(reg => {
@@ -3331,8 +3420,10 @@
               }
             }
           }
+          lastUnreadCount = unreadCount;
+        } else {
+          lastUnreadCount = unreadCount;
         }
-        lastUnreadCount = unreadCount;
 
         // 2. Bell Badge Indicator
         const badge = document.getElementById('notif-badge');

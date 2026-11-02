@@ -479,7 +479,8 @@ class MultiTierLLMClient:
                 return "**Relocation, Plan Changes & Cancellation:**\n\n" + "\n".join(reloc_lines)
 
         # 6. Product Catalog & Pricing Intent (Physical goods e.g. BrewNest)
-        if any(k in q_lower for k in ["product", "products", "item", "items", "price", "pricing", "cost", "catalog", "menu", "list all", "list of product"]):
+        if (any(k in q_lower for k in ["product", "products", "catalog", "menu", "list of product"]) or 
+            (any(k in q_lower for k in ["price", "pricing", "cost", "item", "items"]) and not any(k in q_lower for k in ["return", "returns", "refund", "refunds", "shipping", "delivery", "fee", "warranty", "exchange"]))):
             for c in retrieved_chunks:
                 content = c.get("content", "")
                 if "products and pricing" in content.lower() or ("product" in content.lower() and "price" in content.lower() and ("rs." in content.lower() or "$" in content)) or "highland roast" in content.lower():
@@ -507,18 +508,21 @@ class MultiTierLLMClient:
 
         # 7. Returns & Refunds General Intent
         if any(k in q_lower for k in ["return", "returns", "refund", "refunds", "exchange"]):
-            content = find_chunk_with(["returns and refunds", "perishable", "return shipping fee", "unopened bags"])
-            if content:
-                bullets = []
-                for line in content.split("\n"):
-                    s = line.strip().replace("•", "").strip()
-                    if len(s) > 15 and any(w in s.lower() for w in [
-                        "perishable", "unopened bags can be returned", "original packaging can be",
-                        "contact support within 48 hours", "return shipping fee", "refunds are processed"
-                    ]):
-                        bullets.append(f"- {s}")
-                if bullets:
-                    return "**Returns & Refunds Policy:**\n\n" + "\n".join(bullets)
+            bullets = []
+            for c in retrieved_chunks:
+                content = c.get("content", "")
+                if any(w in content.lower() for w in ["returns and refunds", "perishable", "return shipping", "refunds are processed", "damaged or wrong"]):
+                    for line in content.split("\n"):
+                        s = line.strip().replace("•", "").strip()
+                        if len(s) > 15 and any(w in s.lower() for w in [
+                            "perishable", "unopened bags can be returned", "original packaging can be",
+                            "contact support within 48 hours", "return shipping", "refunds are processed",
+                            "replacement or give a full refund"
+                        ]):
+                            if not any(s[:25].lower() in b.lower() for b in bullets):
+                                bullets.append(f"- {s}")
+            if bullets:
+                return "**Returns & Refunds Policy:**\n\n" + "\n".join(bullets)
 
         # 8. Shipping & Delivery Charges Intent (Priority over return shipping)
         if any(k in q_lower for k in ["shipping", "delivery", "dispatch", "charge", "fee", "rate", "cost", "transit"]) and not any(k in q_lower for k in ["return shipping", "refund fee"]):
@@ -560,7 +564,7 @@ class MultiTierLLMClient:
                     return "**Order Cancellation & Modification:**\n\n" + "\n".join(bullets)
 
         # 11. Payment Methods Intent
-        if any(k in q_lower for k in ["payment", "payments", "pay", "cod", "cash on delivery", "emi", "upi", "card"]):
+        if any(k in q_lower for k in ["payment", "payments", "pay ", "how to pay", "cod", "cash on delivery", "emi", "upi", "credit card", "debit card"]):
             content = find_chunk_with(["payments", "we accept upi", "cash on delivery", "no-cost emi"])
             if content:
                 bullets = []
@@ -573,10 +577,16 @@ class MultiTierLLMClient:
 
         # 12. General Term-density extraction with Strict Grounding Verification
         clean_q = re.sub(r"[^\w\s]", " ", q_lower)
-        q_tokens = set([t for t in clean_q.split() if t not in {
+        STOP_WORDS = {
             "tell", "about", "me", "what", "is", "the", "a", "an", "can", "you", "please", "how",
-            "do", "does", "give", "show", "who", "where", "when", "why", "which"
-        } and len(t) > 1])
+            "do", "does", "give", "show", "who", "where", "when", "why", "which",
+            "and", "or", "but", "in", "on", "at", "to", "for", "of", "with", "as", "by", "from",
+            "any", "some", "all", "are", "have", "has", "had", "be", "been", "was", "were",
+            "it", "its", "they", "them", "their", "there", "this", "that", "these", "those",
+            "i", "we", "my", "your", "our", "he", "she", "his", "her",
+            "sell", "selling", "available", "offer", "provide", "buy"
+        }
+        q_tokens = set([t for t in clean_q.split() if t not in STOP_WORDS and len(t) > 1])
 
         candidate_sentences = []
         seen_sentences = set()
@@ -595,9 +605,12 @@ class MultiTierLLMClient:
                     seen_sentences.add(norm_line)
                     candidate_sentences.append((matches, s))
 
-        # If NO sentence in the retrieved chunks has any query content overlap
-        if not candidate_sentences:
-            logger.info(f"Extractive synthesis: No grounded answer found for query tokens {q_tokens}. Returning [UNKNOWN].")
+        # Strict grounding check:
+        # If query has 3+ content tokens and the top candidate only matches 1 token,
+        # it is an accidental single-word collision and NOT an answer.
+        max_matches = max([m for m, _ in candidate_sentences], default=0)
+        if not candidate_sentences or (len(q_tokens) >= 3 and max_matches < 2):
+            logger.info(f"Extractive synthesis: Insufficient grounded answer found for query tokens {q_tokens} (max matches={max_matches}). Returning [UNKNOWN].")
             return "[UNKNOWN]"
 
         candidate_sentences.sort(key=lambda x: x[0], reverse=True)

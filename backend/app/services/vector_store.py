@@ -150,6 +150,14 @@ class VectorStoreService:
         except Exception as e:
             logger.error(f"Error deleting chunks from ChromaDB: {str(e)}")
 
+    async def delete_business(self, business_id: str):
+        """Removes all chunks belonging to a business from ChromaDB."""
+        try:
+            self.collection.delete(where={"business_id": {"$eq": str(business_id)}})
+            logger.info(f"ChromaDB purged all chunks for business {business_id}.")
+        except Exception as e:
+            logger.error(f"Error purging business chunks from ChromaDB: {str(e)}")
+
     async def search(self, business_id: str, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
         """Performs cosine vector similarity search strictly scoped to business_id."""
         query_embeddings = await self.get_embeddings([query])

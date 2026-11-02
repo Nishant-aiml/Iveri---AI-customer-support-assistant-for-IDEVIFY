@@ -95,6 +95,13 @@ class BM25StoreService:
 
         logger.info(f"BM25 chunks pruned for document {document_id} in business {business_id}.")
 
+    def delete_business(self, business_id: str):
+        """Purges all corpus records and BM25 index for a deleted business."""
+        self._corpus.pop(business_id, None)
+        self._bm25_models.pop(business_id, None)
+        self._vocab_cache.pop(business_id, None)
+        logger.info(f"BM25 pruned all records for deleted business {business_id}.")
+
     def search(self, business_id: str, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
         """Searches the business corpus using BM25Plus lexical ranking."""
         if business_id not in self._bm25_models or business_id not in self._corpus:

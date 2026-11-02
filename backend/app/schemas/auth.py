@@ -46,3 +46,22 @@ class UserProfileResponse(BaseModel):
     starter_questions: List[str]
     brand_color: str
     tone: str
+
+class AccountRenameRequest(BaseModel):
+    business_name: str = Field(..., min_length=2, max_length=100)
+
+class ChangePasswordRequest(BaseModel):
+    current_password: Optional[str] = Field(None, description="Current password (optional for Firebase auth users)")
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator("new_password")
+    @classmethod
+    def validate_password_strength(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("New password must be at least 8 characters long.")
+        if not re.search(r"[A-Za-z]", v) or not re.search(r"\d", v):
+            raise ValueError("New password must contain at least one letter and one number.")
+        return v
+
+class DeleteAccountRequest(BaseModel):
+    confirmation_phrase: str = Field(..., description="Must type 'DELETE MY ACCOUNT'")

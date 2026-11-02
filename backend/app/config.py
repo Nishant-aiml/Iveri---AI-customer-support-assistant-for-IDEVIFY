@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     DB_POOL_RECYCLE: int = 1800
 
     # Firebase Authentication
-    FIREBASE_PROJECT_ID: str = ""
+    FIREBASE_PROJECT_ID: str = "idevify-2d7f1"
     FIREBASE_CREDENTIALS_JSON: str = ""
     FIREBASE_AUTH_ONLY: bool = False
     
