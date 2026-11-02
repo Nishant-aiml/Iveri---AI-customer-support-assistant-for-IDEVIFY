@@ -42,6 +42,13 @@ class Settings(BaseSettings):
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "qwen/qwen3.8-27b"
     
+    # Twilio WhatsApp Gateway
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_API_KEY_SID: str = ""
+    TWILIO_API_KEY_SECRET: str = ""
+    TWILIO_WHATSAPP_FROM: str = "whatsapp:+14155238886"
+    
     # Optional Tier: OpenAI (if configured)
     OPENAI_API_KEY: str = ""
     

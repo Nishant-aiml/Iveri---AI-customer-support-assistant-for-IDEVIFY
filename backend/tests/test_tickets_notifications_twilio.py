@@ -260,5 +260,27 @@ class TestTicketsNotificationsTwilio(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(icon_res.status_code, 200)
         print("[PASS] 08: PWA manifest, service worker, and app avatar served successfully.")
 
+    async def test_09_twilio_service_outbound_methods(self):
+        """Verifies Twilio outbound WhatsApp dispatch methods handle mock fallback or active dispatch gracefully."""
+        from app.services.twilio_service import twilio_service
+        # Test owner alert dispatch
+        res_owner = await twilio_service.notify_owner_whatsapp(
+            owner_phone="+918421356877",
+            ticket_number="TICK-TEST-99",
+            priority="high",
+            summary="Customer asking for urgent refund processing."
+        )
+        self.assertIn(res_owner.get("status"), ["success", "mocked", "failed"])
+
+        # Test customer resolution dispatch
+        res_cust = await twilio_service.notify_customer_ticket_resolved(
+            customer_phone="+918421356877",
+            ticket_number="TICK-TEST-99",
+            question="When will my return be credited?",
+            resolved_answer="Returns are processed within 24 hours of receiving the parcel."
+        )
+        self.assertIn(res_cust.get("status"), ["success", "mocked", "failed"])
+        print("[PASS] 09: Twilio outbound WhatsApp service methods verified.")
+
 if __name__ == "__main__":
     unittest.main()

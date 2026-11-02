@@ -1,5 +1,8 @@
+import logging
 from datetime import datetime
 from typing import List, Optional
+
+logger = logging.getLogger("idevify-tickets-router")
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -148,6 +151,20 @@ async def resolve_ticket(
         is_read=False
     )
     db.add(notif)
+
+    # 5. Outbound WhatsApp Notification to Customer (if contact phone exists or WhatsApp channel)
+    target_phone = ticket.customer_phone or (ticket.customer_email if ticket.channel == "whatsapp" else None)
+    if target_phone:
+        try:
+            from app.services.twilio_service import twilio_service
+            await twilio_service.notify_customer_ticket_resolved(
+                customer_phone=target_phone,
+                ticket_number=ticket.ticket_number,
+                question=ticket.description or ticket.subject or "Inquiry",
+                resolved_answer=req.resolved_answer
+            )
+        except Exception as e:
+            logger.warning(f"Twilio WhatsApp customer resolution notification note: {e}")
 
     await db.commit()
     await db.refresh(ticket)

@@ -113,6 +113,19 @@ class NotificationService:
         except Exception as e:
             logger.warning(f"Push dispatch note: {e}")
 
+        # 6. Dispatch WhatsApp Alert to Business Owner (if owner whatsapp_number is configured)
+        if business.whatsapp_number:
+            try:
+                from app.services.twilio_service import twilio_service
+                await twilio_service.notify_owner_whatsapp(
+                    owner_phone=business.whatsapp_number,
+                    ticket_number=ticket_num,
+                    priority=priority,
+                    summary=f"{contact_info}: {description[:140]}"
+                )
+            except Exception as e:
+                logger.warning(f"Twilio WhatsApp owner notification notice: {e}")
+
         logger.info(f"Ticket {ticket_num} created successfully for business {business.name}")
         return ticket
 
