@@ -96,5 +96,16 @@ class TestUiTabContracts(unittest.TestCase):
         self.assertIn("Uploading...", self.html)
         self.assertIn("QUEUED", self.html)
 
+    def test_09_twilio_card_position_and_localhost_disclaimer(self):
+        """Ensures Twilio WhatsApp Business card is placed at the end of the Studio section with localhost disclaimer."""
+        self.assertIn("Twilio WhatsApp Business Gateway", self.html)
+        self.assertIn("Localhost Environment Only", self.html)
+        self.assertIn("Localhost &amp; Free Sandbox Notice", self.html)
+        
+        # Verify it appears after Universal Embed
+        embed_idx = self.html.find("Universal Embed & Public Integration Codes")
+        twilio_idx = self.html.find("Twilio WhatsApp Business Gateway")
+        self.assertGreater(twilio_idx, embed_idx, "Twilio WhatsApp card should appear at the very last of the Studio view")
+
 if __name__ == "__main__":
     unittest.main()

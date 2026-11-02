@@ -1056,71 +1056,6 @@
         <!-- Left: Studio Customizer Controls (7 cols) -->
         <div class="lg:col-span-7 space-y-6">
 
-          
-          <!-- Twilio WhatsApp Business Integration Card -->
-          <div class="lumina-card p-5 rounded-2xl bg-emerald-50/40 border border-emerald-200 space-y-4 shadow-xs">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xl shadow-xs shrink-0">
-                  <span class="material-symbols-outlined">chat</span>
-                </div>
-                <div>
-                  <div class="flex items-center gap-2">
-                    <h4 class="text-sm font-bold text-slate-900 font-mono">Twilio WhatsApp Business Gateway</h4>
-                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold">Free Sandbox Ready</span>
-                  </div>
-                  <p class="text-xs text-slate-500 font-mono">Let customers chat directly with your AI on WhatsApp. Real-time TwiML response + auto-ticketing.</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- Webhook URL Box -->
-            <div class="space-y-1.5 bg-white p-3.5 rounded-xl border border-emerald-100">
-              <label class="block text-[11px] font-bold text-slate-700 font-mono">Twilio Webhook URL (HTTP POST)</label>
-              <div class="flex items-center gap-2">
-                <input 
-                  type="text" 
-                  id="twilio-webhook-url-input" 
-                  readonly 
-                  value="Loading webhook URL..." 
-                  class="flex-1 px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-800 select-all"
-                />
-                <button type="button" onclick="copyTwilioWebhookUrl()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-mono font-semibold transition flex items-center gap-1 shadow-xs">
-                  <span class="material-symbols-outlined text-[14px]">content_copy</span>
-                  <span>Copy</span>
-                </button>
-              </div>
-              <p class="text-[10px] text-slate-400 font-mono mt-1">Paste this in Twilio Console &gt; WhatsApp Sandbox &gt; "When a message comes in" (Method: POST).</p>
-            </div>
-
-            <!-- WhatsApp Business Phone Input -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label class="block text-[11px] font-bold text-slate-700 font-mono mb-1">Business WhatsApp Number</label>
-                <input 
-                  type="text" 
-                  id="setting-whatsapp-number" 
-                  placeholder="+14155238886" 
-                  class="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-mono text-slate-800 focus:outline-none focus:border-emerald-600 shadow-xs"
-                />
-              </div>
-              <div class="flex items-end">
-                <button type="button" onclick="saveBusinessWhatsAppNumber()" class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-mono font-semibold transition flex items-center justify-center gap-1.5 shadow-xs">
-                  <span class="material-symbols-outlined text-[15px]">save</span>
-                  <span>Save WhatsApp Number</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Twilio Sandbox Quick Instructions -->
-            <div class="p-3 bg-white/80 rounded-xl border border-emerald-100 text-[11px] font-mono text-slate-600 space-y-1">
-              <div class="font-bold text-emerald-800">Quick Test with Free Twilio Sandbox:</div>
-              <div>1. In WhatsApp, send <code class="bg-slate-100 px-1 py-0.5 rounded text-emerald-700 font-bold">join &lt;your-code&gt;</code> to <strong>+1 415 523 8886</strong>.</div>
-              <div>2. Now send any store question (e.g., "What are your business hours?").</div>
-              <div>3. Iveri responds instantly in WhatsApp, and the conversation is logged in your dashboard!</div>
-            </div>
-          </div>
-
           <!-- Public Standalone Chatbot Link Card -->
           <div class="lumina-card p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
             <div class="flex items-center gap-3">
@@ -1381,6 +1316,88 @@
         </div>
 
       </div>
+
+        <!-- Twilio WhatsApp Business Integration Card (Placed at the very bottom with Localhost / Dev Disclaimer) -->
+        <div class="lumina-card p-6 rounded-2xl bg-emerald-50/30 border border-emerald-200/90 space-y-4 shadow-xs mt-6">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-emerald-100 pb-3">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-xl shadow-xs shrink-0">
+                <span class="material-symbols-outlined">chat</span>
+              </div>
+              <div>
+                <div class="flex flex-wrap items-center gap-2">
+                  <h4 class="text-sm font-bold text-slate-900 font-mono">Twilio WhatsApp Business Gateway</h4>
+                  <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold">Free Sandbox Ready</span>
+                  <span class="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-mono font-bold flex items-center gap-1">⚠️ Localhost Environment Only</span>
+                </div>
+                <p class="text-xs text-slate-500 font-mono mt-0.5">Let customers chat directly with your AI on WhatsApp. Real-time TwiML response + auto-ticketing.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Localhost / Free Tier Disclaimer Notice -->
+          <div class="p-3.5 bg-amber-50/90 border border-amber-200 rounded-xl text-xs font-mono text-amber-900 space-y-1.5 shadow-2xs">
+            <div class="flex items-center gap-2 font-bold text-amber-950">
+              <span class="material-symbols-outlined text-[18px] text-amber-600 shrink-0">info</span>
+              <span>Localhost &amp; Free Sandbox Notice</span>
+            </div>
+            <p class="text-[11px] text-amber-800 leading-relaxed font-sans">
+              <strong>Disclaimer:</strong> This WhatsApp integration is currently configured and operational on <strong>localhost / development environments</strong> using Twilio's free developer sandbox. Live production messaging with a custom business phone number requires a paid Twilio plan and Meta Business verification.
+            </p>
+          </div>
+
+          <!-- Webhook URL Box -->
+          <div class="space-y-1.5 bg-white p-4 rounded-xl border border-emerald-100 shadow-2xs">
+            <label class="block text-[11px] font-bold text-slate-700 font-mono">Twilio Webhook URL (HTTP POST)</label>
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+              <input 
+                type="text" 
+                id="twilio-webhook-url-input" 
+                readonly 
+                value="Loading webhook URL..." 
+                class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-800 select-all"
+              />
+              <button type="button" onclick="copyTwilioWebhookUrl()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-mono font-semibold transition flex items-center justify-center gap-1 shadow-xs cursor-pointer shrink-0">
+                <span class="material-symbols-outlined text-[14px]">content_copy</span>
+                <span>Copy URL</span>
+              </button>
+            </div>
+            <p class="text-[10px] text-slate-400 font-mono mt-1">Paste this in Twilio Console &gt; WhatsApp Sandbox &gt; "When a message comes in" (Method: POST).</p>
+          </div>
+
+          <!-- WhatsApp Business Phone Input -->
+          <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 bg-white p-4 rounded-xl border border-emerald-100 shadow-2xs">
+            <div class="sm:col-span-8">
+              <label class="block text-[11px] font-bold text-slate-700 font-mono mb-1">Business WhatsApp Number</label>
+              <input 
+                type="text" 
+                id="setting-whatsapp-number" 
+                placeholder="+14155238886" 
+                class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono text-slate-800 focus:outline-none focus:bg-white focus:border-emerald-600 shadow-2xs"
+              />
+            </div>
+            <div class="sm:col-span-4 flex items-end">
+              <button type="button" onclick="saveBusinessWhatsAppNumber()" class="w-full px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-mono font-semibold transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+                <span class="material-symbols-outlined text-[15px]">save</span>
+                <span>Save Number</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Twilio Sandbox Quick Instructions -->
+          <div class="p-3.5 bg-white/90 rounded-xl border border-emerald-100 text-[11px] font-mono text-slate-600 space-y-1.5">
+            <div class="font-bold text-emerald-800 flex items-center gap-1.5">
+              <span class="material-symbols-outlined text-sm">terminal</span>
+              <span>Quick Test with Free Twilio Sandbox (Localhost):</span>
+            </div>
+            <div class="pl-5 space-y-1 text-slate-700">
+              <div>1. In WhatsApp, send <code class="bg-slate-100 px-1 py-0.5 rounded text-emerald-700 font-bold">join &lt;your-code&gt;</code> to <strong>+1 415 523 8886</strong>.</div>
+              <div>2. Now send any store question (e.g., "What are your business hours?").</div>
+              <div>3. Iveri responds instantly in WhatsApp, and the conversation is logged in your dashboard!</div>
+              <div class="text-[10px] text-slate-400 pt-0.5">💡 For local testing, use a tunneling tool such as ngrok (<code>ngrok http 8000</code>) to expose your local port to Twilio.</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Subview 3: Account & Security -->
