@@ -434,12 +434,14 @@
         }
 
         // Thumbs Up / Down
+        const now = new Date();
+        const timeStampStr = `${now.toLocaleDateString([], {month:'short', day:'numeric'})} ${now.toLocaleTimeString([], {hour:'numeric', minute:'2-digit', hour12:true})}`;
         const feedbackRow = document.createElement('div');
         feedbackRow.className = 'iveri-feedback-row';
         feedbackRow.innerHTML = `
           <button class="iveri-feedback-btn" title="Helpful">👍</button>
           <button class="iveri-feedback-btn" title="Not helpful">👎</button>
-          <span style="font-size:10.5px; font-family:'JetBrains Mono',monospace; color:#94A3B8; margin-left:auto;">${data.latency_ms}ms</span>
+          <span style="font-size:10px; font-family:'JetBrains Mono',monospace; color:#94A3B8; margin-left:auto;">${timeStampStr} • ${data.latency_ms}ms</span>
         `;
         const buttons = feedbackRow.querySelectorAll('button');
         buttons[0].onclick = () => sendFeedback(data.id, 'up', feedbackRow);

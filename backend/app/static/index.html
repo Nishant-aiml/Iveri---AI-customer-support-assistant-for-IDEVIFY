@@ -472,7 +472,7 @@
                 <th class="px-6 py-3.5">Captured Lead</th>
                 <th class="px-6 py-3.5">Confidence</th>
                 <th class="px-6 py-3.5">Status</th>
-                <th class="px-6 py-3.5">Asked At</th>
+                <th class="px-6 py-3.5">Date, Day & Exact Time</th>
                 <th class="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
@@ -1383,6 +1383,34 @@
       loadChatHistory();
     }
 
+    function formatExactDateTime(dateInput) {
+      if (!dateInput) return { day: '', dayShort: '', dateStr: '', dateFull: '', timeStr: '', timeShort: '', full: 'N/A' };
+      let s = String(dateInput).trim();
+      if (!s.includes('Z') && !s.includes('+') && !s.slice(10).includes('-')) {
+        s = s.replace(' ', 'T') + 'Z';
+      }
+      const d = new Date(s);
+      if (isNaN(d.getTime())) return { day: '', dayShort: '', dateStr: '', dateFull: '', timeStr: '', timeShort: '', full: String(dateInput) };
+
+      const day = d.toLocaleDateString(undefined, { weekday: 'long' });
+      const dayShort = d.toLocaleDateString(undefined, { weekday: 'short' });
+      const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: '2-digit', year: 'numeric' });
+      const dateFull = d.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' });
+      const timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+      const timeShort = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', hour12: true });
+
+      return {
+        d,
+        day,
+        dayShort,
+        dateStr,
+        dateFull,
+        timeStr,
+        timeShort,
+        full: `${day}, ${dateStr} at ${timeStr}`
+      };
+    }
+
     async function loadDocuments() {
       if (!authToken) return;
       try {
@@ -1397,7 +1425,9 @@
             tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">No documents uploaded yet.</td></tr>';
             return;
           }
-          tbody.innerHTML = docs.map(d => `
+          tbody.innerHTML = docs.map(d => {
+            const dt = formatExactDateTime(d.created_at);
+            return `
             <tr class="hover:bg-slate-50/80 transition">
               <td class="px-6 py-3.5 font-medium text-slate-900">${escapeHtml(d.file_name)}</td>
               <td class="px-6 py-3.5 uppercase text-xs font-mono text-slate-500">${escapeHtml(d.file_type)}</td>
@@ -1416,12 +1446,21 @@
                 `}
               </td>
               <td class="px-6 py-3.5 font-mono text-xs text-slate-700">${d.chunk_count}</td>
-              <td class="px-6 py-3.5 text-xs text-slate-500">${new Date(d.created_at).toLocaleDateString()}</td>
+              <td class="px-6 py-3.5 whitespace-nowrap">
+                <div class="flex flex-col">
+                  <span class="text-xs font-semibold text-slate-800">${dt.dayShort}, ${dt.dateStr}</span>
+                  <span class="text-[11px] font-mono text-slate-500 flex items-center gap-1 mt-0.5">
+                    <span class="material-symbols-outlined text-[13px] text-slate-400">schedule</span>
+                    ${dt.timeShort}
+                  </span>
+                </div>
+              </td>
               <td class="px-6 py-3.5 text-right">
                 <button onclick="deleteDoc('${d.id}')" class="text-rose-600 hover:text-rose-700 text-xs font-semibold cursor-pointer">Delete</button>
               </td>
             </tr>
-          `).join('');
+          `;
+          }).join('');
         }
       } catch (e) {
         console.error("Docs load error:", e);
@@ -1484,7 +1523,9 @@
             tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-xs text-slate-400">No unanswered questions.</td></tr>';
             return;
           }
-          tbody.innerHTML = items.map(u => `
+          tbody.innerHTML = items.map(u => {
+            const dt = formatExactDateTime(u.created_at);
+            return `
             <tr class="hover:bg-slate-50/80 transition">
               <td class="px-6 py-3.5 font-medium text-slate-900 max-w-xs break-words">${escapeHtml(u.question_text)}</td>
               <td class="px-6 py-3.5 text-xs text-slate-600">${u.customer_email ? `<span class="text-primary font-semibold">${escapeHtml(u.customer_email)}</span>` : '<span class="text-slate-400">None</span>'}</td>
@@ -1494,7 +1535,21 @@
                   ${u.is_resolved ? 'Resolved' : 'Pending'}
                 </span>
               </td>
-              <td class="px-6 py-3.5 text-xs text-slate-500">${new Date(u.created_at).toLocaleDateString()}</td>
+              <td class="px-6 py-3.5 whitespace-nowrap">
+                <div class="flex flex-col">
+                  <div class="flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                    <span class="material-symbols-outlined text-[14px] text-amber-600">event</span>
+                    <span>${dt.day}, ${dt.dateStr}</span>
+                  </div>
+                  <div class="flex items-center gap-1 text-[11px] font-mono text-slate-500 mt-0.5">
+                    <span class="material-symbols-outlined text-[13px] text-slate-400">schedule</span>
+                    <span>${dt.timeStr}</span>
+                  </div>
+                  ${u.is_resolved && u.resolved_at ? `
+                    <span class="text-[10px] text-emerald-600 font-mono mt-0.5">Resolved: ${formatExactDateTime(u.resolved_at).timeShort}</span>
+                  ` : ''}
+                </div>
+              </td>
               <td class="px-6 py-3.5 text-right space-x-2">
                 <button onclick="copyUnansweredShare('${u.id}')" title="Copy shareable permalink" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-xs font-mono transition">
                   Share
@@ -1506,7 +1561,8 @@
                 ` : '<span class="text-xs font-mono text-emerald-600 font-semibold">Trained ✓</span>'}
               </td>
             </tr>
-          `).join('');
+          `;
+          }).join('');
         }
       } catch (e) {
         console.error("Unanswered fetch error:", e);
@@ -1602,11 +1658,18 @@
           listContainer.innerHTML = sessions.map(s => {
             const lastMsg = s.messages && s.messages.length > 0 ? s.messages[s.messages.length - 1].content : 'No messages';
             const sentClass = `pill-${s.sentiment || 'neutral'}`;
+            const dt = formatExactDateTime(s.started_at);
             return `
               <div onclick="selectSession('${s.session_id}')" id="session-card-${s.session_id}" class="chat-session-item p-3.5 rounded-xl space-y-2 ${s.session_id === selectedSessionId ? 'active' : ''}">
                 <div class="flex items-center justify-between text-xs">
                   <span class="font-bold text-slate-900">${s.customer_email || 'Anonymous Visitor'}</span>
-                  <span class="text-[10px] text-slate-400 font-mono">${new Date(s.started_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                  <div class="text-right flex flex-col items-end">
+                    <span class="text-[10px] font-semibold text-slate-700 font-mono">${dt.dayShort}, ${dt.dateStr}</span>
+                    <span class="text-[9px] text-slate-400 font-mono flex items-center gap-0.5">
+                      <span class="material-symbols-outlined text-[10px]">schedule</span>
+                      ${dt.timeShort}
+                    </span>
+                  </div>
                 </div>
                 <p class="text-xs text-slate-600 line-clamp-1 font-sans">${escapeHtml(lastMsg)}</p>
                 <div class="flex items-center justify-between pt-1">
@@ -1652,6 +1715,7 @@
     function renderSessionDetail(s) {
       const detailContainer = document.getElementById('session-detail-container');
       const shareUrl = `${window.location.origin}/share/${s.session_id}`;
+      const dtStart = formatExactDateTime(s.started_at);
 
       detailContainer.innerHTML = `
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-100 gap-2">
@@ -1661,7 +1725,16 @@
               <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold pill-${s.sentiment}">${s.sentiment}</span>
               <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold pill-topic">${s.primary_topic}</span>
             </div>
-            <p class="text-[11px] text-slate-400 font-mono mt-0.5">Session ID: ${s.session_id} • Channel: ${s.channel}</p>
+            <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 font-mono mt-1">
+              <span class="flex items-center gap-1 text-slate-700 font-semibold">
+                <span class="material-symbols-outlined text-[13px] text-primary">calendar_today</span>
+                ${dtStart.day}, ${dtStart.dateStr} at ${dtStart.timeStr}
+              </span>
+              <span>•</span>
+              <span>Channel: <strong>${s.channel}</strong></span>
+              <span>•</span>
+              <span>ID: ${s.session_id.slice(0, 8)}...</span>
+            </div>
           </div>
           <button onclick="copySessionShare('${s.session_id}')" class="px-3 py-1.5 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-mono font-semibold rounded-lg flex items-center gap-1.5 transition shadow-xs self-start sm:self-auto">
             <span class="material-symbols-outlined text-[15px] text-primary">share</span>
@@ -1670,7 +1743,9 @@
         </div>
 
         <div class="space-y-4 max-h-[460px] overflow-y-auto pr-2">
-          ${s.messages.map(m => `
+          ${s.messages.map(m => {
+            const dtMsg = formatExactDateTime(m.created_at);
+            return `
             <div class="flex flex-col ${m.sender === 'customer' ? 'items-end' : 'items-start'}">
               <div class="max-w-[85%] p-3.5 rounded-2xl text-xs leading-relaxed ${m.sender === 'customer' ? 'bg-primary text-white rounded-tr-xs' : 'bg-slate-50 border border-slate-200 text-slate-900 rounded-tl-xs'}">
                 <p class="font-sans whitespace-pre-wrap">${escapeHtml(m.content)}</p>
@@ -1682,13 +1757,17 @@
                 ` : ''}
               </div>
               <div class="flex items-center gap-2 text-[10px] text-slate-400 font-mono mt-1 px-1">
-                <span>${new Date(m.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                <span class="font-semibold text-slate-600 flex items-center gap-1">
+                  <span class="material-symbols-outlined text-[11px] text-slate-400">schedule</span>
+                  ${dtMsg.dayShort}, ${dtMsg.dateStr} at ${dtMsg.timeStr}
+                </span>
                 ${m.latency_ms ? `<span>• ${m.latency_ms}ms</span>` : ''}
                 ${m.llm_provider_used ? `<span>• ${m.llm_provider_used}</span>` : ''}
                 ${m.feedback ? `<span>• ${m.feedback === 'up' ? '👍' : '👎'}</span>` : ''}
               </div>
             </div>
-          `).join('')}
+          `;
+          }).join('')}
         </div>
       `;
     }
