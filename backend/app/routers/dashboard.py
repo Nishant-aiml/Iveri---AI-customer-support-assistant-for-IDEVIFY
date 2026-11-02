@@ -29,6 +29,7 @@ from app.services.bm25_store import bm25_store_service
 from app.services.rag_engine import rag_engine
 from app.services.sentiment_analyzer import sentiment_analyzer
 from app.services.topic_analyzer import topic_analyzer
+from app.services.laya_router import laya_service
 
 router = APIRouter(prefix="/api/dashboard", tags=["Owner Dashboard"])
 
@@ -751,6 +752,10 @@ async def test_playground_query(
             retrieval_type="dense_vector"
         ))
 
+    # 3.5 Classify Intent via Laya System 1 Router
+    laya_info = laya_service.classify_intent(query_text)
+    laya_intent = laya_info.get("intent", "store_support") if isinstance(laya_info, dict) else "store_support"
+
     # 4. Run RAG Engine Pipeline
     rag_result = await rag_engine.query(
         business_id=biz_id,
@@ -775,5 +780,6 @@ async def test_playground_query(
         top_confidence=rag_result["confidence_score"],
         generated_answer=rag_result["answer"],
         llm_provider=rag_result["llm_provider"],
-        latency_ms=elapsed_ms
+        latency_ms=elapsed_ms,
+        laya_intent=laya_intent
     )

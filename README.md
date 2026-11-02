@@ -16,6 +16,12 @@
 
 [Live Architecture](#-system-architecture) • [Project Blueprints & Specs](#-project-specifications--architectural-blueprints) • [Core Innovations](#-technical-uniqueness--innovations) • [Feature Matrix](#-platform-feature-matrix) • [Tech Stack](#-technology-stack) • [DevOps & Security](#-devops-cicd--cybersecurity-guardrails) • [Team](#-engineering-team--technical-ownership)
 
+<br/>
+
+<p align="center">
+  <img src="docs/assets/iveri_pipeline_animation.svg" alt="Iveri Multi-Hybrid RAG and System 1 Neural Pipeline Simulator" width="100%" />
+</p>
+
 </div>
 
 ---

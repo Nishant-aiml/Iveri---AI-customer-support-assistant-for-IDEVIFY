@@ -57,6 +57,7 @@ class PlaygroundTestResponse(BaseModel):
     generated_answer: str
     llm_provider: str
     latency_ms: int
+    laya_intent: Optional[str] = "store_support"
 
 class ChatSessionSummary(BaseModel):
     session_id: str

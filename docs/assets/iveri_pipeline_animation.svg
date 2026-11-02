@@ -1,0 +1,332 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 500" width="100%" height="100%">
+  <defs>
+    <!-- Dark Obsidian Canvas Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#090A0F" />
+      <stop offset="50%" stop-color="#0D0F17" />
+      <stop offset="100%" stop-color="#07080C" />
+    </linearGradient>
+
+    <!-- Card Background Gradient -->
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#141724" />
+      <stop offset="100%" stop-color="#0F111B" />
+    </linearGradient>
+
+    <!-- Glowing Accent Gradients -->
+    <linearGradient id="indigoGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#6366F1" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+
+    <linearGradient id="emeraldGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#059669" />
+    </linearGradient>
+
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+
+    <!-- Glow Filters -->
+    <filter id="glowIndigo" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="4" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="glowEmerald" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <style>
+      .mono-text { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+      .sans-text { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+
+      /* Pipeline Pulse Animations */
+      @keyframes dashFlow {
+        to { stroke-dashoffset: -40; }
+      }
+      .flowing-line {
+        stroke-dasharray: 8 6;
+        animation: dashFlow 1.2s linear infinite;
+      }
+      .flowing-line-fast {
+        stroke-dasharray: 6 4;
+        animation: dashFlow 0.8s linear infinite;
+      }
+
+      /* Beacon Blinking */
+      @keyframes beaconBlink {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.3; transform: scale(0.85); }
+      }
+      .pulse-beacon {
+        animation: beaconBlink 1.8s ease-in-out infinite;
+        transform-origin: center;
+      }
+
+      /* Data Packets Moving Along Pipeline */
+      @keyframes packetMove1 {
+        0% { cx: 165; cy: 190; opacity: 0; }
+        20% { opacity: 1; }
+        80% { opacity: 1; }
+        100% { cx: 280; cy: 190; opacity: 0; }
+      }
+      @keyframes packetMove2 {
+        0% { cx: 400; cy: 190; opacity: 0; }
+        20% { opacity: 1; }
+        80% { opacity: 1; }
+        100% { cx: 500; cy: 190; opacity: 0; }
+      }
+      @keyframes packetMove3 {
+        0% { cx: 620; cy: 190; opacity: 0; }
+        20% { opacity: 1; }
+        80% { opacity: 1; }
+        100% { cx: 720; cy: 190; opacity: 0; }
+      }
+      @keyframes packetMove4 {
+        0% { cx: 840; cy: 190; opacity: 0; }
+        20% { opacity: 1; }
+        80% { opacity: 1; }
+        100% { cx: 930; cy: 190; opacity: 0; }
+      }
+
+      .packet-1 { animation: packetMove1 2s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+      .packet-2 { animation: packetMove2 2s cubic-bezier(0.4, 0, 0.2, 1) infinite 0.5s; }
+      .packet-3 { animation: packetMove3 2s cubic-bezier(0.4, 0, 0.2, 1) infinite 1.0s; }
+      .packet-4 { animation: packetMove4 2s cubic-bezier(0.4, 0, 0.2, 1) infinite 1.5s; }
+
+      /* Typewriter Simulated Text Effect */
+      @keyframes textCycle {
+        0%, 45% { opacity: 1; }
+        48%, 52% { opacity: 0.2; }
+        55%, 100% { opacity: 1; }
+      }
+      .cycle-text { animation: textCycle 6s ease-in-out infinite; }
+
+      /* Scanning Radar Sweep */
+      @keyframes radarSweep {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      .radar-arm {
+        transform-origin: 340px 190px;
+        animation: radarSweep 3s linear infinite;
+      }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1000" height="500" rx="16" fill="url(#bgGrad)" stroke="#1F2438" stroke-width="2" />
+
+  <!-- Subtle Blueprint Grid Pattern -->
+  <g opacity="0.12" stroke="#6366F1" stroke-width="0.5">
+    <line x1="50" y1="0" x2="50" y2="500" />
+    <line x1="150" y1="0" x2="150" y2="500" />
+    <line x1="250" y1="0" x2="250" y2="500" />
+    <line x1="350" y1="0" x2="350" y2="500" />
+    <line x1="450" y1="0" x2="450" y2="500" />
+    <line x1="550" y1="0" x2="550" y2="500" />
+    <line x1="650" y1="0" x2="650" y2="500" />
+    <line x1="750" y1="0" x2="750" y2="500" />
+    <line x1="850" y1="0" x2="850" y2="500" />
+    <line x1="950" y1="0" x2="950" y2="500" />
+    <line x1="0" y1="60" x2="1000" y2="60" />
+    <line x1="0" y1="140" x2="1000" y2="140" />
+    <line x1="0" y1="220" x2="1000" y2="220" />
+    <line x1="0" y1="300" x2="1000" y2="300" />
+    <line x1="0" y1="380" x2="1000" y2="380" />
+    <line x1="0" y1="440" x2="1000" y2="440" />
+  </g>
+
+  <!-- Terminal Header Bar -->
+  <rect x="0" y="0" width="1000" height="42" rx="16" fill="#0D0F17" />
+  <line x1="0" y1="42" x2="1000" y2="42" stroke="#1F2438" stroke-width="1.5" />
+  <circle cx="24" cy="21" r="5" fill="#EF4444" />
+  <circle cx="40" cy="21" r="5" fill="#F59E0B" />
+  <circle cx="56" cy="21" r="5" fill="#10B981" />
+  
+  <text x="80" y="26" fill="#94A3B8" class="mono-text" font-size="12" font-weight="600">
+    IVERI // MULTI-HYBRID RAG &amp; SYSTEM 1 NEURAL PIPELINE SIMULATOR
+  </text>
+
+  <!-- Status Badges in Top Right -->
+  <g transform="translate(730, 12)">
+    <rect width="115" height="18" rx="9" fill="#131622" stroke="#10B981" stroke-width="1" />
+    <circle cx="12" cy="9" r="3.5" fill="#10B981" class="pulse-beacon" />
+    <text x="24" y="13" fill="#10B981" class="mono-text" font-size="9" font-weight="700">STATUS: ACTIVE</text>
+
+    <rect x="125" y="0" width="130" height="18" rx="9" fill="#131622" stroke="#6366F1" stroke-width="1" />
+    <text x="135" y="13" fill="#A5B4FC" class="mono-text" font-size="9" font-weight="700">RAM: 120MB / 512MB</text>
+  </g>
+
+  <!-- Conduits (Connecting Lines) -->
+  <g stroke="#262C44" stroke-width="3" fill="none">
+    <!-- Stage 1 to 2 -->
+    <line x1="160" y1="190" x2="280" y2="190" />
+    <!-- Stage 2 to 3 -->
+    <line x1="400" y1="190" x2="500" y2="190" />
+    <!-- Stage 3 to 4 -->
+    <line x1="620" y1="190" x2="720" y2="190" />
+    <!-- Stage 4 to 5 -->
+    <line x1="840" y1="190" x2="940" y2="190" />
+  </g>
+
+  <!-- Animated Glowing Conduits (Photons) -->
+  <g fill="none">
+    <line x1="160" y1="190" x2="280" y2="190" stroke="#6366F1" stroke-width="2" class="flowing-line" opacity="0.8" />
+    <line x1="400" y1="190" x2="500" y2="190" stroke="#8B5CF6" stroke-width="2" class="flowing-line-fast" opacity="0.8" />
+    <line x1="620" y1="190" x2="720" y2="190" stroke="#10B981" stroke-width="2" class="flowing-line" opacity="0.8" />
+    <line x1="840" y1="190" x2="940" y2="190" stroke="#6366F1" stroke-width="2" class="flowing-line-fast" opacity="0.8" />
+  </g>
+
+  <!-- Data Packets (Glowing Orbs) -->
+  <circle cx="165" cy="190" r="5" fill="#818CF8" class="packet-1" filter="url(#glowIndigo)" />
+  <circle cx="400" cy="190" r="5" fill="#C084FC" class="packet-2" filter="url(#glowIndigo)" />
+  <circle cx="620" cy="190" r="5" fill="#34D399" class="packet-3" filter="url(#glowEmerald)" />
+  <circle cx="840" cy="190" r="5" fill="#818CF8" class="packet-4" filter="url(#glowIndigo)" />
+
+  <!-- ==================== STAGE 1: INGESTION & QUERY ==================== -->
+  <g transform="translate(40, 110)">
+    <rect width="120" height="160" rx="12" fill="url(#cardGrad)" stroke="#1F2438" stroke-width="1.5" />
+    <rect width="120" height="32" rx="12" fill="#161A2B" />
+    <text x="60" y="21" fill="#E2E8F0" class="sans-text" font-size="11" font-weight="700" text-anchor="middle">1. CLIENT QUERY</text>
+    
+    <!-- Icon Circle -->
+    <circle cx="60" cy="70" r="20" fill="#1E2337" stroke="#6366F1" stroke-width="1.5" />
+    <text x="60" y="75" fill="#818CF8" class="mono-text" font-size="16" text-anchor="middle">&gt;_</text>
+    
+    <text x="60" y="112" fill="#94A3B8" class="mono-text" font-size="9" text-anchor="middle">Public / Embed</text>
+    <rect x="15" y="125" width="90" height="22" rx="6" fill="#1C2136" stroke="#6366F1" stroke-width="0.8" />
+    <text x="60" y="139" fill="#C7D2FE" class="mono-text" font-size="8" font-weight="600" text-anchor="middle">500-char max</text>
+  </g>
+
+  <!-- ==================== STAGE 2: LAYA SYSTEM 1 NEURAL ROUTER ==================== -->
+  <g transform="translate(280, 100)">
+    <rect width="120" height="180" rx="12" fill="url(#cardGrad)" stroke="#6366F1" stroke-width="1.5" filter="url(#glowIndigo)" opacity="0.15" />
+    <rect width="120" height="180" rx="12" fill="url(#cardGrad)" stroke="#6366F1" stroke-width="1.5" />
+    <rect width="120" height="32" rx="12" fill="#1C2139" />
+    <text x="60" y="21" fill="#A5B4FC" class="sans-text" font-size="10" font-weight="800" text-anchor="middle">2. LAYA SYSTEM 1</text>
+    
+    <!-- Radar Scanning Circle -->
+    <circle cx="60" cy="75" r="22" fill="#181D30" stroke="#8B5CF6" stroke-width="1.5" />
+    <circle cx="60" cy="75" r="14" fill="none" stroke="#6366F1" stroke-width="0.8" opacity="0.6" />
+    <circle cx="60" cy="75" r="6" fill="#8B5CF6" />
+    
+    <!-- Rotating Sweep Arm -->
+    <g class="radar-arm">
+      <line x1="60" y1="75" x2="60" y2="53" stroke="#C084FC" stroke-width="1.5" stroke-linecap="round" />
+    </g>
+
+    <text x="60" y="120" fill="#E2E8F0" class="mono-text" font-size="9" font-weight="700" text-anchor="middle">ModernBERT</text>
+    <text x="60" y="134" fill="#94A3B8" class="mono-text" font-size="8" text-anchor="middle">Intent Classifier</text>
+    
+    <rect x="12" y="145" width="96" height="22" rx="6" fill="#201D38" stroke="#8B5CF6" stroke-width="0.8" />
+    <text x="60" y="159" fill="#DDD6FE" class="mono-text" font-size="8" font-weight="700" text-anchor="middle">&lt; 50ms FIREWALL</text>
+  </g>
+
+  <!-- ==================== STAGE 3: MULTI-HYBRID RAG (CHROMA + BM25) ==================== -->
+  <g transform="translate(500, 90)">
+    <rect width="120" height="200" rx="12" fill="url(#cardGrad)" stroke="#10B981" stroke-width="1.5" filter="url(#glowEmerald)" opacity="0.12" />
+    <rect width="120" height="200" rx="12" fill="url(#cardGrad)" stroke="#10B981" stroke-width="1.5" />
+    <rect width="120" height="32" rx="12" fill="#132320" />
+    <text x="60" y="21" fill="#6EE7B7" class="sans-text" font-size="10" font-weight="800" text-anchor="middle">3. HYBRID RAG</text>
+
+    <!-- Split Engine Visual -->
+    <rect x="12" y="45" width="96" height="38" rx="6" fill="#121D24" stroke="#0284C7" stroke-width="1" />
+    <text x="60" y="60" fill="#38BDF8" class="mono-text" font-size="8" font-weight="700" text-anchor="middle">ChromaDB Dense</text>
+    <text x="60" y="73" fill="#94A3B8" class="mono-text" font-size="7" text-anchor="middle">Cosine Similarity</text>
+
+    <rect x="12" y="90" width="96" height="38" rx="6" fill="#1C1E1D" stroke="#10B981" stroke-width="1" />
+    <text x="60" y="105" fill="#34D399" class="mono-text" font-size="8" font-weight="700" text-anchor="middle">BM25Plus Sparse</text>
+    <text x="60" y="118" fill="#94A3B8" class="mono-text" font-size="7" text-anchor="middle">Domain Synonyms</text>
+
+    <rect x="12" y="135" width="96" height="28" rx="6" fill="#162722" stroke="#10B981" stroke-width="1" />
+    <text x="60" y="152" fill="#A7F3D0" class="mono-text" font-size="8" font-weight="700" text-anchor="middle">RRF Fusion (k=60)</text>
+
+    <text x="60" y="184" fill="#64748B" class="mono-text" font-size="7" text-anchor="middle">Score Normalized</text>
+  </g>
+
+  <!-- ==================== STAGE 4: DETERMINISTIC CIRCUIT BREAKER ==================== -->
+  <g transform="translate(720, 100)">
+    <rect width="120" height="180" rx="12" fill="url(#cardGrad)" stroke="#F59E0B" stroke-width="1.5" />
+    <rect width="120" height="32" rx="12" fill="#251E14" />
+    <text x="60" y="21" fill="#FCD34D" class="sans-text" font-size="10" font-weight="800" text-anchor="middle">4. CIRCUIT GATE</text>
+
+    <!-- Diamond Gate Symbol -->
+    <polygon points="60,48 85,73 60,98 35,73" fill="#292015" stroke="#F59E0B" stroke-width="1.5" />
+    <text x="60" y="77" fill="#FBBF24" class="mono-text" font-size="10" font-weight="800" text-anchor="middle">&gt;=0.55</text>
+
+    <text x="60" y="120" fill="#E2E8F0" class="mono-text" font-size="9" font-weight="700" text-anchor="middle">&lt; 10ms Check</text>
+    <text x="60" y="134" fill="#94A3B8" class="mono-text" font-size="8" text-anchor="middle">Pre-LLM Confidence</text>
+
+    <rect x="12" y="145" width="96" height="22" rx="6" fill="#10251C" stroke="#10B981" stroke-width="0.8" />
+    <text x="60" y="159" fill="#6EE7B7" class="mono-text" font-size="8" font-weight="700" text-anchor="middle">0 TOKENS BURNED</text>
+  </g>
+
+  <!-- ==================== STAGE 5: MULTI-TIER LLM CASCADE ==================== -->
+  <g transform="translate(900, 110)">
+    <rect width="60" height="160" rx="12" fill="url(#cardGrad)" stroke="#1F2438" stroke-width="1.5" />
+    <rect width="60" height="32" rx="12" fill="#161A2B" />
+    <text x="30" y="21" fill="#E2E8F0" class="sans-text" font-size="9" font-weight="700" text-anchor="middle">5. LLM</text>
+    
+    <circle cx="30" cy="65" r="16" fill="#1E2337" stroke="#6366F1" stroke-width="1.5" />
+    <text x="30" y="70" fill="#A5B4FC" class="mono-text" font-size="11" text-anchor="middle">SSE</text>
+    
+    <text x="30" y="105" fill="#38BDF8" class="mono-text" font-size="7" font-weight="600" text-anchor="middle">Gemini</text>
+    <text x="30" y="120" fill="#A78BFA" class="mono-text" font-size="7" font-weight="600" text-anchor="middle">Groq 8B</text>
+    <text x="30" y="135" fill="#34D399" class="mono-text" font-size="7" font-weight="600" text-anchor="middle">Extract</text>
+    
+    <circle cx="30" cy="152" r="3" fill="#10B981" class="pulse-beacon" />
+  </g>
+
+  <!-- ==================== LIVE TERMINAL SIMULATION LOG BOX ==================== -->
+  <g transform="translate(40, 310)">
+    <rect width="920" height="165" rx="12" fill="#0C0E16" stroke="#1F2438" stroke-width="1.5" />
+    
+    <!-- Log Header -->
+    <rect width="920" height="28" rx="12" fill="#121622" />
+    <line x1="0" y1="28" x2="920" y2="28" stroke="#1F2438" stroke-width="1" />
+    <text x="16" y="18" fill="#64748B" class="mono-text" font-size="10" font-weight="700">REAL-TIME INFERENCE LOG</text>
+    <text x="830" y="18" fill="#10B981" class="mono-text" font-size="9" font-weight="700">LATENCY: 142ms</text>
+
+    <!-- Terminal Output Lines -->
+    <g class="cycle-text mono-text" font-size="10.5">
+      <!-- Line 1: Query Input -->
+      <text x="20" y="52" fill="#94A3B8">
+        <tspan fill="#6366F1" font-weight="700">USER &gt; </tspan>
+        <tspan fill="#F8FAFC">"What is the security deposit for the WiFi 6 router?"</tspan>
+      </text>
+
+      <!-- Line 2: Pipeline Execution Trace -->
+      <text x="20" y="74" fill="#64748B">
+        <tspan fill="#A855F7">●</tspan> [Laya System 1] Intent: <tspan fill="#E2E8F0">store_support (0.97)</tspan> 
+        <tspan fill="#38BDF8">●</tspan> [Chroma Dense] Cosine: <tspan fill="#E2E8F0">0.784</tspan> 
+        <tspan fill="#10B981">●</tspan> [BM25Plus Sparse] Score: <tspan fill="#E2E8F0">9.14</tspan> 
+        <tspan fill="#F59E0B">●</tspan> [RRF k=60] Rank: <tspan fill="#E2E8F0">0.824 &gt;= 0.55 [GATE PASSED]</tspan>
+      </text>
+
+      <!-- Line 3: Grounded Answer -->
+      <text x="20" y="100" fill="#94A3B8">
+        <tspan fill="#10B981" font-weight="700">IVERI &gt; </tspan>
+        <tspan fill="#E2E8F0">"A WiFi 6 router is provided on a rent-free basis with a refundable security deposit of Rs. 2,000."</tspan>
+      </text>
+
+      <!-- Line 4: Verified Citation -->
+      <g transform="translate(20, 115)">
+        <rect width="360" height="22" rx="6" fill="#13231D" stroke="#10B981" stroke-width="1" />
+        <circle cx="12" cy="11" r="3" fill="#10B981" />
+        <text x="24" y="15" fill="#6EE7B7" class="mono-text" font-size="9" font-weight="600">
+          Source: Zephyr_Fiber_Terms_FAQ.pdf (p.1, chunk #4)
+        </text>
+      </g>
+
+      <!-- Line 5: Telemetry Footer -->
+      <text x="420" y="130" fill="#64748B" font-size="9">
+        Tokens Burned: <tspan fill="#F8FAFC">42</tspan> • Hallucination Risk: <tspan fill="#10B981" font-weight="700">0.00%</tspan> • Circuit Breaker: <tspan fill="#10B981">ARMED</tspan>
+      </text>
+    </g>
+  </g>
+</svg>
