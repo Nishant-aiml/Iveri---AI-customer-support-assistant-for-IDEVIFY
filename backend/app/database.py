@@ -49,8 +49,12 @@ if "sqlite" in database_url:
 else:
     # Enterprise PostgreSQL setup with asyncpg connection pool & auto-reconnect
     pg_connect_args = {}
-    if "ssl=require" in database_url or "sslmode=require" in settings.DATABASE_URL:
+    if "ssl=require" in database_url or "sslmode=require" in settings.DATABASE_URL or "supabase" in database_url:
         pg_connect_args["ssl"] = True
+
+    # Supabase Supavisor / PgBouncer pooler (port 6543) requires statement_cache_size=0 for asyncpg
+    if ":6543" in database_url or "pooler.supabase.com" in database_url:
+        pg_connect_args["statement_cache_size"] = 0
 
     engine = create_async_engine(
         database_url,
