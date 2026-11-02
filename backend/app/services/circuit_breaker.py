@@ -46,7 +46,9 @@ class TemporalInterceptor:
     STORE_CONTEXT_KEYWORDS = {
         "delivery", "shipping", "transit", "dispatch", "response", "opening", "closing",
         "store", "shop", "working", "business", "operation", "operating", "order",
-        "return", "refund", "warranty", "duration", "wait", "sla", "delay", "arrive"
+        "return", "refund", "warranty", "duration", "wait", "sla", "delay", "arrive",
+        "founded", "established", "started", "born", "built", "opened", "created",
+        "launched", "history", "located", "where", "who", "which company", "brand"
     }
 
     @classmethod
@@ -91,10 +93,10 @@ class TemporalInterceptor:
         ):
             return f"Today is **{cur_day}**, {cur_date}."
 
-        # 5. Exact Year query
+        # 5. Exact Year query (must specifically ask for current / present year)
         if (
-            re.search(r"\b(what\s+year\s+is\s+(this|it|today)|which\s+year\s+is\s+(this|it)|what(s)?\s+(is\s+)?(the\s+|current\s+)?year|current\s+year|tell\s+me\s+(the\s+)?year|this\s+year)\b", clean_no_punct)
-            or clean_no_punct in ["year", "the year", "current year"]
+            re.search(r"\b(what\s+year\s+is\s+(this|it|today)|which\s+year\s+is\s+(this|it)|what(s)?\s+(is\s+)?(the\s+)?current\s+year|current\s+year|tell\s+me\s+the\s+current\s+year)\b", clean_no_punct)
+            or clean_no_punct in ["year", "the year", "current year", "this year"]
         ):
             return f"The current year is **{cur_year}**."
 

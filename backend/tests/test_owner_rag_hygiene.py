@@ -147,3 +147,57 @@ class TestOwnerRAGHygiene(unittest.IsolatedAsyncioTestCase):
         # Ensure the phone number line appears only once, not duplicated
         occurrences = synthesis.count("5550 2468")
         self.assertEqual(occurrences, 1, f"Expected 1 occurrence of phone number, got {occurrences}:\n{synthesis}")
+
+    async def test_04_multi_tenant_isolation_circuit_breaker(self):
+        """Verifies strict tenant isolation: Tenant A's document is never leaked to Tenant B."""
+        # Index document for Tenant A only
+        chunks_a = [
+            {
+                "id": str(uuid.uuid4()),
+                "content": "Hygiene Dental after-hours emergency helpline is +91 20 5550 9988, open 24/7.",
+                "document_id": "doc-helpline-1",
+                "metadata": {
+                    "document_id": "doc-helpline-1",
+                    "file_name": "helpline_guide.txt",
+                    "source": "helpline_guide.txt",
+                    "page": 1,
+                    "chunk_index": 0
+                }
+            }
+        ]
+        await rag_engine.index_document_chunks(self.biz_id, chunks_a)
+
+        # Create Tenant B (no documents uploaded)
+        unique_b = os.urandom(3).hex()
+        async with AsyncSessionLocal() as db:
+            biz_b = Business(
+                name="Second Tenant Store",
+                slug=f"second-tenant-{unique_b}",
+                welcome_message="Welcome to Second Tenant!",
+                fallback_message="I'm sorry, but I do not have this information in my documents. I have logged your question for our team to assist you."
+            )
+            db.add(biz_b)
+            await db.commit()
+            await db.refresh(biz_b)
+            biz_b_id = biz_b.id
+
+        # Tenant A returns the helpline
+        ans_a = await rag_engine.query(
+            business_id=self.biz_id,
+            user_query="what is the emergency phone number",
+            business_settings={"name": "Hygiene Dental"}
+        )
+        self.assertTrue(ans_a["is_answered"])
+        self.assertIn("5550 9988", ans_a["answer"])
+
+        # Tenant B has not uploaded this document - circuit breaker trips safely
+        ans_b = await rag_engine.query(
+            business_id=biz_b_id,
+            user_query="what is the emergency phone number",
+            business_settings={"name": "Second Tenant Store"}
+        )
+        self.assertFalse(ans_b["is_answered"])
+        self.assertNotIn("5550 9988", ans_b["answer"])
+        self.assertIn("I'm sorry", ans_b["answer"])
+
+
