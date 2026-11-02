@@ -25,10 +25,11 @@ def build_twiml_message(body_text: str) -> Response:
 </Response>"""
     return Response(content=xml_content, media_type="application/xml")
 
+@router.post("/webhook")
 @router.post("/{business_slug}/webhook")
 async def twilio_whatsapp_webhook(
-    business_slug: str,
-    request: Request,
+    business_slug: str = "default",
+    request: Request = None,
     From: str = Form(None),
     To: str = Form(None),
     Body: str = Form(None),
@@ -64,11 +65,20 @@ async def twilio_whatsapp_webhook(
     clean_phone = sender_raw.replace("whatsapp:", "").strip()
     clean_query = message_text.strip()
 
-    # 1. Look up Business
+    # 1. Look up Business (with auto-fallback so Twilio never 404s)
     biz_query = select(Business).where(Business.slug == business_slug)
     business = (await db.execute(biz_query)).scalar_one_or_none()
     if not business:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
+        first_biz_query = select(Business).order_by(Business.created_at.asc()).limit(1)
+        business = (await db.execute(first_biz_query)).scalar_one_or_none()
+        if not business:
+            business = Business(
+                name="Iveri Support",
+                slug="iveri-support",
+                settings={"brand_name": "Iveri AI Support"}
+            )
+            db.add(business)
+            await db.flush()
 
     # 2. Find or create active WhatsApp ChatSession for this customer
     sess_query = select(ChatSession).where(
