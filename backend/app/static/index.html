@@ -2549,13 +2549,18 @@
           method: 'DELETE',
           headers: {'Authorization': `Bearer ${authToken}`}
         });
-        if (res.ok) {
+        if (res.ok || res.status === 404) {
+          showToast("Document deleted successfully.", "success");
           if (typeof tabLastFetched === 'object') tabLastFetched['documents'] = 0;
-          loadDocuments();
-          loadDashboardData();
+          await loadDocuments();
+          await loadDashboardData();
+        } else {
+          const err = await res.json().catch(() => ({}));
+          showToast(err.detail || "Failed to delete document.", "error");
         }
       } catch (e) {
         console.error("Delete error:", e);
+        showToast("Network error deleting document.", "error");
       }
     }
 
