@@ -7,8 +7,9 @@
   <!-- PWA & Mobile Web App Meta Tags -->
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#4F46E5">
+  <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Iveri">
   <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
   <link rel="icon" type="image/svg+xml" href="/static/icons/iveri-avatar.svg">
@@ -138,6 +139,32 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #94A3B8;
     }
+  
+    /* Mobile App & PWA Optimizations */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none !important;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none !important;
+      scrollbar-width: none !important;
+    }
+
+    @media (max-width: 767px) {
+      #biz-header-badge {
+        display: none !important;
+      }
+      .mobile-hide {
+        display: none !important;
+      }
+    }
+
+    .mobile-nav-active {
+      color: #4F46E5 !important;
+    }
+    .mobile-nav-active span.nav-icon {
+      transform: translateY(-1px);
+    }
+
   </style>
 </head>
 <body class="bg-background min-h-screen text-on-surface antialiased">
@@ -173,6 +200,12 @@
       <!-- Action Buttons -->
       <div class="flex items-center space-x-2 sm:space-x-3">
                 <!-- In-App Notification Center -->
+        <!-- PWA Install Button (Shown on installable browsers) -->
+        <button id="pwa-install-btn" onclick="installPWA()" class="hidden px-2.5 sm:px-3 py-1.5 text-xs font-semibold bg-indigo-50 hover:bg-indigo-100 text-primary border border-primary/20 rounded-lg transition-all flex items-center gap-1 shadow-xs" title="Install App">
+          <span class="material-symbols-outlined text-[16px]">install_mobile</span>
+          <span class="hidden sm:inline">Install App</span>
+        </button>
+
         <div class="relative">
           <button id="notif-bell-btn" onclick="toggleNotifDropdown()" class="p-2 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 border border-slate-200 rounded-lg transition-all shadow-xs flex items-center justify-center relative" title="Notifications">
             <span class="material-symbols-outlined text-[19px]">notifications</span>
@@ -208,7 +241,7 @@
     </div>
 
     <!-- Navigation Tabs -->
-    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 flex space-x-2 sm:space-x-8 overflow-x-auto text-xs border-t border-slate-200/80 font-mono scrollbar-none py-0.5">
+    <div class="max-w-7xl mx-auto px-2 sm:px-6 lg:px-8 flex space-x-2 sm:space-x-8 overflow-x-auto text-xs border-t border-slate-200/80 font-mono no-scrollbar py-0.5">
       <button onclick="switchTab('overview')" id="tab-overview" class="py-2.5 sm:py-3 px-2 sm:px-1 border-b-2 border-transparent text-slate-500 hover:text-slate-900 transition tab-active flex items-center gap-1.5 shrink-0 whitespace-nowrap text-[11px] sm:text-xs">
         <span class="material-symbols-outlined text-[15px] sm:text-[16px]">monitoring</span>
         <span>Overview & Analytics</span>
@@ -244,7 +277,31 @@
   </header>
 
   <!-- Main Content Container -->
-  <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 space-y-6 sm:space-y-8">
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 md:pb-8 space-y-5 sm:space-y-8">
+
+    <!-- PWA Mobile Install Banner -->
+    <div id="pwa-mobile-banner" class="hidden lumina-card p-3 sm:p-4 rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border border-indigo-200/80 flex items-center justify-between gap-3 shadow-xs">
+      <div class="flex items-center gap-2.5 sm:gap-3">
+        <img src="/static/icons/iveri-avatar.svg" alt="Iveri" class="w-9 h-9 rounded-xl shadow-xs shrink-0 object-cover border border-indigo-200">
+        <div>
+          <div class="text-xs sm:text-sm font-bold text-slate-900 font-sans flex items-center gap-1.5">
+            <span>Install Iveri Mobile App</span>
+            <span class="px-1.5 py-0.2 rounded bg-indigo-100 text-primary text-[9px] font-mono font-bold">PWA</span>
+          </div>
+          <div class="text-[11px] text-slate-500 font-sans">Instant push alerts for support tickets & customer chats</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button onclick="installPWA()" class="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white text-xs font-bold rounded-xl shadow-xs transition flex items-center gap-1">
+          <span class="material-symbols-outlined text-[15px]">add_to_home_screen</span>
+          <span>Install</span>
+        </button>
+        <button onclick="dismissPWABanner()" class="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg" title="Dismiss">
+          <span class="material-symbols-outlined text-sm">close</span>
+        </button>
+      </div>
+    </div>
+
 
     <!-- 1. OVERVIEW & ANALYTICS TAB -->
     <section id="view-overview" class="space-y-6">
@@ -1886,16 +1943,120 @@
         area.value = `${origin}/chat/${slug}`;
         if (help) help.innerText = "Standalone customer chat link. Share directly with customers via WhatsApp, email signatures, SMS, or link in your social media bio.";
       } else if (platform === 'shopify') {
-        area.value = `<!-- Paste right before </body> in your Shopify theme.liquid file -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
-        if (help) help.innerText = "Shopify integration: Go to Online Store -> Themes -> Edit code -> theme.liquid and paste before </body>.";
+        area.value = `<!-- Paste right before 
+  <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-2 px-1 shadow-lg">
+    <button onclick="switchTab('overview')" id="mobile-nav-overview" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition mobile-nav-active">
+      <span class="material-symbols-outlined text-[20px] nav-icon">monitoring</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Overview</span>
+    </button>
+    <button onclick="switchTab('documents')" id="mobile-nav-documents" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">folder</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Docs</span>
+    </button>
+    <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
+      <span class="material-symbols-outlined text-[20px] nav-icon">confirmation_number</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Tickets</span>
+      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
+    </button>
+    <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">chat</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Chats</span>
+    </button>
+    <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">tune</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Studio</span>
+    </button>
+  </nav>
+
+</body> in your Shopify theme.liquid file -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
+        if (help) help.innerText = "Shopify integration: Go to Online Store -> Themes -> Edit code -> theme.liquid and paste before 
+  <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-2 px-1 shadow-lg">
+    <button onclick="switchTab('overview')" id="mobile-nav-overview" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition mobile-nav-active">
+      <span class="material-symbols-outlined text-[20px] nav-icon">monitoring</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Overview</span>
+    </button>
+    <button onclick="switchTab('documents')" id="mobile-nav-documents" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">folder</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Docs</span>
+    </button>
+    <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
+      <span class="material-symbols-outlined text-[20px] nav-icon">confirmation_number</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Tickets</span>
+      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
+    </button>
+    <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">chat</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Chats</span>
+    </button>
+    <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">tune</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Studio</span>
+    </button>
+  </nav>
+
+</body>.";
       } else if (platform === 'wordpress') {
-        area.value = `<!-- WordPress: Paste in WPCode plugin, Custom HTML widget, or footer.php before </body> -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
+        area.value = `<!-- WordPress: Paste in WPCode plugin, Custom HTML widget, or footer.php before 
+  <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-2 px-1 shadow-lg">
+    <button onclick="switchTab('overview')" id="mobile-nav-overview" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition mobile-nav-active">
+      <span class="material-symbols-outlined text-[20px] nav-icon">monitoring</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Overview</span>
+    </button>
+    <button onclick="switchTab('documents')" id="mobile-nav-documents" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">folder</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Docs</span>
+    </button>
+    <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
+      <span class="material-symbols-outlined text-[20px] nav-icon">confirmation_number</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Tickets</span>
+      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
+    </button>
+    <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">chat</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Chats</span>
+    </button>
+    <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">tune</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Studio</span>
+    </button>
+  </nav>
+
+</body> -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
         if (help) help.innerText = "WordPress integration: Use the free 'WPCode' plugin (Footer script) or paste directly into footer.php.";
       } else if (platform === 'react') {
         area.value = `import Script from 'next/script';\n\n// Place inside your RootLayout or SupportPage component:\n<Script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  strategy="lazyOnload" \n/>`;
         if (help) help.innerText = "React / Next.js integration: Zero-layout-shift script loader with lazyOnload strategy.";
       } else {
-        area.value = `<!-- Universal Floating Widget: Paste before </body> on any HTML, Webflow, Squarespace, or Wix site -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
+        area.value = `<!-- Universal Floating Widget: Paste before 
+  <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-2 px-1 shadow-lg">
+    <button onclick="switchTab('overview')" id="mobile-nav-overview" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition mobile-nav-active">
+      <span class="material-symbols-outlined text-[20px] nav-icon">monitoring</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Overview</span>
+    </button>
+    <button onclick="switchTab('documents')" id="mobile-nav-documents" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">folder</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Docs</span>
+    </button>
+    <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
+      <span class="material-symbols-outlined text-[20px] nav-icon">confirmation_number</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Tickets</span>
+      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
+    </button>
+    <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">chat</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Chats</span>
+    </button>
+    <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">tune</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Studio</span>
+    </button>
+  </nav>
+
+</body> on any HTML, Webflow, Squarespace, or Wix site -->\n<script \n  src="${origin}/widget.js" \n  data-business="${slug}" \n  data-api="${origin}" \n  defer>\n<\/script>`;
         if (help) help.innerText = "Standard 1-line installation for any website. Automatically displays the floating bubble with your custom branding.";
       }
     }
@@ -2212,6 +2373,10 @@
       if (activeEl) activeEl.classList.remove('hidden');
       if (activeTabEl) activeTabEl.classList.add('tab-active');
 
+      if (typeof updateMobileBottomNav === 'function') {
+        updateMobileBottomNav(tabId);
+      }
+
       if (tabId === 'overview') { loadDashboardData(); loadAnalyticsCharts(); }
       if (tabId === 'documents') loadDocuments();
       if (tabId === 'unanswered') loadUnansweredQuestions();
@@ -2367,7 +2532,431 @@
       });
     }
 
+    
+    // =========================================================================
+    // MOBILE PWA INSTALL LOGIC
+    // =========================================================================
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      const installBtn = document.getElementById('pwa-install-btn');
+      if (installBtn) installBtn.classList.remove('hidden');
+      const banner = document.getElementById('pwa-mobile-banner');
+      if (banner && !localStorage.getItem('pwa_banner_dismissed')) {
+        banner.classList.remove('hidden');
+      }
+    });
+
+    async function installPWA() {
+      if (!deferredPrompt) {
+        alert("To install on iOS Safari: tap the Share button at the bottom and choose 'Add to Home Screen'.\n\nOn Chrome/Edge: tap the install icon in the address bar.");
+        return;
+      }
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        document.getElementById('pwa-install-btn')?.classList.add('hidden');
+        document.getElementById('pwa-mobile-banner')?.classList.add('hidden');
+      }
+      deferredPrompt = null;
+    }
+
+    function dismissPWABanner() {
+      document.getElementById('pwa-mobile-banner')?.classList.add('hidden');
+      localStorage.setItem('pwa_banner_dismissed', 'true');
+    }
+
+    function updateMobileBottomNav(tabId) {
+      ['overview', 'documents', 'tickets', 'chats', 'settings'].forEach(t => {
+        const btn = document.getElementById(`mobile-nav-${t}`);
+        if (btn) {
+          if (t === tabId) {
+            btn.classList.add('mobile-nav-active');
+            btn.classList.remove('text-slate-400');
+          } else {
+            btn.classList.remove('mobile-nav-active');
+            btn.classList.add('text-slate-400');
+          }
+        }
+      });
+    }
+
+    // =========================================================================
+    // SUPPORT TICKETS & CLOSED-LOOP RAG LEARNING
+    // =========================================================================
+    let ticketSearchTimeout = null;
+    let activeResolvingTicket = null;
+
+    function debouncedTicketSearch() {
+      clearTimeout(ticketSearchTimeout);
+      ticketSearchTimeout = setTimeout(loadTickets, 300);
+    }
+
+    async function loadTickets() {
+      if (!authToken) return;
+      const statusFilter = document.getElementById('ticket-status-filter')?.value || '';
+      const priorityFilter = document.getElementById('ticket-priority-filter')?.value || '';
+      const channelFilter = document.getElementById('ticket-channel-filter')?.value || '';
+      const searchVal = document.getElementById('ticket-search-input')?.value.trim() || '';
+
+      let url = '/api/tickets?limit=50';
+      if (statusFilter) url += '&status=' + encodeURIComponent(statusFilter);
+      if (priorityFilter) url += '&priority=' + encodeURIComponent(priorityFilter);
+      if (channelFilter) url += '&channel=' + encodeURIComponent(channelFilter);
+      if (searchVal) url += '&search=' + encodeURIComponent(searchVal);
+
+      try {
+        const res = await fetch(url, {
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        if (!res.ok) return;
+        const tickets = await res.json();
+
+        // Calculate summary counters
+        const openCount = tickets.filter(t => t.status === 'open').length;
+        const urgentCount = tickets.filter(t => t.priority === 'urgent' && t.status !== 'resolved').length;
+        const waCount = tickets.filter(t => t.channel === 'whatsapp').length;
+        const resolvedCount = tickets.filter(t => t.status === 'resolved').length;
+
+        const statOpen = document.getElementById('stat-open-tickets');
+        if (statOpen) statOpen.innerText = openCount;
+        const statUrgent = document.getElementById('stat-urgent-tickets');
+        if (statUrgent) statUrgent.innerText = urgentCount;
+        const statWa = document.getElementById('stat-whatsapp-tickets');
+        if (statWa) statWa.innerText = waCount;
+        const statResolved = document.getElementById('stat-resolved-tickets');
+        if (statResolved) statResolved.innerText = resolvedCount;
+
+        const badge = document.getElementById('tickets-badge-count');
+        const mobileDot = document.getElementById('mobile-tickets-badge');
+        if (openCount > 0) {
+          if (badge) { badge.innerText = openCount; badge.classList.remove('hidden'); }
+          if (mobileDot) mobileDot.classList.remove('hidden');
+        } else {
+          if (badge) badge.classList.add('hidden');
+          if (mobileDot) mobileDot.classList.add('hidden');
+        }
+
+        const countLabel = document.getElementById('tickets-count-label');
+        if (countLabel) countLabel.innerText = tickets.length + ' tickets';
+
+        const tbody = document.getElementById('tickets-table-body');
+        if (!tbody) return;
+
+        if (tickets.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" class="text-center py-12 text-slate-400">No support tickets match the current filters.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = tickets.map(t => {
+          let priorityPill = '';
+          if (t.priority === 'urgent') {
+            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold border border-rose-300 animate-pulse">URGENT</span>';
+          } else if (t.priority === 'high') {
+            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 font-bold border border-amber-300">HIGH</span>';
+          } else if (t.priority === 'medium') {
+            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 font-bold border border-indigo-200">MEDIUM</span>';
+          } else {
+            priorityPill = '<span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 font-medium">LOW</span>';
+          }
+
+          let chanPill = '';
+          if (t.channel === 'whatsapp') {
+            chanPill = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold"><span class="material-symbols-outlined text-[13px]">chat</span> WhatsApp</span>';
+          } else {
+            chanPill = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200 font-semibold"><span class="material-symbols-outlined text-[13px]">widgets</span> Web Widget</span>';
+          }
+
+          let statusPill = '';
+          if (t.status === 'resolved') {
+            statusPill = '<span class="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold">Resolved & Trained</span>';
+          } else if (t.status === 'in_progress') {
+            statusPill = '<span class="px-2 py-0.5 rounded-md bg-blue-100 text-blue-800 font-bold">In Progress</span>';
+          } else {
+            statusPill = '<span class="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold">Open</span>';
+          }
+
+          const customerDisplay = t.customer_name || t.customer_email || t.customer_phone || '<span class="text-slate-400">Anonymous Visitor</span>';
+          const contactInfo = [t.customer_phone, t.customer_email].filter(Boolean).join(' • ');
+          const dateStr = new Date(t.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+          const actionBtn = t.status === 'resolved' 
+            ? '<span class="text-[11px] text-emerald-600 font-bold flex items-center gap-1 justify-end"><span class="material-symbols-outlined text-[14px]">check_circle</span> RAG Trained</span>'
+            : '<button onclick="openResolveTicketModal(\'' + t.ticket_number + '\', \'' + escapeHtml(t.description || t.subject) + '\', \'' + escapeHtml(customerDisplay) + '\')" class="px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded-lg text-[11px] font-semibold transition flex items-center gap-1 ml-auto shadow-xs"><span class="material-symbols-outlined text-[13px]">school</span> Resolve & Train</button>';
+
+          return '<tr class="hover:bg-slate-50/80 transition">' +
+            '<td class="py-3 px-4 font-bold text-slate-900">' + t.ticket_number + '</td>' +
+            '<td class="py-3 px-4">' + priorityPill + '</td>' +
+            '<td class="py-3 px-4">' + chanPill + '</td>' +
+            '<td class="py-3 px-4"><div class="font-medium text-slate-800">' + customerDisplay + '</div>' + (contactInfo ? '<div class="text-[10px] text-slate-400">' + contactInfo + '</div>' : '') + '</td>' +
+            '<td class="py-3 px-4 max-w-xs"><div class="font-semibold text-slate-800 truncate">' + escapeHtml(t.subject || 'Customer Inquiry') + '</div><div class="text-[11px] text-slate-500 truncate">' + escapeHtml(t.description) + '</div></td>' +
+            '<td class="py-3 px-4">' + statusPill + '</td>' +
+            '<td class="py-3 px-4 text-slate-400 text-[11px]">' + dateStr + '</td>' +
+            '<td class="py-3 px-4 text-right">' + actionBtn + '</td>' +
+          '</tr>';
+        }).join('');
+      } catch (err) {
+        console.error("loadTickets error:", err);
+      }
+    }
+
+    function openResolveTicketModal(ticketNumber, question, customer) {
+      activeResolvingTicket = ticketNumber;
+      document.getElementById('modal-ticket-number').innerText = ticketNumber;
+      document.getElementById('modal-ticket-question').innerText = question;
+      document.getElementById('modal-ticket-customer').innerText = customer ? 'Customer: ' + customer : '';
+      document.getElementById('modal-resolve-answer').value = '';
+      document.getElementById('resolve-ticket-modal').classList.remove('hidden');
+      document.getElementById('modal-resolve-answer').focus();
+    }
+
+    function closeResolveTicketModal() {
+      activeResolvingTicket = null;
+      document.getElementById('resolve-ticket-modal').classList.add('hidden');
+    }
+
+    async function submitTicketResolution() {
+      if (!activeResolvingTicket || !authToken) return;
+      const answer = document.getElementById('modal-resolve-answer').value.trim();
+      if (!answer) {
+        alert("Please enter the verified answer to resolve this ticket and train the AI.");
+        return;
+      }
+
+      const btn = document.getElementById('modal-resolve-submit-btn');
+      btn.disabled = true;
+      btn.innerText = "Indexing into RAG...";
+
+      try {
+        const res = await fetch('/api/tickets/' + activeResolvingTicket + '/resolve', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + authToken
+          },
+          body: JSON.stringify({ resolved_answer: answer })
+        });
+
+        if (res.ok) {
+          closeResolveTicketModal();
+          alert('✅ Ticket ' + activeResolvingTicket + ' successfully resolved and permanently indexed into AI knowledge base!');
+          loadTickets();
+          if (typeof loadUnansweredQuestions === 'function') loadUnansweredQuestions();
+          if (typeof loadDocuments === 'function') loadDocuments();
+        } else {
+          const err = await res.json();
+          alert(err.detail || "Failed to resolve ticket.");
+        }
+      } catch (e) {
+        console.error("Resolution submit error:", e);
+        alert("Network error while resolving ticket.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span class="material-symbols-outlined text-[16px]">school</span><span>Resolve & Train AI</span>';
+      }
+    }
+
+    // =========================================================================
+    // IN-APP NOTIFICATION CENTER & WEB PUSH
+    // =========================================================================
+    function toggleNotifDropdown() {
+      const drop = document.getElementById('notif-dropdown');
+      if (drop) drop.classList.toggle('hidden');
+      if (drop && !drop.classList.contains('hidden')) {
+        loadNotifications();
+      }
+    }
+
+    async function loadNotifications() {
+      if (!authToken) return;
+      try {
+        const res = await fetch('/api/notifications', {
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        if (!res.ok) return;
+        const notifs = await res.json();
+
+        const unreadCount = notifs.filter(n => !n.is_read).length;
+        const badge = document.getElementById('notif-badge');
+        if (badge) {
+          if (unreadCount > 0) {
+            badge.innerText = unreadCount;
+            badge.classList.remove('hidden');
+          } else {
+            badge.classList.add('hidden');
+          }
+        }
+
+        const listEl = document.getElementById('notif-list');
+        if (!listEl) return;
+
+        if (notifs.length === 0) {
+          listEl.innerHTML = '<div class="p-6 text-center text-slate-400 font-mono text-xs">No alerts at this time.</div>';
+          return;
+        }
+
+        listEl.innerHTML = notifs.slice(0, 15).map(n => {
+          const dateStr = new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const unreadClass = !n.is_read ? 'bg-indigo-50/40 font-semibold' : 'opacity-80';
+          let icon = 'notifications';
+          if (n.category === 'urgent_contact') icon = 'contact_phone';
+          if (n.category === 'auto_ticket') icon = 'confirmation_number';
+          if (n.category === 'whatsapp') icon = 'chat';
+
+          return '<div class="p-3 hover:bg-slate-50 transition flex items-start gap-2.5 ' + unreadClass + ' cursor-pointer" onclick="handleNotificationClick(\'' + n.id + '\', \'' + (n.ticket_id || '') + '\')">' +
+            '<span class="material-symbols-outlined text-primary text-[18px] shrink-0 mt-0.5">' + icon + '</span>' +
+            '<div class="flex-1 min-w-0">' +
+              '<div class="flex items-center justify-between">' +
+                '<div class="text-[12px] text-slate-900 truncate">' + escapeHtml(n.title) + '</div>' +
+                '<span class="text-[10px] text-slate-400 font-mono">' + dateStr + '</span>' +
+              '</div>' +
+              '<div class="text-[11px] text-slate-500 font-normal line-clamp-2 mt-0.5">' + escapeHtml(n.message) + '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      } catch (e) {
+        console.warn("loadNotifications error:", e);
+      }
+    }
+
+    async function handleNotificationClick(notifId, ticketId) {
+      if (notifId && authToken) {
+        try {
+          await fetch('/api/notifications/' + notifId + '/read', {
+            method: 'POST',
+            headers: { 'Authorization': 'Bearer ' + authToken }
+          });
+        } catch (e) {}
+      }
+      toggleNotifDropdown();
+      switchTab('tickets');
+      if (ticketId) {
+        const sInput = document.getElementById('ticket-search-input');
+        if (sInput) {
+          sInput.value = ticketId;
+          loadTickets();
+        }
+      }
+    }
+
+    async function markAllNotificationsRead() {
+      if (!authToken) return;
+      try {
+        await fetch('/api/notifications/read-all', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        loadNotifications();
+      } catch (e) {
+        console.error("markAllNotificationsRead error:", e);
+      }
+    }
+
+    async function requestPushPermission() {
+      if (!('Notification' in window)) {
+        alert("Web Push notifications are not supported on this browser.");
+        return;
+      }
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        const toggleBtn = document.getElementById('push-toggle-btn');
+        if (toggleBtn) toggleBtn.innerText = "Push Enabled ✓";
+        alert("🎉 Notifications enabled! You will receive mobile/browser alerts when customers create tickets or request callbacks.");
+      } else {
+        alert("Notification permission was dismissed or blocked.");
+      }
+    }
+
+    // =========================================================================
+    // TWILIO WHATSAPP GATEWAY & CONFIGURATION
+    // =========================================================================
+    function loadTwilioConfig() {
+      if (!currentBusiness) return;
+      const slug = currentBusiness.slug;
+      const origin = window.location.origin;
+      const webhookUrl = origin + '/api/chat/twilio/' + slug + '/webhook';
+
+      const input = document.getElementById('twilio-webhook-url-input');
+      if (input) input.value = webhookUrl;
+
+      const numInput = document.getElementById('setting-whatsapp-number');
+      if (numInput && currentBusiness.whatsapp_number) {
+        numInput.value = currentBusiness.whatsapp_number;
+      }
+    }
+
+    function copyTwilioWebhookUrl() {
+      const input = document.getElementById('twilio-webhook-url-input');
+      if (!input) return;
+      input.select();
+      navigator.clipboard.writeText(input.value);
+      alert("✅ Twilio Webhook URL copied to clipboard!\n\nPaste this in your Twilio Console > WhatsApp Sandbox > Webhooks (Method: POST).");
+    }
+
+    async function saveBusinessWhatsAppNumber() {
+      if (!authToken) return;
+      const num = document.getElementById('setting-whatsapp-number')?.value.trim();
+      try {
+        const res = await fetch('/api/business/profile', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + authToken
+          },
+          body: JSON.stringify({ whatsapp_number: num })
+        });
+        if (res.ok) {
+          const updated = await res.json();
+          currentBusiness = updated;
+          alert("✅ WhatsApp Business number saved successfully!");
+        } else {
+          alert("Failed to update WhatsApp number.");
+        }
+      } catch (e) {
+        console.error("Save WhatsApp number error:", e);
+        alert("Network error.");
+      }
+    }
+
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').then((reg) => {
+          console.log('[Iveri PWA] Service worker registered with scope:', reg.scope);
+        }).catch((err) => {
+          console.log('[Iveri PWA] Service worker registration skipped:', err);
+        });
+      });
+    }
+
     window.onload = init;
   </script>
+
+  <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-2 px-1 shadow-lg">
+    <button onclick="switchTab('overview')" id="mobile-nav-overview" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition mobile-nav-active">
+      <span class="material-symbols-outlined text-[20px] nav-icon">monitoring</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Overview</span>
+    </button>
+    <button onclick="switchTab('documents')" id="mobile-nav-documents" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">folder</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Docs</span>
+    </button>
+    <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
+      <span class="material-symbols-outlined text-[20px] nav-icon">confirmation_number</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Tickets</span>
+      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-4 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
+    </button>
+    <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">chat</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Chats</span>
+    </button>
+    <button onclick="switchTab('settings')" id="mobile-nav-settings" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <span class="material-symbols-outlined text-[20px] nav-icon">tune</span>
+      <span class="text-[10px] font-medium font-sans mt-0.5">Studio</span>
+    </button>
+  </nav>
+
 </body>
 </html>
