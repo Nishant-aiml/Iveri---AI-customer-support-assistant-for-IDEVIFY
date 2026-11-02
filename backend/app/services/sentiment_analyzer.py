@@ -1,3 +1,4 @@
+import re
 from typing import Optional, Tuple
 
 class SentimentAnalyzer:
@@ -12,9 +13,9 @@ class SentimentAnalyzer:
     NEGATIVE_PHRASES = {
         "scam", "fraud", "worst", "broken", "damaged", "angry", "bad",
         "terrible", "horrible", "disappointed", "useless", "pathetic",
-        "complaint", "late", "delay", "waiting for days", "money back",
+        "complaint", "waiting for days", "money back",
         "cheated", "ridiculous", "never buy", "cancel order", "refund my money",
-        "hate", "sucks", "awful", "failed", "unacceptable", "wrong item"
+        "hate", "sucks", "awful", "unacceptable", "wrong item"
     }
 
     @classmethod
@@ -38,14 +39,22 @@ class SentimentAnalyzer:
         pos_matches = 0
         neg_matches = 0
 
-        # Check multi-word phrases and single words
+        # Exact word/phrase boundary matching to eliminate false substring triggers
         for phrase in cls.POSITIVE_PHRASES:
-            if phrase in clean_text:
-                pos_matches += 1
+            if " " in phrase:
+                if phrase in clean_text:
+                    pos_matches += 1
+            else:
+                if re.search(r"\b" + re.escape(phrase) + r"\b", clean_text):
+                    pos_matches += 1
 
         for phrase in cls.NEGATIVE_PHRASES:
-            if phrase in clean_text:
-                neg_matches += 1.5
+            if " " in phrase:
+                if phrase in clean_text:
+                    neg_matches += 1.5
+            else:
+                if re.search(r"\b" + re.escape(phrase) + r"\b", clean_text):
+                    neg_matches += 1.5
 
         if neg_matches > 0 and neg_matches >= pos_matches:
             score = -min(1.0, 0.4 + (neg_matches * 0.2))
