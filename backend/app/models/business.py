@@ -19,6 +19,7 @@ class Business(Base, TimestampMixin):
     widget_position = Column(String(20), default="bottom-right", nullable=False)
     welcome_message = Column(Text, default="Hello! How can I help you today?", nullable=False)
     custom_prompt = Column(Text, default="", nullable=False)
+    whatsapp_number = Column(String(50), default="", nullable=False)
     fallback_message = Column(
         Text, 
         default="I'm sorry, but I do not have this information in my documents. I have logged your question for our team to assist you.",
@@ -31,6 +32,8 @@ class Business(Base, TimestampMixin):
     documents = relationship("Document", back_populates="business", cascade="all, delete-orphan")
     chat_sessions = relationship("ChatSession", back_populates="business", cascade="all, delete-orphan")
     unanswered_questions = relationship("UnansweredQuestion", back_populates="business", cascade="all, delete-orphan")
+    tickets = relationship("Ticket", back_populates="business", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="business", cascade="all, delete-orphan")
 
     @property
     def starter_questions(self):

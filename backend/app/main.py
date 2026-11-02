@@ -10,6 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import init_db
@@ -18,7 +19,7 @@ from app.middleware import (
     SecurityHeadersMiddleware,
     SlidingWindowRateLimiter,
 )
-from app.routers import auth, business, chat, dashboard, documents, public_share
+from app.routers import auth, business, chat, dashboard, documents, notifications, public_share, tickets, twilio, whatsapp
 from app.services.bm25_store import bm25_store_service
 from app.services.ingestion_queue import ingestion_queue
 
@@ -89,6 +90,10 @@ app.include_router(documents.router)
 app.include_router(chat.router)
 app.include_router(dashboard.router)
 app.include_router(public_share.router)
+app.include_router(tickets.router)
+app.include_router(notifications.router)
+app.include_router(whatsapp.router)
+app.include_router(twilio.router)
 
 @app.get("/api/health", tags=["Health"])
 async def health_check():
@@ -103,28 +108,38 @@ async def health_check():
         "fallback_parser": "PyMuPDF (fitz)"
     }
 
+# Static Asset Directory
+_static_dir = os.path.join(os.path.dirname(__file__), "static")
+app.mount("/static", StaticFiles(directory=_static_dir), name="static")
+
+@app.get("/manifest.json", tags=["PWA"])
+async def serve_pwa_manifest():
+    """Serves the Progressive Web App Manifest."""
+    return FileResponse(os.path.join(_static_dir, "manifest.json"), media_type="application/manifest+json")
+
+@app.get("/sw.js", tags=["PWA"])
+async def serve_pwa_service_worker():
+    """Serves the Progressive Web App Service Worker."""
+    return FileResponse(os.path.join(_static_dir, "sw.js"), media_type="application/javascript")
+
 @app.get("/widget.js", tags=["Widget"])
 async def serve_widget_script():
     """Serves the standalone embeddable chat widget script."""
-    widget_path = os.path.join(os.path.dirname(__file__), "static", "widget.js")
-    return FileResponse(widget_path, media_type="application/javascript")
+    return FileResponse(os.path.join(_static_dir, "widget.js"), media_type="application/javascript")
 
 @app.get("/dashboard", tags=["UI"])
 @app.get("/", tags=["UI"])
 async def serve_dashboard_ui():
     """Serves the Business Owner Analytics and Management Portal."""
-    index_path = os.path.join(os.path.dirname(__file__), "static", "index.html")
-    return FileResponse(index_path, media_type="text/html")
+    return FileResponse(os.path.join(_static_dir, "index.html"), media_type="text/html")
 
 @app.get("/chat/{slug}", tags=["UI"])
 async def serve_customer_chat_ui(slug: str):
     """Serves the Customer Support Chat Web Application."""
-    chat_path = os.path.join(os.path.dirname(__file__), "static", "chat.html")
-    return FileResponse(chat_path, media_type="text/html")
+    return FileResponse(os.path.join(_static_dir, "chat.html"), media_type="text/html")
 
 @app.get("/share/{session_id}", tags=["UI"])
 @app.get("/share/unanswered/{unanswered_id}", tags=["UI"])
 async def serve_shared_chat_ui(session_id: str | None = None, unanswered_id: str | None = None):
     """Serves the Public Read-Only Share Permalink Page."""
-    share_path = os.path.join(os.path.dirname(__file__), "static", "share.html")
-    return FileResponse(share_path, media_type="text/html")
+    return FileResponse(os.path.join(_static_dir, "share.html"), media_type="text/html")

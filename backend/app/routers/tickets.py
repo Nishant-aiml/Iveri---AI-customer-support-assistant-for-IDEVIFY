@@ -1,0 +1,154 @@
+from datetime import datetime
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import desc
+from app.database import get_db
+from app.models.user import User
+from app.models.ticket import Ticket
+from app.models.notification import Notification
+from app.models.document import Document, DocumentChunk
+from app.utils.security import get_current_owner
+from app.schemas.ticket import TicketResponse, TicketResolveRequest
+from app.services.vector_store import vector_store_service
+from app.services.bm25_store import bm25_store_service
+
+router = APIRouter(prefix="/api/tickets", tags=["Support Tickets"])
+
+@router.get("", response_model=List[TicketResponse])
+async def list_tickets(
+    status_filter: Optional[str] = Query(None, alias="status", description="Filter by status: 'open', 'in_progress', 'resolved'"),
+    priority: Optional[str] = Query(None, description="Filter by priority: 'urgent', 'high', 'medium', 'low'"),
+    channel: Optional[str] = Query(None, description="Filter by channel: 'widget', 'whatsapp', 'public_link'"),
+    search: Optional[str] = Query(None, description="Search by customer name, email, phone or ticket number"),
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieves support tickets for the authenticated business with multi-parameter filtering."""
+    query = select(Ticket).where(Ticket.business_id == owner.business_id)
+
+    if status_filter:
+        query = query.where(Ticket.status == status_filter)
+    if priority:
+        query = query.where(Ticket.priority == priority)
+    if channel:
+        query = query.where(Ticket.channel == channel)
+    if search:
+        search_pattern = f"%{search.strip()}%"
+        query = query.where(
+            (Ticket.ticket_number.ilike(search_pattern)) |
+            (Ticket.customer_name.ilike(search_pattern)) |
+            (Ticket.customer_email.ilike(search_pattern)) |
+            (Ticket.customer_phone.ilike(search_pattern)) |
+            (Ticket.description.ilike(search_pattern))
+        )
+
+    query = query.order_by(desc(Ticket.created_at)).offset(offset).limit(limit)
+    result = await db.execute(query)
+    return result.scalars().all()
+
+@router.get("/{ticket_id}", response_model=TicketResponse)
+async def get_ticket(
+    ticket_id: str,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieves a single ticket by its UUID or ticket number."""
+    query = select(Ticket).where(
+        Ticket.business_id == owner.business_id,
+        (Ticket.id == ticket_id) | (Ticket.ticket_number == ticket_id)
+    )
+    ticket = (await db.execute(query)).scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found.")
+    return ticket
+
+@router.post("/{ticket_id}/resolve", response_model=TicketResponse)
+async def resolve_ticket(
+    ticket_id: str,
+    req: TicketResolveRequest,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Resolves a ticket with the business owner's verified answer.
+    Permanently auto-indexes the Q&A into ChromaDB & BM25 so the AI assistant learns it immediately.
+    """
+    biz_id = owner.business_id
+    query = select(Ticket).where(
+        Ticket.business_id == biz_id,
+        (Ticket.id == ticket_id) | (Ticket.ticket_number == ticket_id)
+    )
+    ticket = (await db.execute(query)).scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found.")
+
+    # 1. Update Ticket
+    ticket.status = "resolved"
+    ticket.resolved_answer = req.resolved_answer.strip()
+    ticket.resolved_at = datetime.utcnow()
+
+    # 2. Permanent Knowledge Base Indexing (Closed-Loop Learning)
+    doc_title = f"Resolved Ticket: {ticket.ticket_number}"
+    doc = Document(
+        business_id=biz_id,
+        file_name=f"resolved_{ticket.ticket_number.lower()}.txt",
+        file_type="manual_qa",
+        file_size_bytes=len(req.resolved_answer),
+        status="INDEXED",
+        total_pages=1,
+        processed_pages=1,
+        processing_progress=100
+    )
+    db.add(doc)
+    await db.flush()
+
+    chunk_content = f"Question: {ticket.description}\nVerified Answer: {req.resolved_answer.strip()}"
+    chunk = DocumentChunk(
+        document_id=doc.id,
+        business_id=biz_id,
+        chunk_index=0,
+        page_number=1,
+        content=chunk_content
+    )
+    chunk.payload = {
+        "document_name": doc_title,
+        "source_type": "resolved_ticket",
+        "ticket_number": ticket.ticket_number
+    }
+    db.add(chunk)
+    await db.flush()
+
+    # 3. Add to ChromaDB and BM25 index
+    chunk_item = {
+        "id": chunk.id,
+        "content": chunk_content,
+        "metadata": {
+            "document_name": doc_title,
+            "page_number": 1,
+            "document_id": doc.id,
+            "source_type": "resolved_ticket",
+            "ticket_number": ticket.ticket_number
+        }
+    }
+    await vector_store_service.add_chunks(biz_id, [chunk_item])
+    bm25_store_service.add_chunks(biz_id, [chunk_item])
+
+    # 4. Create In-App Notification for Resolution
+    notif = Notification(
+        business_id=biz_id,
+        ticket_id=ticket.id,
+        type="ticket_resolved",
+        title=f"Ticket #{ticket.ticket_number} Resolved",
+        message=f"Answer indexed into AI knowledge base: '{req.resolved_answer[:80]}...'",
+        link_url="/dashboard#tickets",
+        is_read=False
+    )
+    db.add(notif)
+
+    await db.commit()
+    await db.refresh(ticket)
+    return ticket

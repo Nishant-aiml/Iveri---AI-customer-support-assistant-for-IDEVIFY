@@ -122,6 +122,7 @@ async def init_db():
                 await add_column_if_missing("businesses", "widget_position", "VARCHAR(20) DEFAULT 'bottom-right'")
                 await add_column_if_missing("businesses", "welcome_message", "TEXT DEFAULT 'Hello! How can I help you today?'")
                 await add_column_if_missing("businesses", "custom_prompt", "TEXT DEFAULT ''")
+                await add_column_if_missing("businesses", "whatsapp_number", "VARCHAR(50) DEFAULT ''")
 
                 # chat_messages migrations
                 await add_column_if_missing("chat_messages", "sentiment", "VARCHAR(20) DEFAULT 'neutral'")
@@ -142,6 +143,7 @@ async def init_db():
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS widget_position VARCHAR(20) DEFAULT 'bottom-right'",
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS welcome_message TEXT DEFAULT 'Hello! How can I help you today?'",
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS custom_prompt TEXT DEFAULT ''",
+                    "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS whatsapp_number VARCHAR(50) DEFAULT ''",
                     "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20) DEFAULT 'neutral'",
                     "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS topic VARCHAR(50) DEFAULT 'general'",
                     "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20) DEFAULT 'neutral'",

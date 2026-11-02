@@ -5,9 +5,9 @@ from app.config import settings
 from app.services.vector_store import vector_store_service
 from app.services.bm25_store import bm25_store_service
 from app.services.rrf import reciprocal_rank_fusion
-from app.services.circuit_breaker import GreetingInterceptor, circuit_breaker
+from app.services.circuit_breaker import GreetingInterceptor, TemporalInterceptor, circuit_breaker
 from app.services.llm_client import llm_client
-from app.services.guardrails import guardrails_service
+from app.services.guardrails import guardrails_service
 from app.services.laya_router import laya_service
 
 logger = logging.getLogger(__name__)
@@ -75,6 +75,20 @@ class HybridRAGEngine:
 
         # Mask sensitive PII & bound query length
         sanitized_query = guardrails_service.sanitize_input(user_query)
+
+        # Step 0: Real-Time Temporal Queries (Exact Time, Date, Day, Year)
+        temporal_reply = TemporalInterceptor.check_temporal(sanitized_query)
+        if temporal_reply:
+            latency_ms = int((time.time() - start_time) * 1000)
+            return {
+                "answer": temporal_reply,
+                "is_answered": True,
+                "confidence_score": 1.0,
+                "citations": [],
+                "llm_provider": "system_clock",
+                "latency_ms": max(latency_ms, 3),
+                "retrieved_chunks": []
+            }
 
         # Step 1: Greeting & Conversational Interceptor (Less AI-Dependent)
         greeting_reply = GreetingInterceptor.check_greeting(sanitized_query, business_name=business_name)
@@ -198,9 +212,32 @@ class HybridRAGEngine:
         # Step 5.5: Outbound Guardrail Check (Secret Leakage & Grounding Filter)
         generated_answer = guardrails_service.check_outbound_safety(generated_answer, fallback_msg)
 
-        # Step 6: Post-generation Unknown check
-        if "[UNKNOWN]" in generated_answer or generated_answer.strip() == "[UNKNOWN]":
+        # Step 6: Post-generation Unknown and Inability-to-Answer check
+        ans_lower = generated_answer.strip().lower()
+        UNKNOWN_SIGNATURES = [
+            r"\[unknown\]",
+            r"i('m| am)? sorry,?\s*(but)?\s*i (don't|do not) have (information|details|any info)",
+            r"i (don't|do not) have (information|details|enough information|any info|access)",
+            r"(the|these)?\s*(excerpts?|documents?|provided text|store records?)\s*(do not|does not) (contain|mention|state|provide)",
+            r"not mentioned in (the|our)?\s*(documents?|excerpts?|store policies|records?)",
+            r"i (cannot|can't) find (any|enough)?\s*(information|details)",
+            r"i am (unable|not able) to (answer|find|locate|determine)",
+            r"no information (is|was)?\s*(provided|available|found)",
+            r"i (do not|don't) know",
+            r"not covered in (the|our)?\s*(documents?|policies|guide)",
+            r"(is|are) not specified in (the|our)?\s*(documents?|policies|guide)",
+            r"i couldn't find (any|information)"
+        ]
+
+        is_unanswered_gen = False
+        for sig in UNKNOWN_SIGNATURES:
+            if re.search(sig, ans_lower):
+                is_unanswered_gen = True
+                break
+
+        if is_unanswered_gen:
             latency_ms = int((time.time() - start_time) * 1000)
+            logger.info(f"Generated answer flagged as UNANSWERED: '{generated_answer[:80]}...'")
             return {
                 "answer": fallback_msg,
                 "is_answered": False,

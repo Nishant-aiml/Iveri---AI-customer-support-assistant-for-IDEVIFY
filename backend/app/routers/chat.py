@@ -19,6 +19,8 @@ from app.schemas.chat import (
 from app.services.rag_engine import rag_engine
 from app.services.sentiment_analyzer import sentiment_analyzer
 from app.services.topic_analyzer import topic_analyzer
+from app.services.notification_service import notification_service
+from app.schemas.ticket import ContactRequest
 
 router = APIRouter(prefix="/api/chat", tags=["Customer Chat"])
 
@@ -138,7 +140,7 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
     db.add(assistant_msg)
     await db.flush()
 
-    # 7. If Unknown Question: Log to Unanswered Questions for Owner Review
+    # 7. If Unknown Question: Log to Unanswered Questions & Auto-Generate Support Ticket
     if not rag_result["is_answered"]:
         unanswered_entry = UnansweredQuestion(
             business_id=business.id,
@@ -149,6 +151,19 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
             top_retrieval_score=rag_result["confidence_score"]
         )
         db.add(unanswered_entry)
+
+        # Auto-provision support ticket and trigger alerts
+        await notification_service.create_ticket_and_notify(
+            db=db,
+            business=business,
+            description=req.message.strip(),
+            subject="Unanswered Customer Question",
+            session_id=session.id,
+            message_id=assistant_msg.id,
+            customer_email=session.customer_email,
+            channel=session.channel,
+            priority="medium"
+        )
 
     await db.commit()
     await db.refresh(assistant_msg)
@@ -285,4 +300,44 @@ async def stream_chat_message(session_id: str, message: str, db: AsyncSession = 
         yield f"data: {json.dumps({'done': True, 'citations': rag_result['citations'], 'is_answered': rag_result['is_answered']})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
+
+@router.post("/contact-request", status_code=status.HTTP_201_CREATED)
+async def submit_contact_request(req: ContactRequest, db: AsyncSession = Depends(get_db)):
+    """Receives a customer human callback or contact request and dispatches urgent alerts."""
+    session_query = select(ChatSession).where(ChatSession.id == req.session_id)
+    session = (await db.execute(session_query)).scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Chat session not found.")
+
+    biz_query = select(Business).where(Business.id == session.business_id)
+    business = (await db.execute(biz_query)).scalar_one_or_none()
+    if not business:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Business not found.")
+
+    contact = req.customer_contact.strip()
+    c_email = contact if "@" in contact else None
+    c_phone = contact if "@" not in contact else None
+    if c_email and not session.customer_email:
+        session.customer_email = c_email
+
+    ticket = await notification_service.create_ticket_and_notify(
+        db=db,
+        business=business,
+        description=req.message.strip(),
+        subject="Urgent Contact Request / Callback",
+        session_id=session.id,
+        customer_name=req.customer_name,
+        customer_email=c_email,
+        customer_phone=c_phone,
+        channel=session.channel or req.channel,
+        priority="urgent"
+    )
+
+    await db.commit()
+    return {
+        "status": "success",
+        "ticket_number": ticket.ticket_number,
+        "message": "Thank you! Our support team has been notified and will contact you promptly."
+    }
+
 

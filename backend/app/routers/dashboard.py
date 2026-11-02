@@ -247,6 +247,7 @@ async def list_chat_sessions(
     feedback: Optional[str] = Query(None, description="Filter by customer feedback: 'down' or 'up'"),
     sentiment: Optional[str] = Query(None, description="Filter by customer sentiment: 'positive', 'neutral', 'negative'"),
     topic: Optional[str] = Query(None, description="Filter by topic: 'pricing', 'shipping', 'returns', 'products', 'support'"),
+    channel: Optional[str] = Query(None, description="Filter by channel: 'widget', 'whatsapp', 'public_link'"),
     search: Optional[str] = Query(None, description="Search by email or question keyword"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -257,6 +258,9 @@ async def list_chat_sessions(
     biz_id = owner.business_id
 
     query = select(ChatSession).where(ChatSession.business_id == biz_id)
+
+    if channel:
+        query = query.where(ChatSession.channel == channel)
 
     if feedback:
         subq = (

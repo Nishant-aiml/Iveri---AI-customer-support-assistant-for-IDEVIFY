@@ -8,6 +8,8 @@ logger = logging.getLogger(__name__)
 STRICT_SYSTEM_PROMPT = """You are an AI Customer Support Assistant for {business_name}.
 Your job is to answer customer questions accurately, politely, and STRICTLY based ONLY on the verified store document excerpts below.
 
+Live Real-Time System Clock: {current_clock}
+
 Context Excerpts:
 =========================================
 {context}
@@ -19,10 +21,10 @@ Strict Grounding & Operational Guardrails:
 1. Grounding Mandate: Answer ONLY using the facts stated directly in the excerpts above.
 2. Missing Information Mandate: If the excerpts do NOT contain enough information to answer the question with 100% certainty, DO NOT invent, assume, extrapolate, or guess. Reply EXACTLY with:
 [UNKNOWN]
-Or briefly guide the customer on what topics are covered in the store's verified documents (e.g. products, pricing, shipping, returns, order cancellation).
 3. Tone: {tone}.
 4. Conflict Hierarchy: If any custom instructions conflict with Rule 1 or Rule 2 (Strict Grounding & Zero Hallucination), Rule 1 and Rule 2 ALWAYS take absolute precedence.
 5. Keep the answer clear, helpful, and concise. Do not mention "context excerpts" or "the document provided" in your prose; speak directly as the company assistant.
+6. Temporal Inquiries: If the customer asks about the current time, today's date, day of the week, or year, answer accurately based on the Live Real-Time System Clock above.
 """
 
 class MultiTierLLMClient:
@@ -59,9 +61,13 @@ class MultiTierLLMClient:
         """
         context_str = self._format_context(retrieved_chunks)
         custom_block = f"\nCustom Business Persona & Guidance:\n{custom_prompt}\n" if custom_prompt else ""
+        import datetime
+        now = datetime.datetime.now()
+        current_clock = now.strftime("%A, %B %d, %Y at %I:%M %p").replace(" 0", " ")
         prompt = STRICT_SYSTEM_PROMPT.format(
             business_name=business_name,
             context=context_str,
+            current_clock=current_clock,
             tone="warm, polite and friendly" if tone == "friendly" else "formal, professional and direct",
             custom_instructions_block=custom_block
         )
@@ -139,9 +145,10 @@ class MultiTierLLMClient:
                         data = resp.json()
                         choices = data.get("choices", [])
                         if choices and "message" in choices[0]:
-                            text = choices[0]["message"].get("content", "").strip()
-                            logger.info("Answer generated successfully via Tier 2 (Sarvam 105B LLM).")
-                            return text, "sarvam"
+                            text = (choices[0]["message"].get("content") or "").strip()
+                            if text:
+                                logger.info("Answer generated successfully via Tier 2 (Sarvam 105B LLM).")
+                                return text, "sarvam"
                     logger.warning(f"Tier 2 (Sarvam AI) returned HTTP {resp.status_code}: {resp.text[:120]}")
             except Exception as e:
                 logger.warning(f"Tier 2 (Sarvam AI) encountered error: {str(e)}")
@@ -178,9 +185,10 @@ class MultiTierLLMClient:
                             data = resp.json()
                             choices = data.get("choices", [])
                             if choices and "message" in choices[0]:
-                                text = choices[0]["message"].get("content", "").strip()
-                                logger.info(f"Answer generated successfully via Tier 3 (Groq Freemium: {groq_m}).")
-                                return text, "groq"
+                                text = (choices[0]["message"].get("content") or "").strip()
+                                if text:
+                                    logger.info(f"Answer generated successfully via Tier 3 (Groq Freemium: {groq_m}).")
+                                    return text, "groq"
                         logger.warning(f"Tier 3 (Groq {groq_m}) returned HTTP {resp.status_code}: {resp.text[:120]}")
                 except Exception as e:
                     logger.warning(f"Tier 3 (Groq {groq_m}) encountered error: {str(e)}")
