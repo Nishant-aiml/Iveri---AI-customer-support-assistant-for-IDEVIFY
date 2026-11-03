@@ -1,4 +1,5 @@
-  let lastUserQuery = '';
+  /* Iveri AI Customer Support Widget v1.1.0 - Verified Callback Handover */
+let lastUserQuery = '';
 (function () {
   // Find script element and extract configuration
   const currentScript = document.currentScript || (function() {
