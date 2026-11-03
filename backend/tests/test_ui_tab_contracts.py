@@ -139,6 +139,7 @@ class TestUiTabContracts(unittest.TestCase):
             w_js = f.read()
         self.assertIn("overflow: hidden;", w_js)
         self.assertIn("rawAv.startsWith('data:')", w_js)
+        self.assertIn("onerror=\"this.onerror=null;", w_js)
 
     def test_12_mobile_auth_freeze_protection_and_coop_headers(self):
         """Ensures mobile auth modal has freeze protection, button loading states, and global exports."""
