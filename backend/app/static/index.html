@@ -92,7 +92,12 @@
               window.authToken = data.access_token;
               localStorage.setItem('iveri_token', data.access_token);
             }
-            document.getElementById('auth-modal')?.classList.add('hidden');
+            if (typeof window.closeAuthModal === 'function') {
+              window.closeAuthModal();
+            } else {
+              const am = document.getElementById('auth-modal');
+              if (am) { am.classList.add('hidden'); am.style.display = 'none'; am.style.pointerEvents = 'none'; }
+            }
             if (loadingBox) loadingBox.classList.add('hidden');
             if (typeof window.init === 'function') {
               await window.init();
@@ -127,6 +132,13 @@
         }
       }
       window.completeFirebaseSignIn = completeFirebaseSignIn;
+      window.resetFirebaseSyncState = function() {
+        isFirebaseSyncing = false;
+        const lb = document.getElementById('auth-google-loading');
+        if (lb) lb.classList.add('hidden');
+        const bl = document.getElementById('google-auth-btn-label');
+        if (bl) bl.innerText = "Continue with Google (Firebase)";
+      };
 
       // Automatically handle mobile redirect auth result
       getRedirectResult(auth).then(async (result) => {
@@ -2132,8 +2144,8 @@
           <label class="block text-[11px] font-mono text-slate-600 mb-1">Password</label>
           <input type="password" id="auth-login-password" placeholder="••••••••" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" />
         </div>
-        <button onclick="performLogin()" class="w-full py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-mono font-semibold transition shadow-xs">
-          Sign In to Workspace
+        <button type="button" id="auth-login-btn" onclick="performLogin()" class="w-full py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-mono font-semibold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
+          <span id="auth-login-btn-text">Sign In to Workspace</span>
         </button>
       </div>
 
@@ -2150,8 +2162,8 @@
           <label class="block text-[11px] font-mono text-slate-600 mb-1">Password (min 6 chars)</label>
           <input type="password" id="auth-reg-password" placeholder="••••••••" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:bg-white focus:border-primary" />
         </div>
-        <button onclick="performRegister()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-mono font-semibold transition shadow-xs">
-          Create Business Workspace
+        <button type="button" id="auth-register-btn" onclick="performRegister()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-mono font-semibold transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer">
+          <span id="auth-register-btn-text">Create Business Workspace</span>
         </button>
       </div>
     </div>
@@ -2413,14 +2425,34 @@
     let currentFeedbackFilter = '';
     let charts = {};
 
+    function openAuthModal() {
+      const modal = document.getElementById('auth-modal');
+      if (modal) {
+        modal.classList.remove('hidden');
+        modal.style.display = 'flex';
+        modal.style.pointerEvents = 'auto';
+      }
+      document.getElementById('auth-google-loading')?.classList.add('hidden');
+      const btnLabel = document.getElementById('google-auth-btn-label');
+      if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
+    }
+
+    function closeAuthModal() {
+      const modal = document.getElementById('auth-modal');
+      if (modal) {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+        modal.style.pointerEvents = 'none';
+      }
+    }
+
     async function init() {
       authToken = localStorage.getItem('iveri_token') || authToken || '';
-      const authModal = document.getElementById('auth-modal');
       if (!authToken) {
-        if (authModal) authModal.classList.remove('hidden');
+        openAuthModal();
         return;
       }
-      if (authModal) authModal.classList.add('hidden');
+      closeAuthModal();
 
       await loadBusinessProfile();
       loadDashboardData();
@@ -2429,11 +2461,15 @@
       if (typeof loadDocuments === 'function') loadDocuments();
       if (typeof loadNotifications === 'function') {
         loadNotifications();
-        setInterval(loadNotifications, 15000);
+        if (!window._notifTimer) {
+          window._notifTimer = setInterval(loadNotifications, 15000);
+        }
       }
       if (typeof loadTickets === 'function') {
         loadTickets();
-        setInterval(loadTickets, 20000);
+        if (!window._ticketTimer) {
+          window._ticketTimer = setInterval(loadTickets, 20000);
+        }
       }
       if ('Notification' in window && Notification.permission === 'default') {
         const banner = document.getElementById('desktop-notif-prompt');
@@ -3813,7 +3849,12 @@
     }
     window.openInspectFormModal = openInspectFormModal;
     window.closeInspectFormModal = closeInspectFormModal;
-    }
+    window.init = init;
+    window.openAuthModal = openAuthModal;
+    window.closeAuthModal = closeAuthModal;
+    window.toggleAuthModal = toggleAuthModal;
+    window.performLogin = performLogin;
+    window.performRegister = performRegister;
 
     function resetInspectModalTest() {
       const formBody = document.getElementById('inspect-modal-form-body');
@@ -4284,14 +4325,9 @@
           if (d) d.innerText = "Please select your Google Account...";
         }
 
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-        // On mobile devices, redirect is the native, reliable OAuth flow (avoids broken popup lifecycles)
-        if (isMobile) {
-          console.log("[Iveri Firebase] Mobile client detected, starting redirect flow...");
-          sessionStorage.setItem('iveri_google_redirecting', 'true');
-          await window.firebaseSignInWithRedirect(window.firebaseAuth, window.googleAuthProvider);
-          return;
+        // Attempt popup first on all platforms (works seamlessly on modern mobile browsers too)
+        if (typeof window.resetFirebaseSyncState === 'function') {
+          // Pre-reset state to avoid lockouts
         }
 
         let user = null;
@@ -4979,10 +5015,16 @@
 
     async function toggleAuthModal() {
       const modal = document.getElementById('auth-modal');
-      const isOpening = modal.classList.contains('hidden');
-      modal.classList.toggle('hidden');
+      if (!modal) return;
+      const isHidden = modal.classList.contains('hidden') || modal.style.display === 'none';
+      if (isHidden) {
+        openAuthModal();
+      } else {
+        closeAuthModal();
+        return;
+      }
 
-      if (isOpening) {
+      if (true) {
         document.getElementById('auth-google-loading')?.classList.add('hidden');
         const btnLabel = document.getElementById('google-auth-btn-label');
         if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
@@ -5038,11 +5080,21 @@
     }
 
     async function performLogin() {
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
       const email = document.getElementById('auth-login-email').value.trim().toLowerCase();
       const password = document.getElementById('auth-login-password').value;
       if (!email || !password) {
         alert("Please enter both email and password.");
         return;
+      }
+      const btn = document.getElementById('auth-login-btn');
+      const btnText = document.getElementById('auth-login-btn-text');
+      if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.75';
+        if (btnText) btnText.innerHTML = '<span class="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin mr-1.5 align-middle"></span> Signing in...';
       }
       try {
         const res = await fetch('/api/auth/login', {
@@ -5053,22 +5105,31 @@
         if (res.ok) {
           const data = await res.json();
           window.applyAuthToken(data.access_token);
-          document.getElementById('auth-modal')?.classList.add('hidden');
+          closeAuthModal();
           await init();
           if (typeof showToast === 'function') {
             showToast("🎉 Welcome back to your workspace!", "success");
           }
         } else {
-          const err = await res.json();
+          const err = await res.json().catch(() => ({}));
           alert(err.detail || "Invalid email or password.");
         }
       } catch (e) {
         console.error("Login error:", e);
         alert("Network error during login.");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          if (btnText) btnText.innerText = 'Sign In to Workspace';
+        }
       }
     }
 
     async function performRegister() {
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
       const businessName = document.getElementById('auth-reg-name').value.trim();
       const email = document.getElementById('auth-reg-email').value.trim().toLowerCase();
       const password = document.getElementById('auth-reg-password').value;
@@ -5080,6 +5141,13 @@
         alert("Password must be at least 6 characters.");
         return;
       }
+      const btn = document.getElementById('auth-register-btn');
+      const btnText = document.getElementById('auth-register-btn-text');
+      if (btn) {
+        btn.disabled = true;
+        btn.style.opacity = '0.75';
+        if (btnText) btnText.innerHTML = '<span class="inline-block w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin mr-1.5 align-middle"></span> Creating workspace...';
+      }
       try {
         const res = await fetch('/api/auth/register', {
           method: 'POST',
@@ -5089,13 +5157,13 @@
         if (res.ok) {
           const data = await res.json();
           window.applyAuthToken(data.access_token);
-          document.getElementById('auth-modal')?.classList.add('hidden');
+          closeAuthModal();
           await init();
           if (typeof showToast === 'function') {
             showToast("🎉 Business workspace created successfully!", "success");
           }
         } else {
-          const err = await res.json();
+          const err = await res.json().catch(() => ({}));
           // Seamless cross-device handling: if email already exists, offer instant sign in
           if (err.detail && err.detail.toLowerCase().includes("already exists")) {
             alert("This email is already registered! Switching to Sign In so you can access your existing workspace with all your documents.");
@@ -5109,6 +5177,12 @@
       } catch (e) {
         console.error("Registration error:", e);
         alert("Network error during registration.");
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          if (btnText) btnText.innerText = 'Create Business Workspace';
+        }
       }
     }
 

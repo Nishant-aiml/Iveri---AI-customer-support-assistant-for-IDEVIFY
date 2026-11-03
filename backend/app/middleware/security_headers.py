@@ -29,10 +29,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # 4. Restrict Sensitive Browser Hardware Capabilities
         response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
 
-        # 5. Cross-Origin Opener Policy for Dashboard
+        # 5. Cross-Origin Opener Policy for Dashboard & Auth
         # Use same-origin-allow-popups so Google Firebase OAuth popups retain communication
         # with the opener window without getting blocked by the browser.
-        if path.startswith("/dashboard"):
+        if path == "/" or path.startswith("/dashboard") or path.endswith(".html"):
             response.headers["Cross-Origin-Opener-Policy"] = "same-origin-allow-popups"
 
         return response
