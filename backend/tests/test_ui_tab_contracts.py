@@ -110,7 +110,7 @@ class TestUiTabContracts(unittest.TestCase):
     def test_10_youtube_analytics_visualization_and_time_grain_switches(self):
         """Ensures index.html provides YouTube Analytics-style Date, Day, Year switchers and Answered vs Unanswered visuals."""
         self.assertIn("Customer Inquiry & Resolution Analytics", self.html)
-        self.assertIn("YouTube Studio Engine", self.html)
+        self.assertIn("Live Resolution Telemetry", self.html)
         self.assertIn("yt-btn-date-7", self.html)
         self.assertIn("yt-btn-date-30", self.html)
         self.assertIn("yt-btn-day", self.html)

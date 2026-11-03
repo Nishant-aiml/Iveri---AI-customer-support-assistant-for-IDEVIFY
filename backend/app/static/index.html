@@ -494,7 +494,7 @@
   <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 md:pb-8 space-y-5 sm:space-y-8">
 
     <!-- Modern Floating PWA Install Bottom-Sheet Popup (Just like native apps) -->
-    <div id="pwa-floating-popup" class="hidden fixed bottom-4 right-4 sm:bottom-6 sm:right-6 max-w-sm w-[calc(100%-2rem)] z-50 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-indigo-200/90 p-4 transition-all duration-300">
+    <div id="pwa-floating-popup" class="hidden fixed bottom-20 md:bottom-6 right-3 sm:right-6 max-w-sm w-[calc(100%-1.5rem)] z-50 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-indigo-200/90 p-4 transition-all duration-300">
       <div class="flex items-start justify-between gap-3">
         <div class="flex items-center gap-3">
           <img src="/static/icons/icon-192.png" alt="Iveri" class="w-11 h-11 rounded-xl shadow-xs border border-indigo-100 object-cover shrink-0">
@@ -669,7 +669,7 @@
             <div class="flex items-center gap-2">
               <span class="material-symbols-outlined text-primary text-xl">analytics</span>
               <h3 class="font-bold text-slate-900 text-base">Customer Inquiry & Resolution Analytics</h3>
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-indigo-50 text-primary border border-indigo-200">YouTube Studio Engine</span>
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 border border-indigo-200/90 shadow-2xs">Live Resolution Telemetry</span>
             </div>
             <p class="text-xs text-slate-500 font-mono mt-0.5">Continuous temporal breakdown of customer demand, AI answers, and unhandled inquiries.</p>
           </div>
@@ -679,42 +679,42 @@
             <button id="yt-btn-date-7" onclick="switchAnalyticsGrain('date', 7)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-primary text-white shadow-xs transition shrink-0">
               📅 7 Days
             </button>
-            <button id="yt-btn-date-30" onclick="switchAnalyticsGrain('date', 30)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-transparent hover:bg-slate-200/80 text-slate-700 transition shrink-0">
+            <button id="yt-btn-date-30" onclick="switchAnalyticsGrain('date', 30)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/70 hover:bg-white text-slate-700 border border-transparent hover:border-slate-200 transition shrink-0">
               📅 30 Days
             </button>
-            <button id="yt-btn-day" onclick="switchAnalyticsGrain('day', 90)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-transparent hover:bg-slate-200/80 text-slate-700 transition shrink-0">
+            <button id="yt-btn-day" onclick="switchAnalyticsGrain('day', 90)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/70 hover:bg-white text-slate-700 border border-transparent hover:border-slate-200 transition shrink-0">
               📆 Day of Week
             </button>
-            <button id="yt-btn-year" onclick="switchAnalyticsGrain('year', 365)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-transparent hover:bg-slate-200/80 text-slate-700 transition shrink-0">
+            <button id="yt-btn-year" onclick="switchAnalyticsGrain('year', 365)" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/70 hover:bg-white text-slate-700 border border-transparent hover:border-slate-200 transition shrink-0">
               📈 Year (12M)
             </button>
           </div>
         </div>
 
-        <!-- Metric KPI Strip (YouTube Studio Style) -->
+        <!-- Metric KPI Strip (Resolution Telemetry Style) -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200/80">
-            <div class="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Total Inquiries</div>
+          <div class="p-3 bg-gradient-to-br from-indigo-50/70 via-white to-indigo-50/30 rounded-xl border border-indigo-200/80 shadow-2xs">
+            <div class="text-[10px] font-mono text-indigo-700 uppercase tracking-wider font-semibold">Total Inquiries</div>
             <div id="yt-stat-total" class="text-xl font-extrabold text-slate-900 mt-0.5">0</div>
-            <div id="yt-stat-window" class="text-[10px] font-mono text-slate-400 mt-0.5 truncate">Last 7 Days Window</div>
+            <div id="yt-stat-window" class="text-[10px] font-mono text-slate-500 mt-0.5 truncate">Last 7 Days Window</div>
           </div>
-          <div class="p-3 bg-emerald-50/60 rounded-xl border border-emerald-200/80">
-            <div class="text-[10px] font-mono text-emerald-700 uppercase tracking-wider flex items-center justify-between">
+          <div class="p-3 bg-gradient-to-br from-emerald-50/70 via-white to-emerald-50/30 rounded-xl border border-emerald-200/80 shadow-2xs">
+            <div class="text-[10px] font-mono text-emerald-800 uppercase tracking-wider flex items-center justify-between font-semibold">
               <span>AI Answered</span>
-              <span id="yt-stat-rate" class="px-1.5 py-0.2 text-[9px] font-bold rounded bg-emerald-100 text-emerald-800">100%</span>
+              <span id="yt-stat-rate" class="px-1.5 py-0.2 text-[9px] font-bold rounded bg-emerald-100 text-emerald-800 border border-emerald-200">100%</span>
             </div>
             <div id="yt-stat-answered" class="text-xl font-extrabold text-emerald-600 mt-0.5">0</div>
-            <div class="text-[10px] font-mono text-emerald-600/80 mt-0.5">Resolved from documents</div>
+            <div class="text-[10px] font-mono text-emerald-700/90 mt-0.5 font-medium">Resolved from documents</div>
           </div>
-          <div class="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80">
-            <div class="text-[10px] font-mono text-amber-700 uppercase tracking-wider">Unanswered / Escalated</div>
+          <div class="p-3 bg-gradient-to-br from-amber-50/70 via-white to-amber-50/30 rounded-xl border border-amber-200/80 shadow-2xs">
+            <div class="text-[10px] font-mono text-amber-800 uppercase tracking-wider font-semibold">Unanswered / Escalated</div>
             <div id="yt-stat-unanswered" class="text-xl font-extrabold text-amber-600 mt-0.5">0</div>
-            <div class="text-[10px] font-mono text-amber-600/80 mt-0.5">Logged for human review</div>
+            <div class="text-[10px] font-mono text-amber-700/90 mt-0.5 font-medium">Logged for human review</div>
           </div>
-          <div class="p-3 bg-indigo-50/60 rounded-xl border border-indigo-200/80">
-            <div class="text-[10px] font-mono text-indigo-700 uppercase tracking-wider">Peak Traffic</div>
-            <div id="yt-stat-peak" class="text-xs sm:text-sm font-bold text-indigo-900 mt-1 truncate">No volume yet</div>
-            <div class="text-[10px] font-mono text-indigo-600/80 mt-0.5">Highest query window</div>
+          <div class="p-3 bg-gradient-to-br from-purple-50/70 via-white to-purple-50/30 rounded-xl border border-purple-200/80 shadow-2xs">
+            <div class="text-[10px] font-mono text-purple-700 uppercase tracking-wider font-semibold">Peak Traffic</div>
+            <div id="yt-stat-peak" class="text-xs sm:text-sm font-bold text-purple-900 mt-1 truncate">No volume yet</div>
+            <div class="text-[10px] font-mono text-purple-600/80 mt-0.5 font-medium">Highest query window</div>
           </div>
         </div>
 
@@ -1995,7 +1995,7 @@
   </main>
 
   <!-- In-Console Business Owner Navigation Copilot (Draggable & Non-Blocking) -->
-  <div id="copilot-container" class="fixed bottom-24 sm:bottom-24 md:bottom-8 right-3 sm:right-6 z-40 flex items-center gap-1.5 select-none touch-none transition-transform" style="touch-action:none;">
+  <div id="copilot-container" class="fixed bottom-20 sm:bottom-24 md:bottom-8 right-3 sm:right-6 z-40 flex items-center gap-1.5 select-none touch-none transition-transform" style="touch-action:none;">
     <!-- Collapsible Full Pill -->
     <div id="copilot-pill" class="flex items-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white rounded-full shadow-xl shadow-indigo-500/30 transition-all transform hover:scale-102 cursor-grab active:cursor-grabbing border border-white/20">
       <button id="copilot-btn" onclick="toggleCopilot()" class="px-3.5 sm:px-4 py-2 sm:py-2.5 flex items-center gap-1.5 sm:gap-2 font-semibold text-xs font-mono text-white focus:outline-none cursor-pointer">
@@ -4612,7 +4612,8 @@
 
     function initCopilotState() {
       try {
-        const isMin = localStorage.getItem('iveri_copilot_minimized') === 'true';
+        const savedMin = localStorage.getItem('iveri_copilot_minimized');
+        const isMin = savedMin === 'true' || (savedMin === null && window.innerWidth < 768);
         if (isMin) {
           const pill = document.getElementById('copilot-pill');
           const fab = document.getElementById('copilot-fab');
@@ -6601,7 +6602,7 @@
   </script>
 
   <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 flex items-center justify-around py-1.5 px-0.5 shadow-lg">
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200/90 flex items-center justify-around py-1.5 px-0.5 shadow-lg" style="padding-bottom: max(6px, env(safe-area-inset-bottom, 6px));">
     <button onclick="switchTab('overview')" id="mobile-nav-overview" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition mobile-nav-active">
       <span class="material-symbols-outlined text-[19px] nav-icon">monitoring</span>
       <span class="text-[9.5px] font-medium font-sans mt-0.5">Overview</span>
