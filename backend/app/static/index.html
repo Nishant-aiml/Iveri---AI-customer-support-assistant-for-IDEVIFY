@@ -128,13 +128,15 @@
       }
       window.completeFirebaseSignIn = completeFirebaseSignIn;
 
-      // Automatically handle mobile redirect auth result (only when user initiated redirect flow)
+      // Automatically handle mobile redirect auth result
       getRedirectResult(auth).then(async (result) => {
+        sessionStorage.removeItem('iveri_google_redirecting');
         if (result && result.user && !isFirebaseSyncing) {
           console.log("[Iveri Firebase] Redirect sign-in success:", result.user.email);
           await completeFirebaseSignIn(result.user);
         }
       }).catch((err) => {
+        sessionStorage.removeItem('iveri_google_redirecting');
         console.error("[Iveri Firebase] Redirect result error:", err);
         if (err && err.code === 'auth/unauthorized-domain') {
           if (typeof window.showFirebaseDomainHelper === 'function') {
@@ -143,10 +145,30 @@
         }
       });
 
-      // Observer for Firebase auth state (NEVER auto-sign-in without explicit user button click)
+      // Observer for Firebase auth state: synchronizes active Google session
       onAuthStateChanged(auth, (user) => {
         if (user) {
-          console.log("[Iveri Firebase] Cached Google session detected (awaiting user action):", user.email);
+          console.log("[Iveri Firebase] Active Google session ready:", user.email);
+          const wasRedirecting = sessionStorage.getItem('iveri_google_redirecting') === 'true';
+          const hasIveriToken = !!localStorage.getItem('iveri_token');
+
+          if (wasRedirecting && !hasIveriToken && !isFirebaseSyncing) {
+            sessionStorage.removeItem('iveri_google_redirecting');
+            console.log("[Iveri Firebase] Auto-completing redirect login for:", user.email);
+            completeFirebaseSignIn(user).catch((err) => console.error("Redirect signin error:", err));
+          } else if (!hasIveriToken) {
+            // Reflect active Google account on the sign-in button for 1-click instant login
+            const btnLabel = document.getElementById('google-auth-btn-label');
+            const switchBox = document.getElementById('google-switch-account-container');
+            const name = user.displayName ? user.displayName.split(' ')[0] : user.email;
+            if (btnLabel) btnLabel.innerText = `Continue as ${name} (Google)`;
+            if (switchBox) switchBox.classList.remove('hidden');
+          }
+        } else {
+          const btnLabel = document.getElementById('google-auth-btn-label');
+          const switchBox = document.getElementById('google-switch-account-container');
+          if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
+          if (switchBox) switchBox.classList.add('hidden');
         }
       });
 
@@ -1975,6 +1997,12 @@
         </svg>
         <span id="google-auth-btn-label">Continue with Google (Firebase)</span>
       </button>
+
+      <div id="google-switch-account-container" class="hidden text-center -mt-1 mb-1">
+        <button type="button" onclick="switchGoogleAccount(event)" class="text-[11px] font-mono text-primary hover:underline hover:text-primary-hover transition cursor-pointer">
+          Switch to a different Google account →
+        </button>
+      </div>
 
       <div class="relative flex items-center justify-center my-0.5">
         <div class="border-t border-slate-200 w-full"></div>
@@ -3813,7 +3841,7 @@
       }
     }
 
-    async function loginWithGoogleFirebase() {
+    async function loginWithGoogleFirebase(forceChooser = false) {
       const btnLabel = document.getElementById('google-auth-btn-label');
       const loadingBox = document.getElementById('auth-google-loading');
       try {
@@ -3821,6 +3849,20 @@
           alert("Google Firebase Auth SDK is initializing. Please check your internet connection.");
           return;
         }
+
+        // Fast path: If user already has an active Google session and is not requesting a fresh chooser, sign in instantly (< 300ms)
+        if (!forceChooser && window.firebaseAuth.currentUser) {
+          console.log("[Iveri Firebase] Instant login using active Google session:", window.firebaseAuth.currentUser.email);
+          if (window.completeFirebaseSignIn) {
+            await window.completeFirebaseSignIn(window.firebaseAuth.currentUser);
+            return;
+          }
+        }
+
+        if (forceChooser && typeof window.firebaseSignOut === 'function') {
+          await window.firebaseSignOut();
+        }
+
         if (btnLabel) btnLabel.innerText = "Connecting to Google...";
         if (loadingBox) {
           loadingBox.classList.remove('hidden');
@@ -3828,6 +3870,16 @@
           const d = document.getElementById('auth-google-loading-desc');
           if (t) t.innerText = "Connecting to Google...";
           if (d) d.innerText = "Please select your Google Account...";
+        }
+
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+        // On mobile devices, redirect is the native, reliable OAuth flow (avoids broken popup lifecycles)
+        if (isMobile) {
+          console.log("[Iveri Firebase] Mobile client detected, starting redirect flow...");
+          sessionStorage.setItem('iveri_google_redirecting', 'true');
+          await window.firebaseSignInWithRedirect(window.firebaseAuth, window.googleAuthProvider);
+          return;
         }
 
         let user = null;
@@ -3840,22 +3892,28 @@
             console.warn("[Iveri Firebase] Popup note:", popupErr);
             if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
             if (loadingBox) loadingBox.classList.add('hidden');
-            if (popupErr.code === 'auth/popup-closed-by-user' || popupErr.code === 'auth/cancelled-popup-request') {
-              return;
-            }
             if (popupErr.code === 'auth/unauthorized-domain') {
               showFirebaseDomainHelper();
               return;
             }
-            // Fall back to redirect if popup is strictly blocked on mobile
-            if (window.firebaseSignInWithRedirect && (popupErr.code === 'auth/popup-blocked' || popupErr.code === 'auth/operation-not-supported-in-this-environment')) {
+            if (popupErr.code === 'auth/popup-closed-by-user' || popupErr.code === 'auth/cancelled-popup-request') {
+              // If user closed popup but auth state actually succeeded in background, check currentUser
+              if (window.firebaseAuth.currentUser) {
+                user = window.firebaseAuth.currentUser;
+              } else {
+                return;
+              }
+            } else if (window.firebaseSignInWithRedirect) {
               console.log("[Iveri Firebase] Switching to redirect flow...");
+              sessionStorage.setItem('iveri_google_redirecting', 'true');
               await window.firebaseSignInWithRedirect(window.firebaseAuth, window.googleAuthProvider);
               return;
+            } else {
+              throw popupErr;
             }
-            throw popupErr;
           }
         } else if (window.firebaseSignInWithRedirect) {
+          sessionStorage.setItem('iveri_google_redirecting', 'true');
           await window.firebaseSignInWithRedirect(window.firebaseAuth, window.googleAuthProvider);
           return;
         }
@@ -3905,6 +3963,28 @@
         alert("Google Sign-In note: " + (e.message || e));
       }
     }
+
+    async function switchGoogleAccount(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      try {
+        if (window.firebaseAuth) {
+          if (typeof window.firebaseSignOut === 'function') {
+            await window.firebaseSignOut();
+          } else if (typeof window.firebaseAuth.signOut === 'function') {
+            await window.firebaseAuth.signOut();
+          }
+        }
+      } catch (_) {}
+      const btnLabel = document.getElementById('google-auth-btn-label');
+      if (btnLabel) btnLabel.innerText = "Continue with Google (Firebase)";
+      const switchBox = document.getElementById('google-switch-account-container');
+      if (switchBox) switchBox.classList.add('hidden');
+      await loginWithGoogleFirebase(true);
+    }
+    window.switchGoogleAccount = switchGoogleAccount;
 
     // Copilot Navigation Assistant & Minimization
     function toggleCopilot() {

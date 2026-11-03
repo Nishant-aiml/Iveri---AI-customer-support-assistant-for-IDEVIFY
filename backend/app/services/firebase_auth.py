@@ -142,9 +142,9 @@ class FirebaseAuthService:
                     User.firebase_uid == uid,
                     func.lower(User.email) == clean_email
                 )
-            )
+            ).order_by(User.created_at.asc())
         )
-        user = user_query.scalar_one_or_none()
+        user = user_query.scalars().first()
 
         if user:
             # Update firebase UID if not set or update provider
@@ -156,7 +156,7 @@ class FirebaseAuthService:
 
             # Load business
             biz_query = await db.execute(select(Business).where(Business.id == user.business_id))
-            business = biz_query.scalar_one_or_none()
+            business = biz_query.scalars().first()
             if not business:
                 import re
                 import uuid
@@ -205,16 +205,16 @@ class FirebaseAuthService:
                 logger.warning(f"Concurrent Google signup collision for {clean_email}, recovering gracefully: {ie}")
                 await db.rollback()
                 recovery_query = await db.execute(
-                    select(User).where(func.lower(User.email) == clean_email)
+                    select(User).where(func.lower(User.email) == clean_email).order_by(User.created_at.asc())
                 )
-                user = recovery_query.scalar_one_or_none()
+                user = recovery_query.scalars().first()
                 if not user:
                     raise ie
                 user.firebase_uid = uid
                 user.auth_provider = "firebase"
                 await db.commit()
                 biz_query = await db.execute(select(Business).where(Business.id == user.business_id))
-                business = biz_query.scalar_one_or_none()
+                business = biz_query.scalars().first()
 
         # Generate internal access token for session persistence
         token_payload = {
