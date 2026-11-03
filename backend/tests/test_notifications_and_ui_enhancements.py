@@ -121,3 +121,8 @@ class TestNotificationsAndUiEnhancements(unittest.IsolatedAsyncioTestCase):
         self.assertIn("markNotificationReadById(", html)
         self.assertIn("markNotificationUnreadById(", html)
         self.assertIn("deleteNotificationById(", html)
+
+        # Unanswered Viewed State & Seen Logic Contracts
+        self.assertIn("function markTicketsAsSeen(", html)
+        self.assertIn("iveri_tickets_seen_time", html)
+        self.assertIn('id="mobile-tickets-badge"', html)

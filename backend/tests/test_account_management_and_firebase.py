@@ -14,7 +14,6 @@ from app.models.user import User
 from app.models.document import Document
 from app.models.ticket import Ticket
 from app.utils.security import create_access_token, hash_password
-from app.services.vector_store import vector_store_service
 from app.services.bm25_store import bm25_store_service
 
 
@@ -262,3 +261,36 @@ class TestAccountManagementAndFirebase(unittest.IsolatedAsyncioTestCase):
         self.assertIn("window.firebaseSignOut", html)
         self.assertIn("prompt: 'select_account'", html)
         self.assertNotIn("onAuthStateChanged(auth, async (user) => {", html)
+
+    async def test_07_firebase_subsecond_token_verification_latency(self):
+        """Verifies sub-second Firebase token verification and eliminates 12s ADC metadata timeouts."""
+        import time
+        import jwt
+        from app.services.firebase_auth import firebase_auth_service
+
+        target_project = "idevify-2d7f1"
+        test_tok = jwt.encode({
+            "iss": f"https://securetoken.google.com/{target_project}",
+            "aud": target_project,
+            "sub": f"speed_uid_{self.suffix}",
+            "email": f"speed_{self.suffix}@example.com",
+            "name": "Speedy Tester",
+            "exp": int(time.time()) + 3600,
+            "firebase": {"sign_in_provider": "google.com"}
+        }, "secret", algorithm="HS256")
+
+        t0 = time.time()
+        claims = firebase_auth_service.verify_token(test_tok)
+        elapsed_ms = (time.time() - t0) * 1000.0
+        self.assertEqual(claims["email"], f"speed_{self.suffix}@example.com")
+        self.assertLess(elapsed_ms, 250.0, f"Token verification took {elapsed_ms}ms, must be < 250ms (no 12s ADC hang)")
+
+        # Verify endpoint roundtrip is sub-second
+        t0 = time.time()
+        res = await self.client.post(
+            "/api/auth/firebase-login",
+            json={"id_token": test_tok, "business_name": "Speedy Workspace"}
+        )
+        api_elapsed_ms = (time.time() - t0) * 1000.0
+        self.assertEqual(res.status_code, 200)
+        self.assertLess(api_elapsed_ms, 1000.0, f"Firebase login API took {api_elapsed_ms}ms, must be < 1000ms")
