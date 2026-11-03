@@ -347,7 +347,14 @@
             document.getElementById('handoff-box').classList.remove('hidden');
           }
         } else {
-          appendMessage('assistant', "I'm sorry, I encountered an error while processing your request.");
+          let errText = "I'm sorry, but I do not have this information in my documents. I have logged your question for our support team, and an agent will follow up shortly.";
+          try {
+            const errData = await res.json();
+            if (errData && errData.detail) errText = errData.detail;
+          } catch (_) {}
+          appendMessage('assistant', errText);
+          const handoffEl = document.getElementById('handoff-box');
+          if (handoffEl) handoffEl.classList.remove('hidden');
         }
       } catch (e) {
         removeLoading(loadingId);
@@ -577,8 +584,19 @@
         return;
       }
       if (!sessionId) {
-        alert("Session not initialized. Please refresh the page.");
-        return;
+        try {
+          const sRes = await fetch('/api/chat/session', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ business_slug_or_token: businessSlug, channel: 'public_link' })
+          });
+          if (sRes.ok) {
+            const sData = await sRes.json();
+            sessionId = sData.id;
+          }
+        } catch (e) {
+          console.error("Auto session creation error:", e);
+        }
       }
 
       const btn = document.getElementById('cb-submit-btn');
@@ -593,6 +611,7 @@
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
             session_id: sessionId,
+            business_slug: businessSlug,
             customer_name: name,
             customer_contact: contact,
             message: note,

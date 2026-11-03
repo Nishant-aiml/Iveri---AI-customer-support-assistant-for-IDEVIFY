@@ -41,7 +41,8 @@ class TicketResolveRequest(BaseModel):
     verified_knowledge_fact: str | None = Field(None, description="Optional clean factual knowledge rule to index, distinct from customer greeting")
 
 class ContactRequest(BaseModel):
-    session_id: str = Field(..., description="Active chat session id")
+    session_id: str | None = Field(None, description="Active chat session id")
+    business_slug: str | None = Field(None, description="Business slug or share token if session not yet created")
     customer_name: str | None = Field(None, description="Customer name")
     customer_contact: str = Field(..., min_length=3, description="Customer phone number or email address")
     message: str = Field(..., min_length=1, description="Customer message or callback reason")

@@ -167,6 +167,8 @@ class HybridRAGEngine:
             expanded_query = f"{clean_query} plans pricing products broadband"
         elif any(w in q_lower for w in ["gst", "tax", "vat"]):
             expanded_query = f"{clean_query} 18% gst taxes billing"
+        elif any(w in q_lower for w in ["point", "points", "brewpoint", "brewpoints", "loyalty", "reward", "rewards"]):
+            expanded_query = f"{clean_query} brewpoints loyalty program points rewards discount"
 
         # Step 2: Concurrent Multi-Hybrid Retrieval (Dense Vector + Sparse BM25 in parallel)
         import asyncio

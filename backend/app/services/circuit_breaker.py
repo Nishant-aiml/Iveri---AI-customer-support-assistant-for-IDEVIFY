@@ -155,6 +155,10 @@ class PreLLMCircuitBreaker:
         "returns_refunds": {
             "query_terms": {"return", "returns", "refund", "refunds", "cancel", "cancellation", "warranty", "exchange", "moneyback"},
             "context_patterns": [r"\b(return|returns|refund|refunds|cancel|cancellation|warranty|replacement|defect)\b"]
+        },
+        "loyalty_rewards": {
+            "query_terms": {"point", "points", "brewpoint", "brewpoints", "reward", "rewards", "loyalty", "worth", "value", "redeem", "redemption", "discount", "discounts", "earn", "earning", "spent"},
+            "context_patterns": [r"\b(point|points|brewpoint|brewpoints|reward|rewards|loyalty|worth|redeem|discount|discounts|earned|earn|spent|program)\b"]
         }
     }
 

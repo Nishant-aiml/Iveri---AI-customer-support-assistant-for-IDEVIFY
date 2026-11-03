@@ -15,9 +15,11 @@ logger = logging.getLogger("idevify-notifications")
 class NotificationService:
     @staticmethod
     def generate_ticket_number() -> str:
-        """Generates a human-friendly ticket identifier e.g. TICK-8492."""
+        """Generates a human-friendly ticket identifier e.g. TICK-8492-4A7B."""
+        import uuid
         num = random.randint(1000, 9999)
-        return f"TICK-{num}"
+        suffix = uuid.uuid4().hex[:4].upper()
+        return f"TICK-{num}-{suffix}"
 
     async def create_ticket_and_notify(
         self,
@@ -52,29 +54,45 @@ class NotificationService:
             status="open"
         )
         db.add(ticket)
-        await db.flush()
+        try:
+            await db.flush()
+        except Exception as ticket_err:
+            logger.warning(f"Initial ticket flush error: {ticket_err}")
+            # If foreign key check failed on message_id, flush with message_id=None
+            if message_id:
+                ticket.message_id = None
+                try:
+                    await db.flush()
+                except Exception as inner_err:
+                    logger.error(f"Fallback ticket flush error: {inner_err}")
 
         # 2. Create In-App Notification (for Dashboard Bell)
-        notif_title = f"New {priority.capitalize()} Ticket #{ticket_num}"
-        notif_msg = f"{subject} from {channel.upper()}: '{description[:100]}...'"
-        notification = Notification(
-            business_id=business.id,
-            ticket_id=ticket.id,
-            type="ticket_created" if priority != "urgent" else "contact_request",
-            title=notif_title,
-            message=notif_msg,
-            link_url="/dashboard#tickets",
-            is_read=False
-        )
-        db.add(notification)
-        await db.flush()
+        try:
+            notif_title = f"New {priority.capitalize()} Ticket #{ticket_num}"
+            notif_msg = f"{subject} from {channel.upper()}: '{description[:100]}...'"
+            notification = Notification(
+                business_id=business.id,
+                ticket_id=ticket.id if hasattr(ticket, 'id') else None,
+                type="ticket_created" if priority != "urgent" else "contact_request",
+                title=notif_title,
+                message=notif_msg,
+                link_url="/dashboard#tickets",
+                is_read=False
+            )
+            db.add(notification)
+            await db.flush()
+        except Exception as notif_err:
+            logger.warning(f"Notification record creation notice: {notif_err}")
 
         # 3. Find Business Owner Email for Direct Alert
         owner_email = None
-        owner_query = select(User).where(User.business_id == business.id, User.role == "owner").limit(1)
-        owner_user = (await db.execute(owner_query)).scalar_one_or_none()
-        if owner_user and owner_user.email:
-            owner_email = owner_user.email
+        try:
+            owner_query = select(User).where(User.business_id == business.id, User.role == "owner").limit(1)
+            owner_user = (await db.execute(owner_query)).scalar_one_or_none()
+            if owner_user and owner_user.email:
+                owner_email = owner_user.email
+        except Exception as owner_err:
+            logger.warning(f"Could not retrieve owner email: {owner_err}")
 
         # 4. Asynchronously Dispatch Email Alert
         contact_info = customer_phone or customer_email or "In-Chat Customer"

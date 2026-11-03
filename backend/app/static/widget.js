@@ -412,17 +412,17 @@
     alert(`Conversation link copied to clipboard!\n${shareUrl}`);
   };
 
-  // Initialize Session
+  // Initialize Session (returns Promise)
   function initSession() {
-    if (sessionId) return;
-    fetch(`${apiBaseUrl}/api/chat/session`, {
+    if (sessionId) return Promise.resolve(sessionId);
+    return fetch(`${apiBaseUrl}/api/chat/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ business_slug_or_token: businessSlug, channel: 'widget' })
     })
       .then(r => r.json())
-      .then(d => { sessionId = d.id; })
-      .catch(e => console.error('[Iveri Widget] Session init failed:', e));
+      .then(d => { sessionId = d.id; return sessionId; })
+      .catch(e => { console.error('[Iveri Widget] Session init failed:', e); return null; });
   }
 
   // Helper to format content
@@ -439,9 +439,12 @@
   }
 
   // Send Message
-  function sendMessage(text) {
+  async function sendMessage(text) {
     if (!text || (typeof text === 'string' && !text.trim())) return;
     const msgText = text.trim();
+    if (!sessionId) {
+      await initSession();
+    }
     const msgsContainer = document.getElementById('iveri-msgs');
 
     // Append User Message
@@ -564,4 +567,120 @@
     inputEl.value = '';
     sendMessage(val);
   };
+
+  // ==========================================
+  // Human Callback / Contact Request Logic
+  // ==========================================
+  function openWidgetCallbackModal() {
+    const modal = document.getElementById('iveri-cb-modal');
+    if (!modal) return;
+    const noteEl = document.getElementById('iveri-cb-note');
+    if (noteEl && !noteEl.value && lastUserQuery) {
+      noteEl.value = 'Regarding inquiry: ' + lastUserQuery;
+    }
+    modal.style.display = 'flex';
+    const contactInput = document.getElementById('iveri-cb-contact');
+    if (contactInput) contactInput.focus();
+  }
+
+  function closeWidgetCallbackModal() {
+    const modal = document.getElementById('iveri-cb-modal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  async function submitWidgetCallbackRequest() {
+    const nameEl = document.getElementById('iveri-cb-name');
+    const contactEl = document.getElementById('iveri-cb-contact');
+    const noteEl = document.getElementById('iveri-cb-note');
+    const submitBtn = document.getElementById('iveri-cb-submit');
+
+    const name = nameEl ? nameEl.value.trim() : '';
+    const contact = contactEl ? contactEl.value.trim() : '';
+    const note = (noteEl ? noteEl.value.trim() : '') || lastUserQuery || 'General callback request';
+
+    if (!contact) {
+      alert('Please enter your phone number or email address so we can reach you.');
+      if (contactEl) contactEl.focus();
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Submitting Request...';
+      submitBtn.style.opacity = '0.7';
+    }
+
+    try {
+      if (!sessionId) {
+        await initSession();
+      }
+
+      const res = await fetch(`${apiBaseUrl}/api/chat/contact-request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          session_id: sessionId || null,
+          business_slug: businessSlug,
+          customer_name: name || null,
+          customer_contact: contact,
+          message: note,
+          channel: 'widget'
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        closeWidgetCallbackModal();
+
+        // Clear inputs
+        if (nameEl) nameEl.value = '';
+        if (contactEl) contactEl.value = '';
+        if (noteEl) noteEl.value = '';
+
+        // Append confirmation card inside the chat messages container
+        const msgsContainer = document.getElementById('iveri-msgs');
+        const confirmBubble = document.createElement('div');
+        confirmBubble.className = 'iveri-msg iveri-msg-assistant';
+        confirmBubble.style.borderColor = '#A7F3D0';
+        confirmBubble.style.background = '#F0FDF4';
+        confirmBubble.innerHTML = `
+          <div style="font-weight:700; color:#065F46; margin-bottom:4px; font-size:13px;">✅ Callback Request Submitted!</div>
+          <div style="font-size:12px; color:#166534; line-height:1.4;">
+            Ticket <strong>#${data.ticket_number}</strong> created. Thank you${name ? ' ' + name : ''}! Our team has been notified with high priority and will contact you promptly at <strong>${contact}</strong>.
+          </div>
+        `;
+        msgsContainer.appendChild(confirmBubble);
+        msgsContainer.scrollTop = msgsContainer.scrollHeight;
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || 'Could not submit callback request. Please try again.');
+      }
+    } catch (err) {
+      console.error('[Iveri Widget] Callback request failed:', err);
+      alert('Network error submitting request. Please check your connection.');
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerText = 'Submit Callback Request';
+        submitBtn.style.opacity = '1';
+      }
+    }
+  }
+
+  // Wire modal close and submit events
+  const cbModalClose = document.getElementById('iveri-cb-modal-close');
+  if (cbModalClose) {
+    cbModalClose.onclick = closeWidgetCallbackModal;
+  }
+  const cbModal = document.getElementById('iveri-cb-modal');
+  if (cbModal) {
+    cbModal.onclick = (e) => {
+      if (e.target === cbModal) closeWidgetCallbackModal();
+    };
+  }
+  const cbSubmit = document.getElementById('iveri-cb-submit');
+  if (cbSubmit) {
+    cbSubmit.onclick = submitWidgetCallbackRequest;
+  }
+
 })();
