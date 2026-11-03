@@ -6,6 +6,7 @@ class TicketResponse(BaseModel):
     ticket_number: str
     business_id: str
     session_id: str | None = None
+    message_id: str | None = None
     customer_name: str | None = None
     customer_email: str | None = None
     customer_phone: str | None = None
@@ -72,3 +73,36 @@ class PushSubscribeRequest(BaseModel):
     endpoint: str = Field(..., description="Browser PushSubscription endpoint URL")
     p256dh: str = Field(..., description="Client public encryption key")
     auth: str = Field(..., description="Client auth secret")
+
+
+class UnansweredConversationMessage(BaseModel):
+    id: str
+    sender: str  # 'customer' or 'assistant'
+    content: str
+    is_answered: bool = True
+    is_unanswered_target: bool = False
+    created_at: datetime
+    sentiment: str = "neutral"
+    feedback: str | None = None
+
+    @field_serializer("created_at")
+    def serialize_created_at(self, dt: datetime, _info):
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.isoformat()
+
+
+class TicketConversationResponse(BaseModel):
+    ticket_id: str
+    ticket_number: str
+    session_id: str | None = None
+    channel: str
+    customer_name: str | None = None
+    customer_email: str | None = None
+    customer_phone: str | None = None
+    unanswered_question: str
+    status: str
+    priority: str
+    messages: list[UnansweredConversationMessage] = []
+    has_chat_session: bool = True
+
