@@ -12,10 +12,16 @@ from app.database import get_db
 from app.models.user import User
 from app.models.business import Business
 from app.models.ticket import Ticket
+from app.models.chat import ChatSession, ChatMessage
 from app.models.notification import Notification
 from app.models.document import Document, DocumentChunk
 from app.utils.security import get_current_owner
-from app.schemas.ticket import TicketResponse, TicketResolveRequest
+from app.schemas.ticket import (
+    TicketResponse,
+    TicketResolveRequest,
+    TicketConversationResponse,
+    UnansweredConversationMessage
+)
 from app.services.vector_store import vector_store_service
 from app.services.bm25_store import bm25_store_service
 
@@ -94,6 +100,102 @@ async def get_ticket(
     if not ticket:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found.")
     return ticket
+
+
+@router.get("/{ticket_id}/conversation", response_model=TicketConversationResponse)
+async def get_ticket_conversation(
+    ticket_id: str,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Retrieves the specific chat conversation history associated with an unanswered ticket.
+    Identifies and flags the exact customer question / unanswered inquiry that triggered the ticket
+    so it can be highlighted in the UI.
+    """
+    biz_id = owner.business_id
+    query = select(Ticket).where(
+        Ticket.business_id == biz_id,
+        (Ticket.id == ticket_id) | (Ticket.ticket_number == ticket_id)
+    )
+    ticket = (await db.execute(query)).scalar_one_or_none()
+    if not ticket:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Ticket not found.")
+
+    messages: list[UnansweredConversationMessage] = []
+    has_chat_session = bool(ticket.session_id)
+
+    if ticket.session_id:
+        sess_query = select(ChatSession).where(
+            ChatSession.id == ticket.session_id,
+            ChatSession.business_id == biz_id
+        )
+        session = (await db.execute(sess_query)).scalar_one_or_none()
+
+        if session:
+            msg_query = (
+                select(ChatMessage)
+                .where(ChatMessage.session_id == session.id)
+                .order_by(ChatMessage.created_at)
+            )
+            raw_msgs = (await db.execute(msg_query)).scalars().all()
+
+            unanswered_text_clean = (ticket.description or "").strip().lower()
+            target_idx = -1
+
+            # 1. Match by content against customer messages
+            if unanswered_text_clean:
+                for idx, m in enumerate(raw_msgs):
+                    if m.sender == "customer" and unanswered_text_clean in m.content.strip().lower():
+                        target_idx = idx
+
+            # 2. Match by ticket.message_id
+            if target_idx == -1 and ticket.message_id:
+                for idx, m in enumerate(raw_msgs):
+                    if m.id == ticket.message_id:
+                        if m.sender == "assistant" and idx > 0 and raw_msgs[idx - 1].sender == "customer":
+                            target_idx = idx - 1
+                        else:
+                            target_idx = idx
+                        break
+
+            # 3. Fallback to last customer message
+            if target_idx == -1:
+                for idx in range(len(raw_msgs) - 1, -1, -1):
+                    if raw_msgs[idx].sender == "customer":
+                        target_idx = idx
+                        break
+
+            for idx, m in enumerate(raw_msgs):
+                is_target = (idx == target_idx)
+                messages.append(
+                    UnansweredConversationMessage(
+                        id=m.id,
+                        sender=m.sender,
+                        content=m.content,
+                        is_answered=m.is_answered if m.is_answered is not None else True,
+                        is_unanswered_target=is_target,
+                        created_at=m.created_at,
+                        sentiment=m.sentiment or "neutral",
+                        feedback=m.feedback
+                    )
+                )
+
+    return TicketConversationResponse(
+        ticket_id=ticket.id,
+        ticket_number=ticket.ticket_number,
+        session_id=ticket.session_id,
+        channel=ticket.channel,
+        customer_name=ticket.customer_name,
+        customer_email=ticket.customer_email,
+        customer_phone=ticket.customer_phone,
+        unanswered_question=ticket.description or ticket.subject,
+        status=ticket.status,
+        priority=ticket.priority,
+        messages=messages,
+        has_chat_session=has_chat_session and len(messages) > 0
+    )
+
 
 
 @router.post("/{ticket_id}/draft-reply")
