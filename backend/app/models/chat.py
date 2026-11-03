@@ -15,7 +15,7 @@ class ChatSession(Base, TimestampMixin):
     channel = Column(String(50), default="public_link", nullable=False)  # 'public_link', 'widget', 'portal'
     sentiment = Column(String(20), default="neutral", nullable=False)  # 'positive', 'neutral', 'negative'
     primary_topic = Column(String(50), default="general", nullable=False)  # 'pricing', 'shipping', 'returns', etc.
-    last_message_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_message_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
 
     business = relationship("Business", back_populates="chat_sessions")
     customer = relationship("User", back_populates="chat_sessions")
@@ -29,8 +29,8 @@ class ChatMessage(Base, TimestampMixin):
     sender = Column(String(50), nullable=False)  # 'customer', 'assistant', 'system'
     content = Column(Text, nullable=False)
     is_answered = Column(Boolean, default=True, nullable=False)
-    feedback = Column(String(10), nullable=True)  # 'up', 'down', or None
-    sentiment = Column(String(20), default="neutral", nullable=False)  # 'positive', 'neutral', 'negative'
+    feedback = Column(String(10), nullable=True, index=True)  # 'up', 'down', or None
+    sentiment = Column(String(20), default="neutral", nullable=False, index=True)  # 'positive', 'neutral', 'negative'
     topic = Column(String(50), default="general", nullable=False)
     confidence_score = Column(Float, default=1.0, nullable=False)
     latency_ms = Column(Integer, default=0, nullable=False)

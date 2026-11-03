@@ -126,3 +126,59 @@ class TestNotificationsAndUiEnhancements(unittest.IsolatedAsyncioTestCase):
         self.assertIn("function markTicketsAsSeen(", html)
         self.assertIn("iveri_tickets_seen_time", html)
         self.assertIn('id="mobile-tickets-badge"', html)
+
+        # Chat History SWR Performance & Skeleton Contracts
+        self.assertIn("const chatSessionsMap = new Map();", html)
+        self.assertIn("let cachedChatSessions = null;", html)
+        self.assertIn("function renderChatSkeleton(", html)
+        self.assertIn("function renderSessionsList(", html)
+        self.assertIn("chatSessionsMap.has(sessionId)", html)
+
+    async def test_04_chat_history_batch_performance_and_swr_cache(self):
+        """Verifies chat history endpoint responds with batch optimization and maintains contract fidelity."""
+        import time
+        from app.models.chat import ChatSession, ChatMessage
+
+        # Seed 5 sessions with 2 messages each
+        async with AsyncSessionLocal() as session:
+            for i in range(5):
+                s = ChatSession(
+                    business_id=self.biz.id,
+                    customer_email=f"visitor_{i}_{self.uid}@example.com",
+                    channel="widget",
+                    sentiment="neutral",
+                    primary_topic="support"
+                )
+                session.add(s)
+                await session.flush()
+
+                m1 = ChatMessage(
+                    session_id=s.id,
+                    sender="customer",
+                    content=f"Hello question {i}",
+                    is_answered=True
+                )
+                m2 = ChatMessage(
+                    session_id=s.id,
+                    sender="assistant",
+                    content=f"Hello answer {i}",
+                    is_answered=True
+                )
+                session.add_all([m1, m2])
+            await session.commit()
+
+        # Measure batch response latency (must be sub-second, no N+1 query lag)
+        t0 = time.time()
+        res = await self.client.get("/api/dashboard/chats?limit=50", headers=self.headers)
+        elapsed_ms = (time.time() - t0) * 1000.0
+
+        self.assertEqual(res.status_code, 200)
+        data = res.json()
+        self.assertGreaterEqual(len(data), 5)
+        self.assertLess(elapsed_ms, 500.0, f"Chat history batch query took {elapsed_ms}ms, expected < 500ms")
+
+        # Verify message nesting and contract fidelity
+        first_session = data[0]
+        self.assertIn("messages", first_session)
+        self.assertIn("session_id", first_session)
+        self.assertIn("message_count", first_session)

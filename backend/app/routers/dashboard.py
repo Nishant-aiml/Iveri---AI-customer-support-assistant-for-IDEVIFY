@@ -280,14 +280,23 @@ async def list_chat_sessions(
     query = query.order_by(desc(ChatSession.last_message_at)).offset(offset).limit(limit)
     sessions = (await db.execute(query)).scalars().all()
 
-    summaries = []
-    for s in sessions:
-        msg_query = (
+    # High-Performance Batch Optimization: Fetch all messages for these sessions in 1 batch query (eliminates N+1 DB roundtrips)
+    session_ids = [s.id for s in sessions]
+    messages_by_session: dict[str, list[ChatMessage]] = {sid: [] for sid in session_ids}
+    if session_ids:
+        batch_msg_query = (
             select(ChatMessage)
-            .where(ChatMessage.session_id == s.id)
+            .where(ChatMessage.session_id.in_(session_ids))
             .order_by(ChatMessage.created_at)
         )
-        messages = (await db.execute(msg_query)).scalars().all()
+        all_msgs = (await db.execute(batch_msg_query)).scalars().all()
+        for m in all_msgs:
+            if m.session_id in messages_by_session:
+                messages_by_session[m.session_id].append(m)
+
+    summaries = []
+    for s in sessions:
+        messages = messages_by_session.get(s.id, [])
         has_downvote = any(m.feedback == "down" for m in messages)
         has_negative_msg = any(m.sentiment == "negative" or m.feedback == "down" for m in messages)
         has_positive_msg = any(m.sentiment == "positive" or m.feedback == "up" for m in messages)

@@ -15,7 +15,7 @@ from app.models.business import Business
 from app.models.user import User
 from app.utils.security import create_access_token
 from app.utils.upload_validator import verify_file_signature, ALLOWED_EXTENSIONS
-from app.services.fallback_parser import ExcelParser, ImageOCRParser, TesseractOCRParser
+from app.services.fallback_parser import ExcelParser, ImageOCRParser
 from app.services.document_parser import document_parser_service
 
 class TestMultiDocExcelOCR(unittest.IsolatedAsyncioTestCase):

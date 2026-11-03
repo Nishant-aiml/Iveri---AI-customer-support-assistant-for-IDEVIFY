@@ -2421,6 +2421,8 @@
     let currentBusiness = null;
     let activeResolvingId = null;
     let selectedSessionId = null;
+    let cachedChatSessions = null;
+    const chatSessionsMap = new Map();
     let searchDebounceTimer = null;
     let currentFeedbackFilter = '';
     let charts = {};
@@ -3294,62 +3296,118 @@
       loadChatHistory();
     }
 
-    async function loadChatHistory() {
+    function renderChatSkeleton() {
+      const listContainer = document.getElementById('chat-sessions-list');
+      if (listContainer && (!listContainer.children.length || listContainer.innerText.includes('Loading'))) {
+        listContainer.innerHTML = Array(4).fill(0).map(() => `
+          <div class="p-3.5 rounded-xl border border-slate-100 bg-slate-50/70 animate-pulse space-y-2.5">
+            <div class="flex items-center justify-between">
+              <div class="h-3 w-28 bg-slate-200 rounded"></div>
+              <div class="h-2.5 w-16 bg-slate-200 rounded"></div>
+            </div>
+            <div class="h-2.5 w-3/4 bg-slate-200 rounded"></div>
+            <div class="flex items-center justify-between pt-1">
+              <div class="flex gap-1.5">
+                <div class="h-4 w-12 bg-slate-200 rounded"></div>
+                <div class="h-4 w-14 bg-slate-200 rounded"></div>
+              </div>
+              <div class="h-3 w-10 bg-slate-200 rounded"></div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    function renderSessionsList(sessions) {
+      const badge = document.getElementById('sessions-count-badge');
+      if (badge) badge.innerText = `${sessions.length} found`;
+      const listContainer = document.getElementById('chat-sessions-list');
+      if (!listContainer) return;
+
+      if (sessions.length === 0) {
+        listContainer.innerHTML = '<div class="text-center py-10 text-xs text-slate-400 font-mono">No matching conversations found.</div>';
+        const detailContainer = document.getElementById('session-detail-container');
+        if (detailContainer) {
+          detailContainer.innerHTML = '<div class="text-center py-20 text-slate-400 font-mono text-xs">No conversation selected.</div>';
+        }
+        return;
+      }
+
+      listContainer.innerHTML = sessions.map(s => {
+        const lastMsg = s.messages && s.messages.length > 0 ? s.messages[s.messages.length - 1].content : 'No messages';
+        const sentClass = `pill-${s.sentiment || 'neutral'}`;
+        const dt = formatExactDateTime(s.started_at);
+        return `
+          <div onclick="selectSession('${s.session_id}')" id="session-card-${s.session_id}" class="chat-session-item p-3.5 rounded-xl space-y-2 ${s.session_id === selectedSessionId ? 'active' : ''}">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-slate-900">${s.customer_email || 'Anonymous Visitor'}</span>
+              <div class="text-right flex flex-col items-end">
+                <span class="text-[10px] font-semibold text-slate-700 font-mono">${dt.dayShort}, ${dt.dateStr}</span>
+                <span class="text-[9px] text-slate-400 font-mono flex items-center gap-0.5">
+                  <span class="material-symbols-outlined text-[10px]">schedule</span>
+                  ${dt.timeShort}
+                </span>
+              </div>
+            </div>
+            <p class="text-xs text-slate-600 line-clamp-1 font-sans">${escapeHtml(lastMsg)}</p>
+            <div class="flex items-center justify-between pt-1">
+              <div class="flex items-center gap-1.5">
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${sentClass}">${s.sentiment}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold pill-topic">${s.primary_topic}</span>
+              </div>
+              <span class="text-[10px] text-slate-400 font-mono">${s.message_count} msgs</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function loadChatHistory(silent = false) {
       if (!authToken) return;
       const search = document.getElementById('chat-search-input')?.value.trim() || '';
       const sentiment = document.getElementById('chat-sentiment-filter')?.value || '';
       const topic = document.getElementById('chat-topic-filter')?.value || '';
+      const channel = document.getElementById('chat-channel-filter')?.value || '';
+
+      const hasFilters = Boolean(search || sentiment || topic || channel || currentFeedbackFilter);
+
+      // Instant 0ms Paint via Stale-While-Revalidate memory cache
+      if (!silent && !hasFilters && cachedChatSessions && cachedChatSessions.length > 0) {
+        renderSessionsList(cachedChatSessions);
+        if (!selectedSessionId || !cachedChatSessions.some(s => s.session_id === selectedSessionId)) {
+          selectSession(cachedChatSessions[0].session_id);
+        }
+      } else if (!silent && (!cachedChatSessions || hasFilters)) {
+        renderChatSkeleton();
+      }
 
       let url = '/api/dashboard/chats?limit=50';
-      if (currentFeedbackFilter) url += `&feedback=${currentFeedbackFilter}`;
-      if (sentiment) url += `&sentiment=${sentiment}`;
-      if (topic) url += `&topic=${topic}`;
+      if (currentFeedbackFilter) url += `&feedback=${encodeURIComponent(currentFeedbackFilter)}`;
+      if (sentiment) url += `&sentiment=${encodeURIComponent(sentiment)}`;
+      if (topic) url += `&topic=${encodeURIComponent(topic)}`;
+      if (channel) url += `&channel=${encodeURIComponent(channel)}`;
       if (search) url += `&search=${encodeURIComponent(search)}`;
 
       try {
         const res = await fetch(url, { headers: {'Authorization': `Bearer ${authToken}`} });
         if (res.ok) {
           const sessions = await res.json();
-          document.getElementById('sessions-count-badge').innerText = `${sessions.length} found`;
-          const listContainer = document.getElementById('chat-sessions-list');
-
-          if (sessions.length === 0) {
-            listContainer.innerHTML = '<div class="text-center py-10 text-xs text-slate-400 font-mono">No matching conversations found.</div>';
-            document.getElementById('session-detail-container').innerHTML = '<div class="text-center py-20 text-slate-400 font-mono text-xs">No conversation selected.</div>';
-            return;
+          sessions.forEach(s => chatSessionsMap.set(s.session_id, s));
+          if (!hasFilters) {
+            cachedChatSessions = sessions;
           }
 
-          listContainer.innerHTML = sessions.map(s => {
-            const lastMsg = s.messages && s.messages.length > 0 ? s.messages[s.messages.length - 1].content : 'No messages';
-            const sentClass = `pill-${s.sentiment || 'neutral'}`;
-            const dt = formatExactDateTime(s.started_at);
-            return `
-              <div onclick="selectSession('${s.session_id}')" id="session-card-${s.session_id}" class="chat-session-item p-3.5 rounded-xl space-y-2 ${s.session_id === selectedSessionId ? 'active' : ''}">
-                <div class="flex items-center justify-between text-xs">
-                  <span class="font-bold text-slate-900">${s.customer_email || 'Anonymous Visitor'}</span>
-                  <div class="text-right flex flex-col items-end">
-                    <span class="text-[10px] font-semibold text-slate-700 font-mono">${dt.dayShort}, ${dt.dateStr}</span>
-                    <span class="text-[9px] text-slate-400 font-mono flex items-center gap-0.5">
-                      <span class="material-symbols-outlined text-[10px]">schedule</span>
-                      ${dt.timeShort}
-                    </span>
-                  </div>
-                </div>
-                <p class="text-xs text-slate-600 line-clamp-1 font-sans">${escapeHtml(lastMsg)}</p>
-                <div class="flex items-center justify-between pt-1">
-                  <div class="flex items-center gap-1.5">
-                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${sentClass}">${s.sentiment}</span>
-                    <span class="px-2 py-0.5 rounded text-[10px] font-mono font-semibold pill-topic">${s.primary_topic}</span>
-                  </div>
-                  <span class="text-[10px] text-slate-400 font-mono">${s.message_count} msgs</span>
-                </div>
-              </div>
-            `;
-          }).join('');
+          renderSessionsList(sessions);
 
           // Select first session if none selected
           if (!selectedSessionId || !sessions.some(s => s.session_id === selectedSessionId)) {
-            selectSession(sessions[0].session_id);
+            if (sessions.length > 0) {
+              selectSession(sessions[0].session_id);
+            }
+          } else {
+            // Instant re-render for active session
+            const curr = chatSessionsMap.get(selectedSessionId);
+            if (curr) renderSessionDetail(curr);
           }
         }
       } catch (e) {
@@ -3365,12 +3423,27 @@
       const activeEl = document.getElementById(`session-card-${sessionId}`);
       if (activeEl) activeEl.classList.add('active');
 
+      // 0ms instant display from memory map (eliminates redundant round-trip fetch)
+      if (chatSessionsMap.has(sessionId)) {
+        const cached = chatSessionsMap.get(sessionId);
+        activeCurrentSessionData = cached;
+        renderSessionDetail(cached, highlightQuery);
+        if (window.innerWidth < 1024) {
+          const detailContainer = document.getElementById('session-detail-container');
+          if (detailContainer) {
+            detailContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+        return;
+      }
+
       try {
-        const res = await fetch(`/api/dashboard/chats/${sessionId}`, {
+        const res = await fetch(`/api/dashboard/chats/${encodeURIComponent(sessionId)}`, {
           headers: {'Authorization': `Bearer ${authToken}`}
         });
         if (res.ok) {
           const s = await res.json();
+          chatSessionsMap.set(sessionId, s);
           activeCurrentSessionData = s;
           renderSessionDetail(s, highlightQuery);
           if (window.innerWidth < 1024) {
@@ -4822,6 +4895,10 @@
         if (res.ok || res.status === 404) {
           showToast("Conversation deleted successfully.", "success");
           selectedSessionId = null;
+          chatSessionsMap.delete(sessionId);
+          if (cachedChatSessions) {
+            cachedChatSessions = cachedChatSessions.filter(s => s.session_id !== sessionId);
+          }
           const detailContainer = document.getElementById('session-detail-container');
           if (detailContainer) {
             detailContainer.innerHTML = '<div class="text-center py-20 text-slate-400 font-mono text-xs">No conversation selected.</div>';

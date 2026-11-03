@@ -3,7 +3,6 @@ import os
 from datetime import datetime
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-import pytest
 from app.schemas.ticket import TicketConversationResponse, UnansweredConversationMessage
 
 def test_ticket_conversation_schema():
