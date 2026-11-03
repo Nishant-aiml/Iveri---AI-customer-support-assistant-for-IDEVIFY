@@ -2580,13 +2580,11 @@
               badge.innerText = stats.unanswered_count;
               badge.classList.remove('hidden');
             }
-            const mobBadge = document.getElementById('mobile-unanswered-badge');
-            if (mobBadge) mobBadge.classList.remove('hidden');
           } else {
             const badge = document.getElementById('unanswered-badge-count');
             if (badge) badge.classList.add('hidden');
-            const mobBadge = document.getElementById('mobile-unanswered-badge');
-            if (mobBadge) mobBadge.classList.add('hidden');
+            const mobileDot = document.getElementById('mobile-tickets-badge');
+            if (mobileDot) mobileDot.classList.add('hidden');
           }
         }
       } catch (e) {
@@ -4863,6 +4861,7 @@
         console.error("Delete ticket error:", err);
         showToast("Network error deleting ticket", "error");
       } finally {
+        markTicketsAsSeen();
         await loadTickets();
         if (typeof loadDashboardData === 'function') loadDashboardData();
         if (typeof loadNotifications === 'function') loadNotifications();
@@ -4988,6 +4987,9 @@
         activeEl.classList.add('tab-pane-transition');
       }
       if (activeTabEl) activeTabEl.classList.add('tab-active');
+      if (tabId === 'tickets') {
+        markTicketsAsSeen();
+      }
 
       if (tabId === 'playground') {
         setTimeout(() => {
@@ -5363,6 +5365,17 @@
           }
         }
       });
+      if (tabId === 'tickets') {
+        markTicketsAsSeen();
+      }
+    }
+
+    function markTicketsAsSeen() {
+      try {
+        localStorage.setItem('iveri_tickets_seen_time', Date.now().toString());
+      } catch(e) {}
+      const mobileDot = document.getElementById('mobile-tickets-badge');
+      if (mobileDot) mobileDot.classList.add('hidden');
     }
 
     // =========================================================================
@@ -5425,12 +5438,28 @@
 
             const badge = document.getElementById('tickets-badge-count');
             const mobileDot = document.getElementById('mobile-tickets-badge');
-            if (stats.open > 0) {
-              if (badge) { badge.innerText = stats.open; badge.classList.remove('hidden'); }
-              if (mobileDot) mobileDot.classList.remove('hidden');
-            } else {
-              if (badge) badge.classList.add('hidden');
-              if (mobileDot) mobileDot.classList.add('hidden');
+            if (badge) {
+              if (stats.open > 0) {
+                badge.innerText = stats.open;
+                badge.classList.remove('hidden');
+              } else {
+                badge.classList.add('hidden');
+              }
+            }
+
+            const viewTickets = document.getElementById('view-tickets');
+            const isCurrentlyViewingTickets = viewTickets && !viewTickets.classList.contains('hidden');
+
+            if (isCurrentlyViewingTickets) {
+              markTicketsAsSeen();
+            } else if (mobileDot) {
+              const lastSeen = parseInt(localStorage.getItem('iveri_tickets_seen_time') || '0', 10);
+              const hasNewerTicket = (tickets || []).some(t => t.status === 'open' && new Date(t.created_at).getTime() > lastSeen);
+              if (stats.open > 0 && hasNewerTicket) {
+                mobileDot.classList.remove('hidden');
+              } else {
+                mobileDot.classList.add('hidden');
+              }
             }
           }
         }).catch(err => console.error("Ticket stats load error:", err));
@@ -5563,6 +5592,7 @@
 
     async function inspectUnansweredChat(ticketId) {
       if (!authToken || !ticketId) return;
+      markTicketsAsSeen();
 
       const modal = document.getElementById('unanswered-chat-modal');
       const badge = document.getElementById('unanswered-modal-ticket-badge');
@@ -5884,6 +5914,7 @@
         });
 
         if (res.ok) {
+          markTicketsAsSeen();
           closeResolveTicketModal();
           const successMsg = trainAi 
             ? '✅ Ticket ' + activeResolvingTicket + ' resolved and authoritative rule permanently indexed into AI knowledge base!'
@@ -6502,10 +6533,12 @@
       <span class="material-symbols-outlined text-[19px] nav-icon">folder</span>
       <span class="text-[9.5px] font-medium font-sans mt-0.5">Docs</span>
     </button>
-    <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition relative">
-      <span class="material-symbols-outlined text-[19px] nav-icon">confirmation_number</span>
+    <button onclick="switchTab('tickets')" id="mobile-nav-tickets" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
+      <div class="relative inline-flex items-center justify-center">
+        <span class="material-symbols-outlined text-[19px] nav-icon">confirmation_number</span>
+        <span id="mobile-tickets-badge" class="hidden absolute -top-0.5 -right-1 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white"></span>
+      </div>
       <span class="text-[9.5px] font-medium font-sans mt-0.5">Unanswered</span>
-      <span id="mobile-tickets-badge" class="hidden absolute top-0.5 right-2 w-2 h-2 bg-rose-500 rounded-full border border-white"></span>
     </button>
     <button onclick="switchTab('chats')" id="mobile-nav-chats" class="flex flex-col items-center justify-center flex-1 py-1 text-slate-400 hover:text-primary transition">
       <span class="material-symbols-outlined text-[19px] nav-icon">chat</span>
