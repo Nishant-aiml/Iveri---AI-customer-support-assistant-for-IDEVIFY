@@ -11,6 +11,7 @@ from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc
+from app.config import settings
 from app.database import get_db
 from app.models.business import Business
 from app.models.chat import ChatSession, ChatMessage
