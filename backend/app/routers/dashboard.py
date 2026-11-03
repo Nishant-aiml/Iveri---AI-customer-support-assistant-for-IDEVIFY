@@ -864,16 +864,14 @@ async def get_business_analytics(
 async def export_powerbi_dataset(
     format: str = Query("csv", pattern="^(csv|json)$"),
     token: Optional[str] = Query(None),
-    business_id: Optional[str] = Query(None),
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security_scheme),
     db: AsyncSession = Depends(get_db)
 ):
     """
     Exports a clean, flattened tabular dataset formatted specifically for
     Power BI / Excel / Tableau customer sentiment and support analytics.
-    Accepts authentication via Authorization header or ?token= query parameter.
-    If unauthenticated (e.g. direct browser navigation or Power BI Web connector),
-    seamlessly resolves the active store business dataset without 401 barriers.
+    Strictly requires authentication scoped to the signed-in business owner.
+    Unauthenticated requests are strictly rejected with HTTP 401 Unauthorized.
     """
     biz_id = None
     raw_token = None
@@ -891,34 +889,21 @@ async def export_powerbi_dataset(
             if u:
                 biz_id = u.business_id
 
-    # If business_id query parameter is provided directly
-    if not biz_id and business_id:
-        b_res = await db.execute(select(Business).where(Business.id == business_id))
-        b = b_res.scalar_one_or_none()
-        if b:
-            biz_id = b.id
-
-    # Seamless fallback for Power BI / Excel Web Connector or direct browser click
+    # Strict multi-tenant security: Never allow unauthenticated data exports or cross-tenant leaks
     if not biz_id:
-        owner_res = await db.execute(select(User).where(User.role == "owner").limit(1))
-        owner = owner_res.scalar_one_or_none()
-        if owner and owner.business_id:
-            biz_id = owner.business_id
-        else:
-            biz_res = await db.execute(select(Business).limit(1))
-            first_biz = biz_res.scalar_one_or_none()
-            if first_biz:
-                biz_id = first_biz.id
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required. Please sign in to export your business support dataset."
+        )
 
     records = []
-    if biz_id:
-        query = (
-            select(ChatMessage, ChatSession.customer_email, ChatSession.channel)
-            .join(ChatSession, ChatMessage.session_id == ChatSession.id)
-            .where(ChatSession.business_id == biz_id)
-            .order_by(ChatMessage.created_at)
-        )
-        records = (await db.execute(query)).all()
+    query = (
+        select(ChatMessage, ChatSession.customer_email, ChatSession.channel)
+        .join(ChatSession, ChatMessage.session_id == ChatSession.id)
+        .where(ChatSession.business_id == biz_id)
+        .order_by(ChatMessage.created_at)
+    )
+    records = (await db.execute(query)).all()
 
     if format == "json":
         data = []

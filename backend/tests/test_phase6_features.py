@@ -42,10 +42,10 @@ class TestPhase6Features(unittest.IsolatedAsyncioTestCase):
         await self.client.aclose()
 
     async def test_01_powerbi_export_with_token_and_dev_mode(self):
-        # 1. Direct browser URL access without Auth header (development fallback)
+        # 1. Direct browser URL access without Auth header must be rejected with 401 Unauthorized
         res_no_auth = await self.client.get("/api/dashboard/export/powerbi?format=csv")
-        self.assertEqual(res_no_auth.status_code, 200)
-        self.assertIn("SessionID,Timestamp", res_no_auth.text)
+        self.assertEqual(res_no_auth.status_code, 401)
+        self.assertIn("Authentication required", res_no_auth.json().get("detail", ""))
 
         # 2. Access with token in URL query parameter
         res_token = await self.client.get(f"/api/dashboard/export/powerbi?format=csv&token={self.token}")

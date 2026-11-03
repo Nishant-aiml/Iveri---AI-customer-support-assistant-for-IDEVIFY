@@ -2467,6 +2467,12 @@
     async function init() {
       authToken = localStorage.getItem('iveri_token') || authToken || '';
       if (!authToken) {
+        switchTab('overview');
+        const authBtn = document.getElementById('auth-action-btn');
+        if (authBtn) {
+          authBtn.innerText = 'Sign In';
+          authBtn.onclick = toggleAuthModal;
+        }
         openAuthModal();
         return;
       }
@@ -2847,14 +2853,27 @@
     }
 
     async function downloadPowerBiExport() {
+      if (!authToken) {
+        if (typeof showToast === 'function') {
+          showToast("🔒 Please sign in first to export your business support dataset.", "warning");
+        } else {
+          alert("Please sign in first to export your business support dataset.");
+        }
+        openAuthModal();
+        return;
+      }
       try {
         if (typeof showToast === 'function') {
-          showToast("Preparing Power BI CSV dataset export...", "info");
+          showToast("Preparing authenticated Power BI CSV dataset export...", "info");
         }
-        const url = `/api/dashboard/export/powerbi?format=csv${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
-        const headers = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
+        const url = `/api/dashboard/export/powerbi?format=csv&token=${encodeURIComponent(authToken)}`;
+        const headers = { 'Authorization': `Bearer ${authToken}` };
         const res = await fetch(url, { headers });
         if (!res.ok) {
+          if (res.status === 401) {
+            openAuthModal();
+            throw new Error("Session expired. Please sign in again.");
+          }
           throw new Error(`Export request returned status ${res.status}`);
         }
         const blob = await res.blob();
@@ -2867,20 +2886,29 @@
         document.body.removeChild(a);
         window.URL.revokeObjectURL(blobUrl);
         if (typeof showToast === 'function') {
-          showToast("📥 Power BI dataset CSV downloaded successfully!", "success");
+          showToast("📥 Business dataset CSV downloaded successfully!", "success");
         }
       } catch (err) {
-        console.warn("Direct blob export failed, falling back to URL navigation:", err);
+        console.error("Direct blob export error:", err);
         if (typeof showToast === 'function') {
-          showToast("Direct download failed, initiating browser fallback...", "info");
+          showToast(err.message || "Failed to download dataset. Please verify you are signed in.", "error");
+        } else {
+          alert(err.message || "Failed to download dataset.");
         }
-        const fallbackUrl = `/api/dashboard/export/powerbi?format=csv${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
-        window.location.href = fallbackUrl;
       }
     }
 
     function copyPowerBIWebUrl() {
-      const url = `${window.location.origin}/api/dashboard/export/powerbi?format=csv${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
+      if (!authToken) {
+        if (typeof showToast === 'function') {
+          showToast("🔒 Please sign in first to generate your authenticated Power BI URL.", "warning");
+        } else {
+          alert("Please sign in first to generate your authenticated Power BI URL.");
+        }
+        openAuthModal();
+        return;
+      }
+      const url = `${window.location.origin}/api/dashboard/export/powerbi?format=csv&token=${encodeURIComponent(authToken)}`;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(url).then(() => {
           alert(`Power BI Web Connector Live Dataset URL copied:\n${url}\n\nIn Power BI Desktop: Click 'Get Data' -> 'Web', paste this URL, and click OK.`);
@@ -5070,6 +5098,25 @@
       if (tabId === 'playground') {
         tabId = 'settings';
         switchSettingsSubTab('testing-rag');
+      }
+
+      // Strict Authentication Gate: Unauthenticated users can only view 'overview'
+      const protectedTabs = ['documents', 'tickets', 'chats', 'settings'];
+      if (!authToken && protectedTabs.includes(tabId)) {
+        const tabNames = {
+          'documents': 'Documents & Knowledge Base',
+          'tickets': 'Unanswered Tickets',
+          'chats': 'Chat History',
+          'settings': 'Widget Studio & Settings'
+        };
+        const featureName = tabNames[tabId] || 'this feature';
+        if (typeof showToast === 'function') {
+          showToast(`🔒 Please sign in first to access ${featureName}.`, "warning");
+        } else {
+          alert(`Please sign in first to access ${featureName}.`);
+        }
+        openAuthModal();
+        return;
       }
       ['overview', 'documents', 'tickets', 'chats', 'settings', 'playground'].forEach(t => {
         const el = document.getElementById(`view-${t}`);
