@@ -287,18 +287,73 @@ class HybridRAGEngine:
             "tell", "about", "your", "our", "a", "an", "to", "in", "of", "and", "or", 
             "do", "does", "can", "you", "this", "that", "i", "we", "my", "it", "at", "by", "there"
         }
-        q_tokens = [w.lower() for w in re.findall(r"\b[a-zA-Z0-9_\-]+\b", clean_query) if w.lower() not in stop_words and len(w) >= 2]
+
+        def get_inflection_pattern(token: str) -> str:
+            t = re.escape(token.lower())
+            variants = [t]
+            if len(token) >= 3:
+                if token.endswith("ies"):
+                    root = re.escape(token[:-3])
+                    variants.extend([root + "y", root + "ies", root + "ied"])
+                elif token.endswith("es") and not token.endswith("ees"):
+                    root = re.escape(token[:-2])
+                    variants.extend([root, root + "s", root + "es", root + "ed", root + "ing"])
+                elif token.endswith("s") and not token.endswith("ss"):
+                    root = re.escape(token[:-1])
+                    variants.extend([root, root + "s", root + "es", root + "ed", root + "ing"])
+                elif token.endswith("ed"):
+                    root = re.escape(token[:-2])
+                    variants.extend([root, root + "s", root + "ed", root + "ing", root + "d"])
+                elif token.endswith("ing"):
+                    root = re.escape(token[:-3])
+                    variants.extend([root, root + "s", root + "ed", root + "ing", root + "e"])
+                elif token.endswith("y"):
+                    root = re.escape(token[:-1])
+                    variants.extend([root + "y", root + "ies", root + "ied"])
+                else:
+                    root = t
+                    variants.extend([root + "s", root + "es", root + "ed", root + "ing"])
+            unique_vars = list(dict.fromkeys(variants))
+            return r"\b(?:" + "|".join(unique_vars) + r")\b"
+
+        INTENT_ACTION_TERMS = {
+            "return", "returns", "returned", "returning",
+            "refund", "refunds", "refunded", "refunding",
+            "cancel", "cancels", "cancelled", "canceled", "cancellation", "cancellations",
+            "exchange", "exchanges", "exchanged", "exchanging",
+            "replace", "replacement", "warranty", "guarantee",
+            "shipping", "delivery", "hours", "price", "pricing", "cost", "fee", "fees"
+        }
+
+        # Build vocabulary across retrieved chunks to handle query typos
+        fused_words = set()
+        for c in fused_chunks:
+            fused_words.update(re.findall(r"\b[a-zA-Z]{3,}\b", c.get("content", "").lower()))
+
+        q_tokens_raw = [w.lower() for w in re.findall(r"\b[a-zA-Z0-9_\-]+\b", clean_query) if w.lower() not in stop_words and len(w) >= 2]
+        q_tokens = []
+        for t in q_tokens_raw:
+            if t not in fused_words:
+                close = difflib.get_close_matches(t, list(fused_words), n=1, cutoff=0.80)
+                if close:
+                    q_tokens.append(close[0])
+                    continue
+            q_tokens.append(t)
+        q_tokens = list(dict.fromkeys(q_tokens))
+
         ans_tokens = [w.lower() for w in re.findall(r"\b[a-zA-Z0-9_\-]+\b", generated_answer) if w.lower() not in stop_words and len(w) >= 2]
-        
         high_value_terms = set(q_tokens) | (set(ans_tokens) & {
-            "discount", "refund", "warranty", "shipping", "delivery", "hours", "address", 
+            "discount", "refund", "refunds", "warranty", "shipping", "delivery", "hours", "address", 
             "phone", "email", "rs", "50", "100", "10", "7", "15", "48", "points", "loyalty", 
             "burr", "grinder", "dripper", "order", "orders", "cancel", "cancellation", "metro",
-            "beans", "coffee", "roast", "pune", "prescription", "consultation", "dental"
+            "beans", "coffee", "roast", "pune", "prescription", "consultation", "dental", "fee", "fees"
         })
 
-        seen_doc_pages = set()
-        candidate_citations = []
+        token_patterns = {t: re.compile(get_inflection_pattern(t), re.IGNORECASE) for t in q_tokens}
+        ans_patterns = {t: re.compile(get_inflection_pattern(t), re.IGNORECASE) for t in high_value_terms if t not in token_patterns}
+        query_intents = [t for t in q_tokens if any(t.startswith(a[:4]) for a in INTENT_ACTION_TERMS)]
+
+        scored_candidates = []
 
         for c in fused_chunks:
             doc_name = c.get("metadata", {}).get("document_name", "Document")
@@ -316,47 +371,66 @@ class HybridRAGEngine:
                     doc_name = "Zephyr_Fiber_Terms_FAQ.pdf"
                 elif any(w in content_lower for w in ["pharmacy", "greenleaf", "prescription"]):
                     doc_name = "GreenLeaf_Pharmacy_Policy.pdf"
-            content_lower = content.lower()
 
-            q_matches = [t for t in q_tokens if re.search(r"\b" + re.escape(t) + r"\b", content_lower)]
-            ans_matches = [t for t in high_value_terms if re.search(r"\b" + re.escape(t) + r"\b", content_lower)]
-            
-            match_score = (len(q_matches) * 4) + len(ans_matches)
+            matched_q = []
+            q_occurrences = 0
+            for t, pat in token_patterns.items():
+                cnt = len(pat.findall(content_lower))
+                if cnt > 0:
+                    matched_q.append(t)
+                    q_occurrences += (cnt * 2 if t in query_intents else cnt)
+
+            matched_ans = []
+            ans_occurrences = 0
+            for t, pat in ans_patterns.items():
+                cnt = len(pat.findall(content_lower))
+                if cnt > 0:
+                    matched_ans.append(t)
+                    ans_occurrences += cnt
+
+            has_intent = any(t in query_intents for t in matched_q)
+            match_score = (len(matched_q) * 15) + (q_occurrences * 5) + (len(matched_ans) * 4) + (ans_occurrences * 2)
+            if has_intent:
+                match_score += 30
+
             if match_score == 0:
                 continue
 
-            page_key = (doc_name, page_num)
-            if page_key in seen_doc_pages:
-                continue
-            seen_doc_pages.add(page_key)
+            # Center excerpt window on the most relevant match cluster with weighted density
+            weighted_matches = []
+            highlight_list = []
+            for t, pat in token_patterns.items():
+                w = 5 if t in query_intents else 3
+                for m in pat.finditer(content_lower):
+                    weighted_matches.append((m.start(), m.end(), w, m.group(0)))
+                    highlight_list.append(m.group(0).lower())
+            for t, pat in ans_patterns.items():
+                for m in pat.finditer(content_lower):
+                    weighted_matches.append((m.start(), m.end(), 1, m.group(0)))
+                    highlight_list.append(m.group(0).lower())
 
-            # Center excerpt window on the most relevant match cluster
-            all_matches = []
-            for t in (set(q_matches) | set(ans_matches)):
-                for m in re.finditer(r"\b" + re.escape(t) + r"\b", content_lower):
-                    all_matches.append(m.start())
+            if weighted_matches:
+                weighted_matches.sort(key=lambda x: x[0])
+                best_pos = weighted_matches[0][0]
+                best_weight_density = -1
+                for pos, _, w, _ in weighted_matches:
+                    density = sum(other_w for other_pos, _, other_w, _ in weighted_matches if abs(other_pos - pos) <= 120)
+                    if density > best_weight_density:
+                        best_weight_density = density
+                        best_pos = pos
 
-            if all_matches:
-                all_matches.sort()
-                best_pos = all_matches[0]
-                best_density = 0
-                for m in all_matches:
-                    density = sum(1 for other in all_matches if abs(other - m) <= 160)
-                    if density > best_density:
-                        best_density = density
-                        best_pos = m
-
-                start_pos = max(0, best_pos - 90)
-                # Check for numbered section headers like "8. BrewPoints"
-                header_match = re.search(r"\n([0-9]+\.\s+[^\n]+)", content[max(0, best_pos - 140):best_pos + 10])
+                start_pos = max(0, best_pos - 80)
+                # Check for numbered section headers like "4. Returns and Refunds"
+                header_window_start = max(0, best_pos - 150)
+                header_match = re.search(r"(?:^|\n)([0-9]+\.\s+[^\n]+)", content[header_window_start:best_pos + 10])
                 if header_match:
-                    start_pos = max(0, best_pos - 140) + header_match.start() + 1
+                    start_pos = header_window_start + header_match.start(1)
                 else:
-                    prev_nl = content.rfind("\n", max(0, start_pos - 40), start_pos + 20)
+                    prev_nl = content.rfind("\n", max(0, start_pos - 50), start_pos + 20)
                     if prev_nl != -1:
                         start_pos = prev_nl + 1
 
-                end_pos = min(len(content), start_pos + 300)
+                end_pos = min(len(content), start_pos + 280)
                 next_nl = content.find("\n\n", end_pos - 30, min(len(content), end_pos + 60))
                 if next_nl != -1:
                     end_pos = next_nl
@@ -373,20 +447,28 @@ class HybridRAGEngine:
             else:
                 excerpt = content[:250].strip() + ("..." if len(content) > 250 else "")
 
-            highlight_list = sorted(list(set(q_matches + [m for m in ans_matches if len(m) >= 3])), key=len, reverse=True)
+            hl_unique = sorted(list(set(highlight_list)), key=len, reverse=True)
 
-            candidate_citations.append({
+            scored_candidates.append({
                 "match_score": match_score,
-                "has_query_match": len(q_matches) > 0,
+                "has_query_match": len(matched_q) > 0,
                 "document_name": doc_name,
                 "document_id": doc_id,
                 "page_number": page_num,
                 "chunk_id": c["id"],
                 "excerpt": excerpt,
-                "highlight_terms": highlight_list[:6],
+                "highlight_terms": hl_unique[:6],
                 "has_pdf_preview": doc_name.lower().endswith(".pdf")
             })
 
+        # Deduplicate per page: pick the single highest-scoring chunk for each (document_name, page_number)
+        chunks_by_page = {}
+        for item in scored_candidates:
+            page_key = (item["document_name"], item["page_number"])
+            if page_key not in chunks_by_page or item["match_score"] > chunks_by_page[page_key]["match_score"]:
+                chunks_by_page[page_key] = item
+
+        candidate_citations = list(chunks_by_page.values())
         candidate_citations.sort(key=lambda x: x["match_score"], reverse=True)
 
         if candidate_citations:
@@ -396,7 +478,7 @@ class HybridRAGEngine:
                 filtered = [
                     c for c in candidate_citations 
                     if (c["has_query_match"] and c["document_name"] == top_candidate["document_name"])
-                    or (c["match_score"] >= (top_candidate["match_score"] * 0.6) and c["has_query_match"])
+                    or (c["match_score"] >= (top_candidate["match_score"] * 0.5) and c["has_query_match"])
                 ]
                 if not filtered:
                     filtered = [top_candidate]

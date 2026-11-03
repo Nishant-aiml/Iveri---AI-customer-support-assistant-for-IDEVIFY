@@ -171,5 +171,57 @@ class TestPhase4Chat(unittest.IsolatedAsyncioTestCase):
         self.assertIn("application/javascript", widget_res.headers.get("content-type", ""))
         print("[PASS] CHAT-05: Chat history transcript and widget.js static serving verified.")
 
+    async def test_06_citation_ranking_inflections_and_deduplication(self):
+        # Ingest multi-chunk policy mimicking coffee store guide
+        doc_chunks = [
+            {
+                "id": "chunk-p1-s4",
+                "content": "4. Returns and Refunds\nCoffee beans: Because coffee is perishable, we do not accept returns of opened bags. Unopened bags can be returned within 7 days of delivery. Equipment can be returned within 15 days.",
+                "metadata": {"document_name": "BrewNest_Customer_Help_Guide.pdf", "page_number": 1, "chunk_index": 2}
+            },
+            {
+                "id": "chunk-p2-shipping",
+                "content": "Return shipping: For all other returns, the customer pays a return shipping fee of Rs. 100. Refunds are processed within 5 to 7 business days after we receive the returned item, to the original payment method.",
+                "metadata": {"document_name": "BrewNest_Customer_Help_Guide.pdf", "page_number": 2, "chunk_index": 4}
+            },
+            {
+                "id": "chunk-p2-product-info",
+                "content": "9. Product Information\nAll BrewNest coffee is vegan and gluten-free. For best flavor, use beans within 60 days of the roast date printed on the bag.",
+                "metadata": {"document_name": "BrewNest_Customer_Help_Guide.pdf", "page_number": 2, "chunk_index": 7}
+            }
+        ]
+        await rag_engine.index_document_chunks(self.biz_id, doc_chunks)
+
+        s_res = await self.client.post("/api/chat/session", json={
+            "business_slug_or_token": self.slug,
+            "channel": "widget"
+        })
+        session_id = s_res.json()["id"]
+
+        # User asks with typo and inflection stems ("can i return the cofee bag")
+        m_res = await self.client.post("/api/chat/message", json={
+            "session_id": session_id,
+            "message": "can i return the cofee bag"
+        })
+        self.assertEqual(m_res.status_code, 200)
+        data = m_res.json()
+        citations = data.get("citations", [])
+        self.assertTrue(len(citations) >= 1)
+
+        # Primary citation must be Page 1 (Section 4: Returns and Refunds)
+        top_cite = citations[0]
+        self.assertEqual(top_cite["page_number"], 1)
+        self.assertTrue("return" in top_cite["excerpt"].lower())
+        self.assertTrue("unopened bags can be returned" in top_cite["excerpt"].lower())
+
+        # If second citation exists, it must be the return shipping on Page 2, NEVER Product Information (vegan bag)
+        if len(citations) > 1:
+            second_cite = citations[1]
+            self.assertEqual(second_cite["page_number"], 2)
+            self.assertIn("Return shipping", second_cite["excerpt"])
+            self.assertNotIn("vegan", second_cite["excerpt"].lower())
+
+        print("[PASS] CHAT-06: Citation ranking prioritized Page 1 direct answer and excluded irrelevant product info chunk.")
+
 if __name__ == "__main__":
     unittest.main()

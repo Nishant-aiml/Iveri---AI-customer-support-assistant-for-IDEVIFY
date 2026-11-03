@@ -563,11 +563,36 @@ async def get_citation_page_preview(
         page = pdf_doc[page_idx]
 
         # Gather highlight phrases
+        import difflib
         terms_to_highlight = set()
+        chunk_words = set(re.findall(r"\b[a-zA-Z]{3,}\b", chunk.content.lower()))
+
         if query:
-            stop_words = {"what", "is", "are", "how", "much", "many", "the", "for", "with", "from", "tell", "about", "your", "our", "do", "does", "can", "you", "this", "that"}
+            stop_words = {"what", "is", "are", "how", "much", "many", "the", "for", "with", "from", "tell", "about", "your", "our", "do", "does", "can", "you", "this", "that", "i", "we", "my", "it"}
             q_words = [w for w in re.findall(r"\b[a-zA-Z0-9_\-]+\b", query) if w.lower() not in stop_words and len(w) >= 3]
-            terms_to_highlight.update(q_words)
+            for qw in q_words:
+                terms_to_highlight.add(qw)
+                if qw.lower() not in chunk_words:
+                    close = difflib.get_close_matches(qw.lower(), list(chunk_words), n=1, cutoff=0.78)
+                    if close:
+                        terms_to_highlight.add(close[0])
+
+        # Expand inflections for PDF visual search
+        expanded_terms = set(terms_to_highlight)
+        for term in terms_to_highlight:
+            t_low = term.lower()
+            if len(t_low) >= 3:
+                expanded_terms.add(t_low + "s")
+                expanded_terms.add(t_low + "es")
+                expanded_terms.add(t_low + "ed")
+                expanded_terms.add(t_low + "ing")
+                if t_low.endswith("s") and not t_low.endswith("ss"):
+                    expanded_terms.add(t_low[:-1])
+                if t_low.endswith("ed"):
+                    expanded_terms.add(t_low[:-2])
+                if t_low.endswith("ing"):
+                    expanded_terms.add(t_low[:-3])
+        terms_to_highlight = expanded_terms
 
         # Extract sentences from chunk content that match query
         chunk_lines = [line_str.strip() for line_str in chunk.content.split("\n") if len(line_str.strip()) > 6]
