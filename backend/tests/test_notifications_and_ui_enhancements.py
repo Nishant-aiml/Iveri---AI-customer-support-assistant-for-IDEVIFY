@@ -206,6 +206,20 @@ class TestNotificationsAndUiEnhancements(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(sub_res.status_code, 200)
         self.assertEqual(sub_res.json()["status"], "success")
 
+        # 2b. Check push status endpoint
+        status_res = await self.client.get("/api/notifications/push/status", headers=self.headers)
+        self.assertEqual(status_res.status_code, 200)
+        status_data = status_res.json()
+        self.assertTrue(status_data["has_active_devices"])
+        self.assertGreaterEqual(status_data["device_count"], 1)
+
+        # 2c. Check test push dispatch endpoint
+        test_push_res = await self.client.post("/api/notifications/push/test", headers=self.headers)
+        self.assertEqual(test_push_res.status_code, 200)
+        test_data = test_push_res.json()
+        self.assertEqual(test_data["status"], "success")
+        self.assertEqual(test_data["total_devices"], 1)
+
         # 3. Check Service Worker badging and push contracts
         sw_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "static", "sw.js"))
         with open(sw_path, "r", encoding="utf-8") as f:
@@ -224,3 +238,5 @@ class TestNotificationsAndUiEnhancements(unittest.IsolatedAsyncioTestCase):
         self.assertIn("syncPushSubscription", html_code)
         self.assertIn("setAppBadge", html_code)
         self.assertIn("clearAppBadge", html_code)
+        self.assertIn("triggerTestPushAlert", html_code)
+        self.assertIn("avatar-unread-badge", html_code)

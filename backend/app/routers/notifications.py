@@ -173,3 +173,63 @@ async def subscribe_push_notifications(
         await db.commit()
 
     return {"status": "success", "message": "Device successfully subscribed to real-time mobile push notifications."}
+
+@router.get("/push/status", response_model=Dict[str, Any])
+async def get_push_status(
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Checks whether the business owner has active push-subscribed devices."""
+    biz_id = owner.business_id
+    query = select(func.count(PushSubscription.id)).where(PushSubscription.business_id == biz_id)
+    count = (await db.execute(query)).scalar() or 0
+    return {
+        "has_active_devices": count > 0,
+        "device_count": count
+    }
+
+@router.post("/push/test", response_model=Dict[str, Any])
+async def test_push_notification(
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Dispatches a real-time test push notification to all subscribed mobile/desktop devices.
+    Allows owners to verify background ringing, vibration, and app icon badges with the app closed.
+    """
+    biz_id = owner.business_id
+    query = select(PushSubscription).where(PushSubscription.business_id == biz_id)
+    subs = (await db.execute(query)).scalars().all()
+
+    if not subs:
+        return {
+            "status": "warning",
+            "sent_count": 0,
+            "message": "No registered phone or browser devices found. Please tap 'Enable Mobile Push' and allow browser notifications first."
+        }
+
+    sent_count = 0
+    test_payload = {
+        "title": "🔔 Iveri Live Test Alert",
+        "body": "Your device is connected! Notifications and app icon badges work even when the app is closed.",
+        "url": "/dashboard#tickets",
+        "unread_count": 1,
+        "tag": "iveri-live-test",
+        "ticket_number": "TEST-LIVE"
+    }
+
+    for sub in subs:
+        sub_dict = {"endpoint": sub.endpoint, "keys": {"p256dh": sub.p256dh, "auth": sub.auth}}
+        try:
+            ok = await push_service.send_web_push(sub_dict, test_payload)
+            if ok:
+                sent_count += 1
+        except Exception:
+            pass
+
+    return {
+        "status": "success",
+        "sent_count": sent_count,
+        "total_devices": len(subs),
+        "message": f"Dispatched live test notification to {sent_count} device(s)!"
+    }

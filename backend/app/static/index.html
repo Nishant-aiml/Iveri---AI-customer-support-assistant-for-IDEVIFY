@@ -367,7 +367,10 @@
       
       <!-- Brand & Mobile Status -->
       <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0 shrink">
-        <img src="/static/icons/iveri-avatar.svg" alt="Iveri AI" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-xs shrink-0 object-cover border border-indigo-200">
+        <div class="relative shrink-0">
+          <img src="/static/icons/iveri-avatar.svg" alt="Iveri AI" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-xs shrink-0 object-cover border border-indigo-200">
+          <span id="avatar-unread-badge" class="hidden absolute -top-1 -right-1 min-w-[15px] h-[15px] text-[9px] font-bold text-white bg-rose-500 rounded-full flex items-center justify-center px-0.5 border border-white">0</span>
+        </div>
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 sm:gap-2">
             <span class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight truncate">Iveri Console</span>
@@ -418,6 +421,25 @@
                 </button>
               </div>
             </div>
+            <!-- Push Notification & Badging Controls Bar -->
+            <div id="push-status-bar" class="p-2.5 bg-gradient-to-r from-slate-50 to-indigo-50/50 border-b border-slate-100 flex items-center justify-between gap-2">
+              <div id="push-status-indicator" class="flex items-center gap-1.5 text-[11px] font-sans">
+                <span id="push-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
+                <span class="text-slate-600 font-medium">Closed-App Alerts:</span>
+                <span id="push-status-label" class="text-amber-700 font-bold">Needs Permission</span>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button onclick="requestPushPermission()" id="push-toggle-btn" class="px-2 py-1 bg-primary hover:bg-primary-hover text-white rounded-lg text-[10.5px] font-bold flex items-center gap-1 shadow-2xs transition">
+                  <span class="material-symbols-outlined text-[13px]">notifications_active</span>
+                  <span>Enable Push</span>
+                </button>
+                <button onclick="triggerTestPushAlert()" id="push-test-btn" class="hidden px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10.5px] font-bold flex items-center gap-1 shadow-2xs transition" title="Dispatches live test vibration and app badge to this phone">
+                  <span class="material-symbols-outlined text-[13px]">send_to_mobile</span>
+                  <span>Test Alert</span>
+                </button>
+              </div>
+            </div>
+
             <!-- Sub-Tabs: All vs Unread Filter -->
             <div class="px-3 py-1.5 bg-white border-b border-slate-100 flex items-center justify-between gap-2">
               <div class="flex items-center gap-1">
@@ -428,9 +450,7 @@
                   Unread (<span id="notif-tab-unread-count">0</span>)
                 </button>
               </div>
-              <button onclick="requestPushPermission()" id="push-toggle-btn" class="text-[10px] text-primary hover:underline font-medium flex items-center gap-0.5">
-                <span class="material-symbols-outlined text-[12px]">notifications</span> Push Alerts
-              </button>
+              <span class="text-[10px] text-slate-400 font-mono">App Icon Badge Sync ✓</span>
             </div>
             <div id="notif-list" class="max-h-80 sm:max-h-96 overflow-y-auto divide-y divide-slate-100 text-xs">
               <div class="p-6 text-center text-slate-400 font-mono text-xs">Loading alerts...</div>
@@ -2212,7 +2232,7 @@
           <ol class="text-[11px] text-slate-600 list-decimal list-inside space-y-1.5 font-sans pl-1">
             <li>Tap the <strong>three dots (⋮)</strong> in Chrome (or the "Install Now" button above).</li>
             <li>Tap <strong>"Install app"</strong> (or "Add to Home screen") ➔ Confirm <strong>"Install"</strong>.</li>
-            <li><strong>Where is it?</strong> Android adds the app in the background. Swipe to your <strong>Home Screen</strong> or open your <strong>App Drawer</strong> to find and open the <strong>"Iveri"</strong> app icon!</li>
+            <li><strong>Why does it take a moment?</strong> Android compiles and signs a real WebAPK package in the background. Look at your phone's notification bar: once complete, the <strong>"Iveri"</strong> app icon will appear directly on your <strong>Home Screen</strong>!</li>
           </ol>
         </div>
 
@@ -2476,10 +2496,11 @@
       if ('Notification' in window && Notification.permission === 'default') {
         const banner = document.getElementById('desktop-notif-prompt');
         if (banner) banner.classList.remove('hidden');
+        if (typeof updatePushStatusUI === 'function') updatePushStatusUI(false);
       } else if ('Notification' in window && Notification.permission === 'granted') {
-        const toggleBtn = document.getElementById('push-toggle-btn');
-        if (toggleBtn) toggleBtn.innerText = 'Push Active ✓';
         if (typeof syncPushSubscription === 'function') syncPushSubscription();
+      } else {
+        if (typeof updatePushStatusUI === 'function') updatePushStatusUI(false);
       }
     }
 
@@ -5380,6 +5401,9 @@
         document.getElementById('pwa-install-btn')?.classList.add('hidden');
         document.getElementById('pwa-mobile-banner')?.classList.add('hidden');
         closePwaInstallModal();
+        if (typeof showToast === 'function') {
+          showToast("⏳ Android is adding Iveri in the background. Check your notification drawer or Home Screen shortly!", "info");
+        }
       }
       deferredPrompt = null;
     }
@@ -5408,7 +5432,7 @@
             document.getElementById('pwa-install-btn')?.classList.add('hidden');
             document.getElementById('pwa-mobile-banner')?.classList.add('hidden');
             if (typeof showToast === 'function') {
-              showToast("🎉 Iveri App successfully added to your device!", "success");
+              showToast("⏳ Android is adding Iveri in the background. Check your notification drawer or Home Screen shortly!", "info");
             }
           }
           deferredPrompt = null;
@@ -6059,6 +6083,7 @@
       if (drop) drop.classList.toggle('hidden');
       if (drop && !drop.classList.contains('hidden')) {
         loadNotifications();
+        if (typeof checkServerPushStatus === 'function') checkServerPushStatus();
       }
     }
 
@@ -6344,15 +6369,21 @@
           lastUnreadCount = unreadCount;
         }
 
-        // 2. Bell Badge Indicator
+        // 2. Bell Badge Indicator & Header Avatar DP Badge
         const badge = document.getElementById('notif-badge');
-        if (badge) {
-          if (unreadCount > 0) {
+        const avatarBadge = document.getElementById('avatar-unread-badge');
+        if (unreadCount > 0) {
+          if (badge) {
             badge.innerText = unreadCount;
             badge.classList.remove('hidden');
-          } else {
-            badge.classList.add('hidden');
           }
+          if (avatarBadge) {
+            avatarBadge.innerText = unreadCount;
+            avatarBadge.classList.remove('hidden');
+          }
+        } else {
+          if (badge) badge.classList.add('hidden');
+          if (avatarBadge) avatarBadge.classList.add('hidden');
         }
 
         // 2b. Native App Icon Badge on phone home screen (like WhatsApp)
@@ -6506,8 +6537,72 @@
       return outputArray;
     }
 
+    function updatePushStatusUI(isActive, deviceCount = 1) {
+      const dot = document.getElementById('push-dot');
+      const label = document.getElementById('push-status-label');
+      const toggleBtn = document.getElementById('push-toggle-btn');
+      const testBtn = document.getElementById('push-test-btn');
+      const banner = document.getElementById('desktop-notif-prompt');
+
+      if (isActive) {
+        if (dot) {
+          dot.className = "w-2 h-2 rounded-full bg-emerald-500 animate-pulse";
+        }
+        if (label) {
+          label.className = "text-emerald-700 font-bold";
+          label.innerText = `Active (${deviceCount} device${deviceCount > 1 ? 's' : ''}) ✓`;
+        }
+        if (toggleBtn) {
+          toggleBtn.classList.add('hidden');
+        }
+        if (testBtn) {
+          testBtn.classList.remove('hidden');
+        }
+        if (banner) {
+          banner.classList.add('hidden');
+        }
+      } else {
+        if (dot) {
+          dot.className = "w-2 h-2 rounded-full bg-amber-500";
+        }
+        if (label) {
+          label.className = "text-amber-700 font-bold";
+          label.innerText = "Needs Permission";
+        }
+        if (toggleBtn) {
+          toggleBtn.classList.remove('hidden');
+        }
+        if (testBtn) {
+          testBtn.classList.add('hidden');
+        }
+      }
+    }
+
+    async function checkServerPushStatus() {
+      if (!authToken) return;
+      try {
+        const res = await fetch('/api/notifications/push/status', {
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.has_active_devices && Notification.permission === 'granted') {
+            updatePushStatusUI(true, data.device_count);
+          } else {
+            updatePushStatusUI(false);
+          }
+        }
+      } catch (e) {
+        console.warn("checkServerPushStatus error:", e);
+      }
+    }
+
     async function syncPushSubscription() {
       if (!('serviceWorker' in navigator) || !('PushManager' in window) || !authToken) return;
+      if (!('Notification' in window) || Notification.permission !== 'granted') {
+        updatePushStatusUI(false);
+        return;
+      }
       try {
         const reg = await navigator.serviceWorker.ready;
         const vapidRes = await fetch('/api/notifications/push/vapid-public-key');
@@ -6515,8 +6610,30 @@
         const { public_key } = await vapidRes.json();
         if (!public_key) return;
 
-        let sub = await reg.pushManager.getSubscription();
         const appServerKey = urlBase64ToUint8Array(public_key);
+        let sub = await reg.pushManager.getSubscription();
+
+        if (sub) {
+          // Verify if existing subscription matches current VAPID public key
+          const rawKey = sub.options?.applicationServerKey;
+          let keyMismatch = false;
+          if (rawKey) {
+            const rawArr = new Uint8Array(rawKey);
+            let binary = '';
+            for (let i = 0; i < rawArr.byteLength; i++) {
+              binary += String.fromCharCode(rawArr[i]);
+            }
+            const existingB64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            if (existingB64 !== public_key) {
+              keyMismatch = true;
+            }
+          }
+          if (keyMismatch) {
+            console.info("[Iveri Push] VAPID key refreshed, re-subscribing...");
+            await sub.unsubscribe();
+            sub = null;
+          }
+        }
 
         if (!sub) {
           sub = await reg.pushManager.subscribe({
@@ -6524,9 +6641,10 @@
             applicationServerKey: appServerKey
           });
         }
+
         const subJson = sub.toJSON();
         if (subJson && subJson.endpoint) {
-          await fetch('/api/notifications/push/subscribe', {
+          const res = await fetch('/api/notifications/push/subscribe', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
             body: JSON.stringify({
@@ -6535,12 +6653,14 @@
               auth: subJson.keys?.auth || ''
             })
           });
-          const toggleBtn = document.getElementById('push-toggle-btn');
-          if (toggleBtn) toggleBtn.innerText = "Push Active ✓";
-          console.info("[Iveri Push] Background PushSubscription synced with server successfully.");
+          if (res.ok) {
+            updatePushStatusUI(true);
+            console.info("[Iveri Push] Background PushSubscription synced with server successfully.");
+          }
         }
       } catch (swErr) {
-        console.info("[Iveri Push] Subscription sync notice:", swErr);
+        console.warn("[Iveri Push] Subscription sync error:", swErr);
+        updatePushStatusUI(false);
       }
     }
 
@@ -6553,24 +6673,48 @@
         const perm = await Notification.requestPermission();
         if (perm === 'granted') {
           playNotificationChime();
-          try {
-            new Notification("🔔 Iveri Alerts Active!", {
-              body: "You will receive instant alerts on this device whenever tickets or WhatsApp messages arrive, even when the app is closed.",
-              icon: "/static/icons/icon-192.png"
-            });
-          } catch(e) {}
+          const banner = document.getElementById('desktop-notif-prompt');
+          if (banner) banner.classList.add('hidden');
 
           await syncPushSubscription();
 
-          const banner = document.getElementById('desktop-notif-prompt');
-          if (banner) banner.classList.add('hidden');
-          const toggleBtn = document.getElementById('push-toggle-btn');
-          if (toggleBtn) toggleBtn.innerText = "Push Active ✓";
+          if (typeof showToast === 'function') {
+            showToast("🔔 Phone push alerts activated! Sending live test to this device...", "success");
+          }
+          // Automatically trigger live test push so phone immediately vibrates and badges!
+          setTimeout(triggerTestPushAlert, 800);
         } else {
-          alert("Notification permission was dismissed or blocked in browser settings.");
+          alert("Notification permission was denied. To receive alerts when the app is closed, please enable notifications for this site in your phone's browser settings (tap the 🔒 lock icon next to the address bar ➔ Permissions ➔ Notifications ➔ Allow).");
+          updatePushStatusUI(false);
         }
       } catch (err) {
         console.error("requestPushPermission error:", err);
+      }
+    }
+
+    async function triggerTestPushAlert() {
+      if (!authToken) {
+        alert("Please sign in to test notifications.");
+        return;
+      }
+      try {
+        const res = await fetch('/api/notifications/push/test', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+          if (typeof showToast === 'function') {
+            showToast(`🎉 Test alert sent to ${data.sent_count} device(s)! Lock or switch apps to see it ring & badge your app icon.`, "success");
+          } else {
+            alert(`🎉 Test alert sent to ${data.sent_count} device(s)! Check your notification drawer and home screen app icon.`);
+          }
+        } else {
+          alert(data.message || "Failed to dispatch test alert.");
+        }
+      } catch (e) {
+        console.error("triggerTestPushAlert error:", e);
+        alert("Network error triggering test alert.");
       }
     }
 

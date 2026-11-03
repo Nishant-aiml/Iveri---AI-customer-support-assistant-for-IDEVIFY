@@ -1,19 +1,31 @@
 // Iveri AI Customer Support Assistant - Progressive Web App Service Worker
-const CACHE_NAME = 'iveri-pwa-v1';
-const STATIC_ASSETS = [
+const CACHE_NAME = 'iveri-pwa-v2';
+
+// 1. Critical lightweight assets needed immediately (sub-millisecond installation)
+const CRITICAL_SHELL = [
+  '/manifest.json',
+  '/static/icons/icon-192.png'
+];
+
+// 2. Secondary assets pre-cached asynchronously in background without blocking installation
+const SECONDARY_ASSETS = [
   '/',
   '/dashboard',
-  '/manifest.json',
-  '/static/icons/icon-192.png',
   '/static/icons/icon-512.png',
   '/static/icons/iveri-avatar.svg'
 ];
 
 self.addEventListener('install', (event) => {
+  // Ultra-fast non-blocking install: cache critical shell first so WebAPK minting/install completes instantly
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((err) => {
-        console.warn('PWA Asset pre-cache partial warning:', err);
+      return cache.addAll(CRITICAL_SHELL).then(() => {
+        // Defer heavier HTML views and 512px icon to background without delaying OS installation
+        cache.addAll(SECONDARY_ASSETS).catch((err) => {
+          console.warn('PWA secondary assets background cache warning:', err);
+        });
+      }).catch((err) => {
+        console.warn('PWA critical assets cache warning:', err);
       });
     })
   );
@@ -84,10 +96,14 @@ self.addEventListener('push', (event) => {
 
   // 1. Update Native Home Screen App Icon Badge Count (like WhatsApp)
   const unreadCount = parseInt(payload.unread_count || 1, 10);
+  const asyncTasks = [];
+
   if ('setAppBadge' in self.navigator) {
-    self.navigator.setAppBadge(unreadCount).catch((err) => {
-      console.warn('App badge set error:', err);
-    });
+    asyncTasks.push(
+      self.navigator.setAppBadge(unreadCount).catch((err) => {
+        console.warn('App badge set error:', err);
+      })
+    );
   }
 
   // 2. High-Priority System Notification (wakes closed phone with vibration & sound)
@@ -109,9 +125,9 @@ self.addEventListener('push', (event) => {
     requireInteraction: true
   };
 
-  event.waitUntil(
-    self.registration.showNotification(payload.title, notificationOptions)
-  );
+  asyncTasks.push(self.registration.showNotification(payload.title, notificationOptions));
+
+  event.waitUntil(Promise.all(asyncTasks));
 });
 
 // Notification Tap / Click Action
