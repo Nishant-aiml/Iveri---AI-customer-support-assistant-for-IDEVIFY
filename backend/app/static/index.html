@@ -1727,10 +1727,21 @@
   </main>
 
   <!-- In-Console Business Owner Navigation Copilot -->
-  <div class="fixed bottom-16 sm:bottom-6 right-3 sm:right-6 z-50">
-    <button id="copilot-btn" onclick="toggleCopilot()" class="px-3.5 sm:px-4 py-2.5 sm:py-3 bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white rounded-full shadow-lg flex items-center gap-1.5 sm:gap-2 font-semibold text-xs font-mono transition transform hover:scale-105">
-      <span class="material-symbols-outlined text-[17px] sm:text-[18px]">assistant</span>
-      <span>Console Copilot</span>
+  <div id="copilot-container" class="fixed bottom-20 md:bottom-6 right-3 sm:right-6 z-50 flex items-center gap-1.5 select-none">
+    <!-- Collapsible Full Pill -->
+    <div id="copilot-pill" class="flex items-center bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white rounded-full shadow-lg shadow-indigo-500/25 transition-all transform hover:scale-102">
+      <button id="copilot-btn" onclick="toggleCopilot()" class="px-3.5 sm:px-4 py-2 sm:py-2.5 flex items-center gap-1.5 sm:gap-2 font-semibold text-xs font-mono text-white focus:outline-none">
+        <span class="material-symbols-outlined text-[17px] sm:text-[18px]">assistant</span>
+        <span>Console Copilot</span>
+      </button>
+      <button onclick="minimizeCopilot(event)" title="Minimize Copilot to small icon" class="pr-2.5 pl-1 py-2 sm:py-2.5 text-white/70 hover:text-white flex items-center justify-center transition border-l border-white/20">
+        <span class="material-symbols-outlined text-[15px]">remove</span>
+      </button>
+    </div>
+
+    <!-- Minimized Floating Action Circle (FAB) -->
+    <button id="copilot-fab" onclick="restoreCopilot(true)" title="Expand Console Copilot" class="hidden w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white shadow-lg shadow-indigo-500/30 flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 border border-white/40 group">
+      <span class="material-symbols-outlined text-[19px] group-hover:rotate-12 transition-transform">assistant</span>
     </button>
 
     <!-- Copilot Window -->
@@ -1740,7 +1751,12 @@
           <span class="material-symbols-outlined text-primary text-base">explore</span>
           <span class="font-bold">Business Console Copilot</span>
         </div>
-        <button onclick="toggleCopilot()" class="text-slate-400 hover:text-white text-base">×</button>
+        <div class="flex items-center gap-1">
+          <button onclick="minimizeCopilot(event)" title="Minimize" class="w-6 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition">
+            <span class="material-symbols-outlined text-[15px]">remove</span>
+          </button>
+          <button onclick="toggleCopilot()" title="Close" class="w-6 h-6 rounded flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 text-base leading-none transition">×</button>
+        </div>
       </div>
 
       <div id="copilot-messages" class="p-4 bg-slate-50 space-y-3 max-h-72 overflow-y-auto font-mono text-[11px]">
@@ -2055,6 +2071,7 @@
 
       await loadBusinessProfile();
       loadDashboardData();
+      initCopilotState();
       loadAnalyticsCharts();
       if (typeof loadDocuments === 'function') loadDocuments();
       if (typeof loadNotifications === 'function') {
@@ -2408,6 +2425,9 @@
 
     async function downloadPowerBiExport() {
       try {
+        if (typeof showToast === 'function') {
+          showToast("Preparing Power BI CSV dataset export...", "info");
+        }
         const url = `/api/dashboard/export/powerbi?format=csv${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
         const headers = authToken ? { 'Authorization': `Bearer ${authToken}` } : {};
         const res = await fetch(url, { headers });
@@ -2423,8 +2443,14 @@
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(blobUrl);
+        if (typeof showToast === 'function') {
+          showToast("📥 Power BI dataset CSV downloaded successfully!", "success");
+        }
       } catch (err) {
         console.warn("Direct blob export failed, falling back to URL navigation:", err);
+        if (typeof showToast === 'function') {
+          showToast("Direct download failed, initiating browser fallback...", "info");
+        }
         const fallbackUrl = `/api/dashboard/export/powerbi?format=csv${authToken ? `&token=${encodeURIComponent(authToken)}` : ''}`;
         window.location.href = fallbackUrl;
       }
@@ -3466,10 +3492,56 @@
       }
     }
 
-    // Copilot Navigation Assistant
+    // Copilot Navigation Assistant & Minimization
     function toggleCopilot() {
-      document.getElementById('copilot-window').classList.toggle('hidden');
+      const win = document.getElementById('copilot-window');
+      if (win) win.classList.toggle('hidden');
     }
+
+    function minimizeCopilot(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const pill = document.getElementById('copilot-pill');
+      const fab = document.getElementById('copilot-fab');
+      const win = document.getElementById('copilot-window');
+      if (win) win.classList.add('hidden');
+      if (pill) pill.classList.add('hidden');
+      if (fab) fab.classList.remove('hidden');
+      try {
+        localStorage.setItem('iveri_copilot_minimized', 'true');
+      } catch (_) {}
+    }
+
+    function restoreCopilot(openWindow = false) {
+      const pill = document.getElementById('copilot-pill');
+      const fab = document.getElementById('copilot-fab');
+      const win = document.getElementById('copilot-window');
+      if (pill) pill.classList.remove('hidden');
+      if (fab) fab.classList.add('hidden');
+      if (openWindow && win) {
+        win.classList.remove('hidden');
+      }
+      try {
+        localStorage.setItem('iveri_copilot_minimized', 'false');
+      } catch (_) {}
+    }
+
+    function initCopilotState() {
+      try {
+        const isMin = localStorage.getItem('iveri_copilot_minimized') === 'true';
+        if (isMin) {
+          const pill = document.getElementById('copilot-pill');
+          const fab = document.getElementById('copilot-fab');
+          const win = document.getElementById('copilot-window');
+          if (win) win.classList.add('hidden');
+          if (pill) pill.classList.add('hidden');
+          if (fab) fab.classList.remove('hidden');
+        }
+      } catch (_) {}
+    }
+    initCopilotState();
 
     function copilotNavigate(tabId) {
       switchTab(tabId);
@@ -3694,13 +3766,13 @@
       }
     }
 
-    // --- Global Toast Notification Utility ---
+    // --- Global Toast Notification Utility (Positioned at Top-Right to prevent button/copilot overlap) ---
     function showToast(message, type = 'info') {
       let container = document.getElementById('global-toast-container');
       if (!container) {
         container = document.createElement('div');
         container.id = 'global-toast-container';
-        container.className = 'fixed bottom-5 right-5 z-[9999] flex flex-col gap-2 max-w-sm pointer-events-none';
+        container.className = 'fixed top-4 sm:top-5 right-4 sm:right-5 z-[99999] flex flex-col gap-2 max-w-sm pointer-events-none';
         document.body.appendChild(container);
       }
       const toast = document.createElement('div');
@@ -3711,7 +3783,7 @@
       const icon = isError ? 'error' : (type === 'success' ? 'check_circle' : 'info');
       const iconColor = isError ? 'text-rose-400' : (type === 'success' ? 'text-emerald-400' : 'text-indigo-400');
 
-      toast.className = `flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border text-xs font-medium shadow-xl pointer-events-auto transition-all duration-300 transform translate-y-2 opacity-0 ${bgClass}`;
+      toast.className = `flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border text-xs font-medium shadow-xl pointer-events-auto transition-all duration-300 transform -translate-y-2 opacity-0 ${bgClass}`;
       toast.innerHTML = `
         <span class="material-symbols-outlined text-[18px] ${iconColor} shrink-0">${icon}</span>
         <span class="flex-1 text-[12px] leading-tight">${escapeHtml(message)}</span>
@@ -3719,10 +3791,10 @@
       `;
       container.appendChild(toast);
       requestAnimationFrame(() => {
-        toast.classList.remove('translate-y-2', 'opacity-0');
+        toast.classList.remove('-translate-y-2', 'opacity-0');
       });
       setTimeout(() => {
-        toast.classList.add('opacity-0', 'translate-y-2');
+        toast.classList.add('opacity-0', '-translate-y-2');
         setTimeout(() => toast.remove(), 300);
       }, 4000);
     }
