@@ -59,7 +59,8 @@ Strict Grounding & Operational Guardrails:
    - When the customer's question refers back to a previous message or topic using pronouns like 'this', 'that', 'it', 'these', 'those' (e.g. 'how much is this worth?'), answer based on the continuation of the preceding conversation topic using the verified context excerpts above.
    - When answering a continuation question that could refer to multiple items or where the customer might mean something else, provide the grounded answer continuing from the previous topic, and conclude with a polite clarification offer:
      "(If you were referring to a different product, plan, or item, please let me know and I'll be glad to look that up for you!)"
-   - If the customer asks a vague pronoun inquiry (e.g., 'how much is this worth?') with NO preceding conversation history or context to resolve what 'this' refers to, do not answer with [UNKNOWN]; instead, politely ask:
+   - General Inquiries: If the customer asks about products, services, or plans in general (e.g. 'what is the product', 'what do you offer', 'tell me about your plans'), summarize or list the offerings described in the context excerpts.
+   - Ambiguous Referents: Only if the customer asks an isolated pronoun inquiry (such as 'how much is this worth?' or 'what is that?') where the referent is completely absent from both the question and previous turns, politely ask:
      "Could you please specify which product, service, or item you are asking about? Let me know and I will be happy to find the exact details and pricing for you!"
 """
 
@@ -329,9 +330,34 @@ class MultiTierLLMClient:
                                 f"*(If you were referring to a different product, plan, or item, please let me know and I'll be glad to look that up for you!)*"
                             )
 
-        # Standalone pronoun inquiry with no prior conversational context
-        PRONOUN_FOLLOWUPS = {"this", "that", "it"}
-        if any(p in q_lower.split() for p in PRONOUN_FOLLOWUPS) and not chat_history:
+        # Standalone ambiguous pronoun inquiry with no prior conversational context and no domain entity
+        DOMAIN_SPECIFIC_WORDS = {
+            "express", "shipping", "delivery", "deliver", "ship", "return", "returns", "refund", "refunds", "exchange",
+            "warranty", "guarantee", "repair", "plan", "plans", "broadband", "speed", "data",
+            "gst", "tax", "taxes", "vat", "subscription", "subscriptions", "subscribe", "coffee", "roast", "beans",
+            "router", "installation", "outage", "relocation", "contact", "support", "hours",
+            "damaged", "defect", "defective", "brewpoint", "brewpoints", "loyalty", "point", "points"
+        }
+        tokens = set(re.findall(r"\b\w+\b", q_lower))
+        has_domain_word = bool(tokens & DOMAIN_SPECIFIC_WORDS)
+
+        GENERIC_PRONOUN_PATTERNS = {
+            "how much is this worth", "how much is that worth", "how much is it worth",
+            "how much is this", "how much is that", "how much is it",
+            "what is this", "what is that", "what is it",
+            "what is this worth", "what is that worth",
+            "value of this", "value of that", "worth of this", "worth of that",
+            "how much does this cost", "how much does that cost", "how much does it cost",
+            "tell me about this", "tell me about that"
+        }
+        clean_q = re.sub(r"[^\w\s]", "", q_lower).strip()
+        is_generic_pronoun = (clean_q in GENERIC_PRONOUN_PATTERNS) or (
+            tokens.issubset({"how", "much", "is", "does", "what", "tell", "me", "about", "the", "a", "an", "cost", "worth", "value", "this", "that", "it", "these", "those"})
+            and bool(tokens & {"this", "that", "it", "these", "those"})
+            and not has_domain_word
+        )
+
+        if is_generic_pronoun and not chat_history:
             return "Could you please specify which product, plan, or item you are asking about? Let me know and I'll be happy to look up the exact details and value for you!"
 
         # Helper to find any chunk containing specific keywords

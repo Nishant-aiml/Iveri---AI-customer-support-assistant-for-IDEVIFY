@@ -244,6 +244,11 @@ class HybridRAGEngine:
         # Step 5.5: Outbound Guardrail Check (Secret Leakage & Grounding Filter)
         generated_answer = guardrails_service.check_outbound_safety(generated_answer, fallback_msg)
 
+        # Standardize typography, unicode non-breaking spaces, and percentage formatting
+        import unicodedata
+        generated_answer = unicodedata.normalize('NFKC', generated_answer)
+        generated_answer = re.sub(r"(\d+)\s+%", r"\1%", generated_answer)
+
         # Step 6: Post-generation Unknown and Inability-to-Answer check
         ans_lower = generated_answer.strip().lower()
         UNKNOWN_SIGNATURES = [

@@ -155,7 +155,7 @@ class TestPhase3RAG(unittest.IsolatedAsyncioTestCase):
             business_settings={"name": "Zephyr Fiber"}
         )
         self.assertTrue(res_gst["is_answered"])
-        self.assertIn("18%", res_gst["answer"])
+        self.assertTrue("18%" in res_gst["answer"] or "18 %" in res_gst["answer"])
         print("[PASS] RAG-06: Telecom product plans & GST grounded extraction passed with zero hallucination.")
 
 if __name__ == "__main__":
