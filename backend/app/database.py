@@ -135,6 +135,7 @@ async def init_db():
                 await add_column_if_missing("businesses", "enable_callback", "BOOLEAN DEFAULT 1")
                 await add_column_if_missing("businesses", "callback_channel", "VARCHAR(50) DEFAULT 'phone_and_email'")
                 await add_column_if_missing("businesses", "callback_button_text", "VARCHAR(100) DEFAULT 'Request Callback'")
+                await add_column_if_missing("businesses", "show_sources", "BOOLEAN DEFAULT 1")
 
                 # chat_messages migrations
                 await add_column_if_missing("chat_messages", "sentiment", "VARCHAR(20) DEFAULT 'neutral'")
@@ -160,6 +161,7 @@ async def init_db():
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS enable_callback BOOLEAN DEFAULT TRUE",
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS callback_channel VARCHAR(50) DEFAULT 'phone_and_email'",
                     "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS callback_button_text VARCHAR(100) DEFAULT 'Request Callback'",
+                    "ALTER TABLE businesses ADD COLUMN IF NOT EXISTS show_sources BOOLEAN DEFAULT TRUE",
                     "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20) DEFAULT 'neutral'",
                     "ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS topic VARCHAR(50) DEFAULT 'general'",
                     "ALTER TABLE chat_sessions ADD COLUMN IF NOT EXISTS sentiment VARCHAR(20) DEFAULT 'neutral'",

@@ -6,7 +6,8 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 
 from httpx import AsyncClient, ASGITransport
 from app.main import app
-from app.database import init_db
+from app.database import init_db, AsyncSessionLocal
+from app.models.document import Document, DocumentChunk
 from app.services.rag_engine import rag_engine
 
 class TestPhase4Chat(unittest.IsolatedAsyncioTestCase):
@@ -28,6 +29,7 @@ class TestPhase4Chat(unittest.IsolatedAsyncioTestCase):
             data = res.json()
             self.slug = data["business_slug"]
             self.biz_id = data["business_id"]
+            self.token = data.get("access_token")
         else:
             # Login if existing
             login_res = await self.client.post("/api/auth/login", json={
@@ -37,6 +39,7 @@ class TestPhase4Chat(unittest.IsolatedAsyncioTestCase):
             data = login_res.json()
             self.slug = data["business_slug"]
             self.biz_id = data["business_id"]
+            self.token = data.get("access_token")
 
         # Index policy document into knowledge base
         await rag_engine.index_document_chunks(self.biz_id, [
@@ -222,6 +225,99 @@ class TestPhase4Chat(unittest.IsolatedAsyncioTestCase):
             self.assertNotIn("vegan", second_cite["excerpt"].lower())
 
         print("[PASS] CHAT-06: Citation ranking prioritized Page 1 direct answer and excluded irrelevant product info chunk.")
+
+    async def test_07_private_documents_show_sources_toggle(self):
+        auth_headers = {"Authorization": f"Bearer {self.token}"}
+
+        # Seed Document and DocumentChunk in DB so citation/document access can be tested
+        async with AsyncSessionLocal() as db:
+            existing_doc = await db.get(Document, "doc-sla-1")
+            if not existing_doc:
+                doc_record = Document(
+                    id="doc-sla-1",
+                    business_id=self.biz_id,
+                    file_name="Zenith_SLA_2026.pdf",
+                    file_type="pdf",
+                    storage_path="/tmp/Zenith_SLA_2026.pdf",
+                    status="INDEXED"
+                )
+                db.add(doc_record)
+            existing_chunk = await db.get(DocumentChunk, "zenith-sla-1")
+            if not existing_chunk:
+                chunk_record = DocumentChunk(
+                    id="zenith-sla-1",
+                    document_id="doc-sla-1",
+                    business_id=self.biz_id,
+                    chunk_index=0,
+                    page_number=1,
+                    content="SERVICE LEVEL AGREEMENT (SLA): We guarantee 99.95% uptime for all cloud servers."
+                )
+                db.add(chunk_record)
+            await db.commit()
+
+        # 1. Verify owner can disable showing grounding sources for privacy
+        put_res = await self.client.put("/api/business/settings", headers=auth_headers, json={
+            "show_sources": False
+        })
+        self.assertEqual(put_res.status_code, 200)
+        self.assertFalse(put_res.json()["show_sources"])
+
+        # 2. Public business info reflects show_sources == False
+        pub_res = await self.client.get(f"/api/public/business/{self.slug}")
+        self.assertEqual(pub_res.status_code, 200)
+        self.assertFalse(pub_res.json()["show_sources"])
+
+        # 3. Customer asks a grounded question in a new session
+        s_res = await self.client.post("/api/chat/session", json={
+            "business_slug_or_token": self.slug,
+            "channel": "widget"
+        })
+        session_id = s_res.json()["id"]
+
+        m_res = await self.client.post("/api/chat/message", json={
+            "session_id": session_id,
+            "message": "What is the cloud uptime guarantee?"
+        })
+        self.assertEqual(m_res.status_code, 200)
+        data = m_res.json()
+        self.assertTrue(data["is_answered"])
+        self.assertIn("99.95%", data["content"])
+        # Privacy check: citations MUST BE EMPTY for visitors when show_sources is False
+        self.assertEqual(len(data["citations"]), 0)
+
+        # 4. History check: citations MUST BE EMPTY in session history for visitors
+        hist_res = await self.client.get(f"/api/chat/session/{session_id}/history")
+        self.assertEqual(hist_res.status_code, 200)
+        hist = hist_res.json()
+        for msg in hist:
+            self.assertEqual(len(msg.get("citations", [])), 0)
+
+        # 5. Direct citation / document tampering attempt returns 403 Forbidden
+        preview_res = await self.client.get("/api/chat/citation/zenith-sla-1/page-preview")
+        self.assertEqual(preview_res.status_code, 403)
+        self.assertIn("disabled by the business", preview_res.json()["detail"])
+
+        doc_file_res = await self.client.get("/api/chat/document/doc-sla-1/file")
+        self.assertEqual(doc_file_res.status_code, 403)
+        self.assertIn("disabled by the business", doc_file_res.json()["detail"])
+
+        # 6. Re-enable show_sources
+        re_enable_res = await self.client.put("/api/business/settings", headers=auth_headers, json={
+            "show_sources": True
+        })
+        self.assertEqual(re_enable_res.status_code, 200)
+        self.assertTrue(re_enable_res.json()["show_sources"])
+
+        # 7. Asking question now includes citations again
+        m2_res = await self.client.post("/api/chat/message", json={
+            "session_id": session_id,
+            "message": "What happens if uptime falls below 99.95%?"
+        })
+        self.assertEqual(m2_res.status_code, 200)
+        m2_data = m2_res.json()
+        self.assertTrue(m2_data["is_answered"])
+        self.assertTrue(len(m2_data["citations"]) > 0)
+        print("[PASS] CHAT-07: Business privacy toggle (show_sources) properly hides citations and blocks raw document inspection.")
 
 if __name__ == "__main__":
     unittest.main()

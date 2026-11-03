@@ -1298,6 +1298,21 @@
               </div>
             </div>
 
+            <!-- Privacy & Grounding Sources Disclosure -->
+            <div class="p-4 bg-emerald-50/40 rounded-xl border border-emerald-100 space-y-3">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="material-symbols-outlined text-emerald-600 text-[18px]">visibility</span>
+                  <label class="text-xs font-mono font-bold text-slate-900">Show Grounding Sources to Visitors</label>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" id="setting-show-sources" class="sr-only peer" checked onchange="updateWidgetPreview()">
+                  <div class="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+              <p class="text-[11px] text-slate-500 font-mono">Allow visitors to view verified citations, extracted excerpts, and PDF pages. Turn this OFF to keep internal SOPs, documents, and company policies strictly confidential while still letting the AI answer.</p>
+            </div>
+
             <button onclick="saveAssistantSettings()" class="w-full py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-mono font-semibold transition shadow-xs flex items-center justify-center gap-1.5">
               <span class="material-symbols-outlined text-[16px]">save</span>
               <span>Save & Publish Live Studio Changes</span>
@@ -1403,8 +1418,15 @@
                 </div>
 
                 <div class="p-3 bg-slate-50 space-y-2 max-h-48 overflow-y-auto">
-                  <div class="p-2.5 rounded-lg bg-white border border-slate-200 text-[11px] leading-relaxed text-slate-800">
+                  <div class="p-2.5 rounded-lg bg-white border border-slate-200 text-[11px] leading-relaxed text-slate-800 space-y-1.5">
                     <span id="preview-welcome-msg">Hello! How can I assist you today?</span>
+                    <div id="preview-sample-sources" class="pt-1 flex items-center gap-1 border-t border-slate-100">
+                      <span class="text-[9px] font-mono text-slate-400">Sources:</span>
+                      <span class="px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 text-[9px] font-mono font-medium flex items-center gap-0.5">
+                        <span class="material-symbols-outlined text-[10px]">description</span>
+                        <span>Guide.pdf (p.1)</span>
+                      </span>
+                    </div>
                   </div>
                   <div id="preview-chips-container" class="flex flex-wrap gap-1 pt-1"></div>
                 </div>
@@ -2233,6 +2255,9 @@
           if (cbChan) cbChan.value = currentBusiness.callback_channel || 'phone_and_email';
           const cbBtn = document.getElementById('setting-callback-btn-text');
           if (cbBtn) cbBtn.value = currentBusiness.callback_button_text || 'Request Callback';
+
+          const showSourcesEl = document.getElementById('setting-show-sources');
+          if (showSourcesEl) showSourcesEl.checked = currentBusiness.show_sources !== false;
 
           const cbWaInput = document.getElementById('setting-callback-wa-number');
           if (cbWaInput) cbWaInput.value = currentBusiness.whatsapp_number || '';
@@ -3244,6 +3269,17 @@
       const cbChan = document.getElementById('setting-callback-channel')?.value || 'phone_and_email';
       const cbBtnText = document.getElementById('setting-callback-btn-text')?.value || 'Request Callback';
       updateCallbackPreviewLayout(enableCb, cbChan, cbBtnText);
+
+      // Synchronize Grounding Sources Display in Live Preview
+      const showSources = document.getElementById('setting-show-sources')?.checked ?? true;
+      const sampleSourcesBox = document.getElementById('preview-sample-sources');
+      if (sampleSourcesBox) {
+        if (showSources) {
+          sampleSourcesBox.classList.remove('hidden');
+        } else {
+          sampleSourcesBox.classList.add('hidden');
+        }
+      }
     }
 
     // --- Dynamic Channel Layout & Callback Form Synchronization ---
@@ -3640,7 +3676,8 @@
         custom_prompt: document.getElementById('setting-custom-prompt')?.value || '',
         enable_callback: document.getElementById('setting-enable-callback')?.checked ?? true,
         callback_channel: document.getElementById('setting-callback-channel')?.value || 'phone_and_email',
-        callback_button_text: document.getElementById('setting-callback-btn-text')?.value || 'Request Callback'
+        callback_button_text: document.getElementById('setting-callback-btn-text')?.value || 'Request Callback',
+        show_sources: document.getElementById('setting-show-sources')?.checked ?? true
       };
 
       const waVal = document.getElementById('setting-callback-wa-number')?.value?.trim();

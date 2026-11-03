@@ -24,6 +24,7 @@ class Business(Base, TimestampMixin):
     enable_callback = Column(Boolean, default=True, nullable=False)
     callback_channel = Column(String(50), default="phone_and_email", nullable=False)
     callback_button_text = Column(String(100), default="Request Callback", nullable=False)
+    show_sources = Column(Boolean, default=True, nullable=False)
     fallback_message = Column(
         Text, 
         default="I'm sorry, but I do not have this information in my documents. I have logged your question for our team to assist you.",

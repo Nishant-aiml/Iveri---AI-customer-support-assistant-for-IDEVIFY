@@ -16,6 +16,7 @@ class BusinessSettingsUpdateRequest(BaseModel):
     enable_callback: Optional[bool] = None
     callback_channel: Optional[str] = Field(None, pattern="^(phone_and_email|phone|email|whatsapp)$")
     callback_button_text: Optional[str] = Field(None, max_length=100)
+    show_sources: Optional[bool] = None
 
 class BusinessSettingsResponse(BaseModel):
     id: str
@@ -35,6 +36,7 @@ class BusinessSettingsResponse(BaseModel):
     enable_callback: bool = True
     callback_channel: str = "phone_and_email"
     callback_button_text: str = "Request Callback"
+    show_sources: bool = True
     shareable_link: str
     embed_snippet: str
 
@@ -55,4 +57,5 @@ class PublicBusinessInfoResponse(BaseModel):
     enable_callback: bool = True
     callback_channel: str = "phone_and_email"
     callback_button_text: str = "Request Callback"
+    show_sources: bool = True
     document_count: int

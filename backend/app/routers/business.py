@@ -47,6 +47,7 @@ async def get_business_settings(owner: User = Depends(get_current_owner), db: As
         enable_callback=getattr(business, "enable_callback", True) if getattr(business, "enable_callback", None) is not None else True,
         callback_channel=getattr(business, "callback_channel", "phone_and_email") or "phone_and_email",
         callback_button_text=getattr(business, "callback_button_text", "Request Callback") or "Request Callback",
+        show_sources=getattr(business, "show_sources", True) if getattr(business, "show_sources", None) is not None else True,
         shareable_link=shareable_link,
         embed_snippet=embed_snippet
     )
@@ -91,6 +92,8 @@ async def update_business_settings(
         business.callback_channel = req.callback_channel
     if req.callback_button_text is not None:
         business.callback_button_text = req.callback_button_text.strip()
+    if req.show_sources is not None:
+        business.show_sources = req.show_sources
 
     await db.commit()
     await db.refresh(business)
@@ -116,6 +119,7 @@ async def update_business_settings(
         enable_callback=getattr(business, "enable_callback", True) if getattr(business, "enable_callback", None) is not None else True,
         callback_channel=getattr(business, "callback_channel", "phone_and_email") or "phone_and_email",
         callback_button_text=getattr(business, "callback_button_text", "Request Callback") or "Request Callback",
+        show_sources=getattr(business, "show_sources", True) if getattr(business, "show_sources", None) is not None else True,
         shareable_link=shareable_link,
         embed_snippet=embed_snippet
     )
@@ -219,5 +223,6 @@ async def get_public_business_info(slug_or_token: str, db: AsyncSession = Depend
         enable_callback=getattr(business, "enable_callback", True) if getattr(business, "enable_callback", None) is not None else True,
         callback_channel=getattr(business, "callback_channel", "phone_and_email") or "phone_and_email",
         callback_button_text=getattr(business, "callback_button_text", "Request Callback") or "Request Callback",
+        show_sources=getattr(business, "show_sources", True) if getattr(business, "show_sources", None) is not None else True,
         document_count=doc_count
     )

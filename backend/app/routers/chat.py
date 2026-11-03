@@ -221,6 +221,8 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
         await db.commit()
         await db.refresh(assistant_msg)
 
+        show_sources = getattr(business, "show_sources", True) if getattr(business, "show_sources", None) is not None else True
+
         return ChatMessageResponse(
             id=assistant_msg.id,
             session_id=session.id,
@@ -233,7 +235,7 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
             confidence_score=assistant_msg.confidence_score,
             latency_ms=assistant_msg.latency_ms,
             llm_provider_used=assistant_msg.llm_provider_used,
-            citations=citation_objs,
+            citations=citation_objs if show_sources else [],
             created_at=assistant_msg.created_at
         )
     except HTTPException:
@@ -268,6 +270,16 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
 @router.get("/session/{session_id}/history", response_model=List[ChatMessageResponse])
 async def get_session_history(session_id: str, db: AsyncSession = Depends(get_db)):
     """Retrieves chronological conversation history for a chat session."""
+    session_rec = (await db.execute(
+        select(ChatSession, Business)
+        .join(Business, Business.id == ChatSession.business_id)
+        .where(ChatSession.id == session_id)
+    )).first()
+    show_sources = True
+    if session_rec:
+        _, biz = session_rec
+        show_sources = getattr(biz, "show_sources", True) if getattr(biz, "show_sources", None) is not None else True
+
     query = select(ChatMessage).where(
         ChatMessage.session_id == session_id
     ).order_by(ChatMessage.created_at)
@@ -299,7 +311,7 @@ async def get_session_history(session_id: str, db: AsyncSession = Depends(get_db
                     has_pdf_preview=c.get("has_pdf_preview", True)
                 )
                 for c in (m.source_citations or [])
-            ],
+            ] if show_sources else [],
             created_at=m.created_at
         )
         for m in messages
@@ -417,7 +429,8 @@ async def stream_chat_message(session_id: str, message: str, db: AsyncSession = 
             await asyncio.sleep(0.04)
         
         # Final metadata event
-        yield f"data: {json.dumps({'done': True, 'citations': rag_result['citations'], 'is_answered': rag_result['is_answered']})}\n\n"
+        show_sources = getattr(business, "show_sources", True) if getattr(business, "show_sources", None) is not None else True
+        yield f"data: {json.dumps({'done': True, 'citations': rag_result['citations'] if show_sources else [], 'is_answered': rag_result['is_answered']})}\n\n"
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
@@ -537,6 +550,12 @@ async def get_citation_page_preview(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Citation chunk not found.")
     chunk, doc = res
 
+    # Verify business allows public source preview
+    biz_stmt = select(Business).where(Business.id == doc.business_id)
+    biz = (await db.execute(biz_stmt)).scalar_one_or_none()
+    if biz and not getattr(biz, "show_sources", True):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Document source viewing has been disabled by the business.")
+
     resolved_path = resolve_document_file_path(doc)
     if not resolved_path:
         # Fallback to test seed pdfs if name matches
@@ -638,6 +657,12 @@ async def view_public_document_file(
     doc = (await db.execute(doc_query)).scalar_one_or_none()
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document record not found.")
+
+    # Verify business allows public document download
+    biz_stmt = select(Business).where(Business.id == doc.business_id)
+    biz = (await db.execute(biz_stmt)).scalar_one_or_none()
+    if biz and not getattr(biz, "show_sources", True):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Document file download has been disabled by the business.")
 
     resolved_path = resolve_document_file_path(doc)
     if not resolved_path:
