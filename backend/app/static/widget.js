@@ -515,14 +515,13 @@ window.submitWidgetCallbackRequest = function() {
           : `${apiBaseUrl.replace(/\/+$/, '')}/${rawAv.replace(/^\/+/, '')}`;
 
         const img = new Image();
-        img.crossOrigin = 'anonymous';
         img.onload = function() {
-          bubble.innerHTML = `<img src="${resolvedAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" alt="">`;
+          bubble.innerHTML = `<img src="${resolvedAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" alt="" onerror="this.onerror=null; this.parentElement.innerHTML='<svg width=\'24\' height=\'24\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'><path d=\'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\'/></svg>';">`;
           bubble.style.padding = '0';
           bubble.style.overflow = 'hidden';
           const avatarEl = document.getElementById('iveri-header-avatar');
           if (avatarEl) {
-            avatarEl.innerHTML = `<img src="${resolvedAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" alt="">`;
+            avatarEl.innerHTML = `<img src="${resolvedAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" alt="" onerror="this.onerror=null; this.parentElement.innerHTML='<span style=\'display:inline-block; width:8px; height:8px; border-radius:50%; background:#059669;\'></span>';">`;
             avatarEl.style.overflow = 'hidden';
           }
         };
