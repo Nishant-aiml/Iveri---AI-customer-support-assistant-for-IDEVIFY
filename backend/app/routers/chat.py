@@ -3,9 +3,11 @@ logger = logging.getLogger("idevify-chat")
 import json
 import asyncio
 from datetime import datetime
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.responses import StreamingResponse
+import os
+import re
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Response
+from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import desc
@@ -121,7 +123,10 @@ async def send_chat_message(req: ChatMessageRequest, db: AsyncSession = Depends(
                 document_name=c.get("document_name", "Document"),
                 page_number=c.get("page_number", 1),
                 chunk_id=c.get("chunk_id", ""),
-                excerpt=c.get("excerpt", "")
+                excerpt=c.get("excerpt", ""),
+                document_id=c.get("document_id"),
+                highlight_terms=c.get("highlight_terms", []),
+                has_pdf_preview=c.get("has_pdf_preview", True)
             )
             for c in rag_result.get("citations", [])
         ]
@@ -252,7 +257,18 @@ async def get_session_history(session_id: str, db: AsyncSession = Depends(get_db
             confidence_score=m.confidence_score,
             latency_ms=m.latency_ms,
             llm_provider_used=m.llm_provider_used,
-            citations=[SourceCitation(**c) for c in m.source_citations],
+            citations=[
+                SourceCitation(
+                    document_name=c.get("document_name", "Document"),
+                    page_number=c.get("page_number", 1),
+                    chunk_id=c.get("chunk_id", ""),
+                    excerpt=c.get("excerpt", ""),
+                    document_id=c.get("document_id"),
+                    highlight_terms=c.get("highlight_terms", []),
+                    has_pdf_preview=c.get("has_pdf_preview", True)
+                )
+                for c in (m.source_citations or [])
+            ],
             created_at=m.created_at
         )
         for m in messages
@@ -432,3 +448,96 @@ async def submit_contact_request(req: ContactRequest, db: AsyncSession = Depends
         "ticket_number": ticket.ticket_number,
         "message": "Thank you! Our support team has been notified and will contact you promptly."
     }
+
+@router.get("/citation/{chunk_id}/page-preview")
+async def get_citation_page_preview(
+    chunk_id: str,
+    query: Optional[str] = Query(None),
+    db: AsyncSession = Depends(get_db)
+):
+    """Renders the cited document page as a high-DPI image with source highlights directly on the PDF."""
+    from app.models.document import DocumentChunk, Document
+    query_stmt = (
+        select(DocumentChunk, Document)
+        .join(Document, Document.id == DocumentChunk.document_id)
+        .where(DocumentChunk.id == chunk_id)
+    )
+    res = (await db.execute(query_stmt)).first()
+    if not res:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Citation chunk not found.")
+    chunk, doc = res
+
+    if not doc.storage_path or not os.path.exists(doc.storage_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document file not found on disk.")
+
+    ext = os.path.splitext(doc.file_name)[1].lower()
+    if ext != ".pdf":
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Page highlight view only available for PDF documents.")
+
+    import pymupdf
+    try:
+        pdf_doc = pymupdf.open(doc.storage_path)
+        page_idx = max(0, min(chunk.page_number - 1, len(pdf_doc) - 1))
+        page = pdf_doc[page_idx]
+
+        # Gather highlight phrases
+        terms_to_highlight = set()
+        if query:
+            stop_words = {"what", "is", "are", "how", "much", "many", "the", "for", "with", "from", "tell", "about", "your", "our", "do", "does", "can", "you", "this", "that"}
+            q_words = [w for w in re.findall(r"\b[a-zA-Z0-9_\-]+\b", query) if w.lower() not in stop_words and len(w) >= 3]
+            terms_to_highlight.update(q_words)
+
+        # Extract sentences from chunk content that match query
+        chunk_lines = [l.strip() for l in chunk.content.split("\n") if len(l.strip()) > 6]
+        for line in chunk_lines:
+            if any(t.lower() in line.lower() for t in terms_to_highlight):
+                clean_line = line.strip(" -•*#").strip()
+                if 8 <= len(clean_line) <= 100:
+                    terms_to_highlight.add(clean_line)
+
+        # Add yellow highlight annotations on PDF
+        for term in terms_to_highlight:
+            rects = page.search_for(term)
+            for r in rects:
+                annot = page.add_highlight_annot(r)
+                annot.set_colors(stroke=(1.0, 0.9, 0.1))
+                annot.update()
+
+        pix = page.get_pixmap(dpi=150)
+        img_bytes = pix.tobytes("png")
+        pdf_doc.close()
+
+        return Response(
+            content=img_bytes,
+            media_type="image/png",
+            headers={
+                "Cache-Control": "public, max-age=3600",
+                "X-Document-Name": doc.file_name,
+                "X-Page-Number": str(chunk.page_number)
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error rendering PDF page highlight: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Could not render PDF preview.")
+
+@router.get("/document/{document_id}/file")
+async def view_public_document_file(
+    document_id: str,
+    db: AsyncSession = Depends(get_db)
+):
+    """Allows customers/visitors to view the verified grounding source PDF inline in browser."""
+    from app.models.document import Document
+    doc_query = select(Document).where(Document.id == document_id)
+    doc = (await db.execute(doc_query)).scalar_one_or_none()
+    if not doc or not doc.storage_path or not os.path.exists(doc.storage_path):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document file not found.")
+
+    ext = os.path.splitext(doc.file_name)[1].lower()
+    media_type = "application/pdf" if ext == ".pdf" else "application/octet-stream"
+    return FileResponse(
+        path=doc.storage_path,
+        media_type=media_type,
+        filename=doc.file_name,
+        content_disposition_type="inline"
+    )
+

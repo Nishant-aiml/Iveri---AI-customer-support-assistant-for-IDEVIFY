@@ -7,6 +7,9 @@ class SourceCitation(BaseModel):
     page_number: int = 1
     chunk_id: str
     excerpt: str
+    document_id: Optional[str] = None
+    highlight_terms: List[str] = []
+    has_pdf_preview: bool = True
 
 class ChatSessionCreateRequest(BaseModel):
     business_slug_or_token: str

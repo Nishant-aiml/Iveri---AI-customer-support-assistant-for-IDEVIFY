@@ -252,20 +252,129 @@ class HybridRAGEngine:
                 "retrieved_chunks": []
             }
 
-        # Step 7: Deterministic Citation Extraction
+        # Step 7: Deterministic Citation Extraction with Semantic Filtering & Dynamic Excerpt Centering
         citations = []
-        for c in fused_chunks[:3]:
+        stop_words = {
+            "what", "is", "are", "how", "much", "many", "the", "for", "with", "from", 
+            "tell", "about", "your", "our", "a", "an", "to", "in", "of", "and", "or", 
+            "do", "does", "can", "you", "this", "that", "i", "we", "my", "it", "at", "by", "there"
+        }
+        q_tokens = [w.lower() for w in re.findall(r"\b[a-zA-Z0-9_\-]+\b", clean_query) if w.lower() not in stop_words and len(w) >= 2]
+        ans_tokens = [w.lower() for w in re.findall(r"\b[a-zA-Z0-9_\-]+\b", generated_answer) if w.lower() not in stop_words and len(w) >= 2]
+        
+        high_value_terms = set(q_tokens) | (set(ans_tokens) & {
+            "discount", "refund", "warranty", "shipping", "delivery", "hours", "address", 
+            "phone", "email", "rs", "50", "100", "10", "7", "15", "48", "points", "loyalty", 
+            "burr", "grinder", "dripper", "order", "orders", "cancel", "cancellation", "metro",
+            "beans", "coffee", "roast", "pune", "prescription", "consultation", "dental"
+        })
+
+        seen_doc_pages = set()
+        candidate_citations = []
+
+        for c in fused_chunks:
             doc_name = c.get("metadata", {}).get("document_name", "Document")
+            doc_id = c.get("metadata", {}).get("document_id")
             page_num = c.get("metadata", {}).get("page_number", 1)
-            content_snippet = c["content"].strip()
-            excerpt = content_snippet[:220] + ("..." if len(content_snippet) > 220 else "")
+            content = c.get("content", "").strip()
+            content_lower = content.lower()
+
+            q_matches = [t for t in q_tokens if re.search(r"\b" + re.escape(t) + r"\b", content_lower)]
+            ans_matches = [t for t in high_value_terms if re.search(r"\b" + re.escape(t) + r"\b", content_lower)]
             
-            citations.append({
+            match_score = (len(q_matches) * 4) + len(ans_matches)
+            if match_score == 0:
+                continue
+
+            page_key = (doc_name, page_num)
+            if page_key in seen_doc_pages:
+                continue
+            seen_doc_pages.add(page_key)
+
+            # Center excerpt window on the most relevant match cluster
+            all_matches = []
+            for t in (set(q_matches) | set(ans_matches)):
+                for m in re.finditer(r"\b" + re.escape(t) + r"\b", content_lower):
+                    all_matches.append(m.start())
+
+            if all_matches:
+                all_matches.sort()
+                best_pos = all_matches[0]
+                best_density = 0
+                for m in all_matches:
+                    density = sum(1 for other in all_matches if abs(other - m) <= 160)
+                    if density > best_density:
+                        best_density = density
+                        best_pos = m
+
+                start_pos = max(0, best_pos - 90)
+                # Check for numbered section headers like "8. BrewPoints"
+                header_match = re.search(r"\n([0-9]+\.\s+[^\n]+)", content[max(0, best_pos - 140):best_pos + 10])
+                if header_match:
+                    start_pos = max(0, best_pos - 140) + header_match.start() + 1
+                else:
+                    prev_nl = content.rfind("\n", max(0, start_pos - 40), start_pos + 20)
+                    if prev_nl != -1:
+                        start_pos = prev_nl + 1
+
+                end_pos = min(len(content), start_pos + 300)
+                next_nl = content.find("\n\n", end_pos - 30, min(len(content), end_pos + 60))
+                if next_nl != -1:
+                    end_pos = next_nl
+                else:
+                    next_period = content.find(". ", end_pos - 20, min(len(content), end_pos + 40))
+                    if next_period != -1:
+                        end_pos = next_period + 1
+
+                excerpt = content[start_pos:end_pos].strip()
+                if start_pos > 0 and not excerpt.startswith("..."):
+                    excerpt = "... " + excerpt
+                if end_pos < len(content) and not excerpt.endswith("..."):
+                    excerpt = excerpt + " ..."
+            else:
+                excerpt = content[:250].strip() + ("..." if len(content) > 250 else "")
+
+            highlight_list = sorted(list(set(q_matches + [m for m in ans_matches if len(m) >= 3])), key=len, reverse=True)
+
+            candidate_citations.append({
+                "match_score": match_score,
+                "has_query_match": len(q_matches) > 0,
                 "document_name": doc_name,
+                "document_id": doc_id,
                 "page_number": page_num,
                 "chunk_id": c["id"],
-                "excerpt": excerpt
+                "excerpt": excerpt,
+                "highlight_terms": highlight_list[:6],
+                "has_pdf_preview": doc_name.lower().endswith(".pdf")
             })
+
+        candidate_citations.sort(key=lambda x: x["match_score"], reverse=True)
+
+        if candidate_citations:
+            top_candidate = candidate_citations[0]
+            # If top candidate matched query tokens directly, filter out unrelated documents that matched 0 query tokens
+            if top_candidate["has_query_match"]:
+                filtered = [
+                    c for c in candidate_citations 
+                    if (c["has_query_match"] and c["document_name"] == top_candidate["document_name"])
+                    or (c["match_score"] >= (top_candidate["match_score"] * 0.6) and c["has_query_match"])
+                ]
+                if not filtered:
+                    filtered = [top_candidate]
+            else:
+                filtered = candidate_citations[:2]
+            citations = [{k: v for k, v in item.items() if k not in ("match_score", "has_query_match")} for item in filtered[:3]]
+        else:
+            for c in fused_chunks[:2]:
+                citations.append({
+                    "document_name": c.get("metadata", {}).get("document_name", "Document"),
+                    "document_id": c.get("metadata", {}).get("document_id"),
+                    "page_number": c.get("metadata", {}).get("page_number", 1),
+                    "chunk_id": c["id"],
+                    "excerpt": c["content"][:240].strip() + "...",
+                    "highlight_terms": q_tokens[:4],
+                    "has_pdf_preview": c.get("metadata", {}).get("document_name", "").lower().endswith(".pdf")
+                })
 
         latency_ms = int((time.time() - start_time) * 1000)
 

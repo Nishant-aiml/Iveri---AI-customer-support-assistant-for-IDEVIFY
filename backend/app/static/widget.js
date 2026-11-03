@@ -483,8 +483,17 @@ let lastUserQuery = '';
             const badge = document.createElement('span');
             badge.className = 'iveri-citation-badge';
             badge.innerText = `📄 ${c.document_name} (p.${c.page_number})`;
-            badge.title = c.excerpt;
-            badge.onclick = () => alert(`Source: ${c.document_name} (Page ${c.page_number})\n\nExcerpt:\n${c.excerpt}`);
+            badge.title = `${c.document_name} (Page ${c.page_number}) - Click to view highlighted PDF source`;
+            badge.style.cursor = 'pointer';
+            badge.onclick = () => {
+              if (c.chunk_id) {
+                window.open(`${apiBaseUrl}/api/chat/citation/${encodeURIComponent(c.chunk_id)}/page-preview?query=${encodeURIComponent(lastUserQuery || '')}`, '_blank');
+              } else if (c.document_id) {
+                window.open(`${apiBaseUrl}/api/chat/document/${c.document_id}/file#page=${c.page_number}`, '_blank');
+              } else {
+                alert(`Source: ${c.document_name} (Page ${c.page_number})\n\nExcerpt:\n${c.excerpt}`);
+              }
+            };
             citeRow.appendChild(badge);
           });
           botBubble.appendChild(citeRow);
