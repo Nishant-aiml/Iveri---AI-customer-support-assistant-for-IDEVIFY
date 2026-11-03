@@ -2,6 +2,8 @@
 
 <div align="center">
 
+[![Primary Repo](https://img.shields.io/badge/GitHub-Nishant--aiml%2FIveri-2ea44f?style=flat&logo=github&logoColor=white)](https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY.git)
+[![Mirror Repo](https://img.shields.io/badge/GitHub-ishwaribhoyar%2FIveri-blueviolet?style=flat&logo=github&logoColor=white)](https://github.com/ishwaribhoyar/Iveri-AI-customer-support-assistant-for-IDEVIFY.git)
 [![CI/CD Pipeline](https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY/actions/workflows/ci.yml/badge.svg)](https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY/actions/workflows/ci.yml)
 [![Python Version](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.14-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -30,6 +32,23 @@
 
 ---
 
+## 🔗 Official Code Repositories & Synchronized Mirrors
+
+| Channel | Repository URL | Primary Purpose | CI/CD Status |
+| :--- | :--- | :--- | :--- |
+| 🚀 **Primary Repository** | **[`Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY`](https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY.git)** | Core upstream production codebase, Render deployment triggers, issue tracking | [![CI Status](https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY/actions/workflows/ci.yml/badge.svg)](https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY/actions) |
+| 🪞 **Secondary / Mirror** | **[`ishwaribhoyar/Iveri-AI-customer-support-assistant-for-IDEVIFY`](https://github.com/ishwaribhoyar/Iveri-AI-customer-support-assistant-for-IDEVIFY.git)** | High-availability active mirror, parallel verification, evaluation redundancy | [![CI Status](https://github.com/ishwaribhoyar/Iveri-AI-customer-support-assistant-for-IDEVIFY/actions/workflows/ci.yml/badge.svg)](https://github.com/ishwaribhoyar/Iveri-AI-customer-support-assistant-for-IDEVIFY/actions) |
+
+```bash
+# Clone via Primary Remote
+git clone https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY.git
+
+# Clone via Secondary / Mirror Remote
+git clone https://github.com/ishwaribhoyar/Iveri-AI-customer-support-assistant-for-IDEVIFY.git
+```
+
+---
+
 ## 📱 Live Production App & Mobile Installation (PWA / Android APK)
 
 | Channel | Platform | Access Link / Instructions |
@@ -48,7 +67,56 @@
 
 ---
 
-## 💡 Problem Statement & Ecosystem Transformation
+## 💡 Problem Statement & Strategic Ecosystem Transformation
+
+### 📋 The Original Problem Statement (IDEVIFY Solutions Candidate Brief)
+The project brief provided by **IDEVIFY Solutions Private Limited** defines the core challenge as follows:
+
+> *"Small businesses get the same customer questions again and again (pricing, refund policy, delivery time), and a human has to answer each one. Generic chatbots give wrong answers because they know nothing about the business. Build a platform where a business uploads its own documents and gets an AI assistant that answers customer questions only from those documents."*
+>
+> **Core Deliverables Required by the Brief**:
+> 1. **Dual Roles**: Business Owner (Upload documents, view chat history, configure assistant) and Customer (Access public chat via unique link or embedded widget, ask questions, receive answers grounded strictly in uploaded documents with exact citations).
+> 2. **Document Processing**: Intelligent ingestion supporting PDFs, DOCX, TXT, Excel/Spreadsheets, and OCR images with chunking, overlap, and vector indexing.
+> 3. **Intelligent Grounded RAG**: Dense vector + sparse keyword search, polite fallbacks when information is absent, zero hallucination.
+> 4. **Handling Unknowns & Fallbacks**: Friendly fallback responses when queries cannot be answered, with contact/callback logging.
+> 5. **Dynamic Document Updates**: Immediate reflection of uploaded, edited, or deleted files in assistant knowledge base without stale answers.
+> 6. **Production Polish**: Clean UX, robust multi-tenancy, and high evaluation scores across correctness and engineering design.
+
+---
+
+### 🏢 Strategic Shift: Converting an Assignment into an IDEVIFY Enterprise Business Asset
+
+While the original brief outlined creating a single chatbot-type service for a shop, our team recognized a transformative commercial opportunity for **IDEVIFY Solutions Private Limited**:
+
+```mermaid
+flowchart TD
+    subgraph TraditionalAgency["Traditional Agency Approach (150-200 Hours / Client)"]
+        ClientA["Client 1: Needs Chatbot"] --> DevA["Bespoke Dev & Prompting (3-4 Weeks)"]
+        ClientB["Client 2: Needs Chatbot"] --> DevB["New Standalone Bot & Infra (3-4 Weeks)"]
+        ClientC["Client 3: Needs Chatbot"] --> DevC["Separate Container & Scraping (3-4 Weeks)"]
+        DevA & DevB & DevC --> MassiveOverhead["High Engineering Cost • Fragmented Codebases • Zero MRR"]
+    end
+
+    subgraph IveriAsset["IDEVIFY Enterprise Ecosystem Asset (< 30 Seconds / Client)"]
+        NewClient["Any IDEVIFY Enterprise / SME Client"] -->|Step 1| Provision["Create Isolated Tenant in Iveri Console"]
+        Provision -->|Step 2| UploadDocs["Drag & Drop Client SOPs / Catalogs / PDFs"]
+        UploadDocs -->|Step 3| CopySnippet["Generate 1-Line Omnichannel Widget Script"]
+        CopySnippet --> Deploy["Embed on Shopify / WordPress / React in 30 Seconds"]
+        Deploy --> SaaSRevenue["Recurring MRR Subscription • 95%+ Gross Margin • Unified Core IP"]
+    end
+```
+
+#### Why This Is a Game-Changer for IDEVIFY Solutions:
+1. **Dramatically Eliminates Repetitive Engineering Overhead**:
+   IDEVIFY works with multiple enterprise and SME clients, most of whom require customer support bots. Instead of spending 150–200 engineering hours building isolated, one-off bots from scratch for every engagement, Iveri provides a **ready-to-deploy, multi-tenant engine**. An IDEVIFY engineer or account manager can provision a complete custom support bot in **under 30 seconds**.
+2. **Converts Cost Centers into High-Margin Recurring SaaS Revenue (MRR)**:
+   Instead of charging a one-time project fee and handing over fragile custom code, IDEVIFY can offer Iveri as a managed software-as-a-service (SaaS) subscription (e.g., \$99–\$499/month per client). The client gains an enterprise AI assistant, real-time telemetry, callback lead capture, and PWA mobile operator tools, while IDEVIFY retains recurring revenue and client stickiness.
+3. **Reusable Multi-Tenant Architecture**:
+   Every tenant operates in strict database and vector isolation (`business_id`). Adding client #50 or client #500 requires zero new servers or infrastructure re-architecting.
+4. **95%+ Cloud Gross Margins**:
+   Because Iveri operates with a sub-120MB memory footprint and a multi-tier freemium fallback cascade (Gemini Flash $\rightarrow$ Sarvam 105B $\rightarrow$ Groq $\rightarrow$ Extractive Synthesis), dozens of client tenants run concurrently inside a single free/low-cost cloud container, costing virtually nothing to host.
+
+---
 
 ### The SMB Customer Support Dilemma
 Small and medium-sized businesses (SMBs) operate under extreme operational friction. Support representatives spend **60% to 80%** of their bandwidth answering repetitive Tier-1 questions regarding pricing tiers, refund windows, shipping schedules, and warranty claims.
