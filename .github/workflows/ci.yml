@@ -72,6 +72,7 @@ jobs:
           python -m unittest backend/tests/test_upload_idempotency_and_contact_synthesis.py
           python -m unittest backend/tests/test_ui_tab_contracts.py
           python -m unittest backend/tests/test_deletion_and_preview_endpoints.py
+          python -m unittest backend/tests/test_live_multi_tenant_isolation_attacks.py
         env:
           ENVIRONMENT: testing
           DATABASE_URL: sqlite+aiosqlite:///./test_ci.db
