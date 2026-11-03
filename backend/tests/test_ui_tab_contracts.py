@@ -140,5 +140,19 @@ class TestUiTabContracts(unittest.TestCase):
         self.assertIn("overflow: hidden;", w_js)
         self.assertIn("rawAv.startsWith('data:')", w_js)
 
+    def test_12_mobile_auth_freeze_protection_and_coop_headers(self):
+        """Ensures mobile auth modal has freeze protection, button loading states, and global exports."""
+        self.assertIn('id="auth-login-btn"', self.html)
+        self.assertIn('id="auth-register-btn"', self.html)
+        self.assertIn('window.init = init;', self.html)
+        self.assertIn('closeAuthModal()', self.html)
+        self.assertIn('openAuthModal()', self.html)
+        self.assertIn('pointerEvents', self.html)
+
+        # Check COOP header middleware in security_headers.py
+        with open("backend/app/middleware/security_headers.py", "r", encoding="utf-8") as f:
+            sec_py = f.read()
+        self.assertIn('path == "/" or path.startswith("/dashboard")', sec_py)
+
 if __name__ == "__main__":
     unittest.main()
