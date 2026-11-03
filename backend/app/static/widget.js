@@ -1,5 +1,11 @@
   /* Iveri AI Customer Support Widget v1.1.0 - Verified Callback Handover */
 let lastUserQuery = '';
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/[&<>"']/g, function(m) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+  });
+}
 (function () {
   // Find script element and extract configuration
   const currentScript = document.currentScript || (function() {
@@ -269,7 +275,7 @@ let lastUserQuery = '';
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
         <button id="iveri-cb-btn" title="Request Callback" style="display:none; background:#EEF2FF; border:1px solid #C7D2FE; color:#4F46E5; font-size:11px; font-weight:600; cursor:pointer; padding:3px 7px; border-radius:6px; align-items:center; gap:3px;">
-          📞 <span id="iveri-cb-label">Callback</span>
+          <span id="iveri-cb-icon">📞</span> <span id="iveri-cb-label">Callback</span>
         </button>
         <a id="iveri-wa-btn" title="Chat on WhatsApp" target="_blank" style="display:none; background:#ECFDF5; border:1px solid #A7F3D0; color:#059669; font-size:11px; font-weight:600; text-decoration:none; padding:3px 7px; border-radius:6px; align-items:center; gap:3px;">
           💬 WA
@@ -288,21 +294,30 @@ let lastUserQuery = '';
     </div>
     <div id="iveri-cb-modal" style="display:none; position:absolute; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(2px); z-index:50; padding:16px; align-items:center; justify-content:center;">
       <div style="background:#FFFFFF; border-radius:12px; padding:16px; width:100%; max-width:320px; box-shadow:0 10px 25px rgba(0,0,0,0.2); font-family:inherit;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <div style="font-weight:700; font-size:13px; color:#0F172A;">📞 Request Human Callback</div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <div id="iveri-cb-modal-title" style="font-weight:700; font-size:13px; color:#0F172A;">📞 Request Human Callback</div>
           <button id="iveri-cb-modal-close" style="background:none; border:none; font-size:18px; color:#94A3B8; cursor:pointer;">×</button>
         </div>
+        <div id="iveri-cb-modal-sub" style="font-size:10.5px; color:#64748B; margin-bottom:10px; line-height:1.3;">
+          Enter your contact info so our support team can reach you.
+        </div>
         <div style="display:flex; flex-direction:column; gap:8px; font-size:11px;">
+          <div id="iveri-cb-wa-direct" style="display:none; padding:8px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; text-align:center;">
+            <a id="iveri-cb-wa-link" href="#" target="_blank" style="display:inline-block; width:100%; box-sizing:border-box; background:#10B981; color:#FFFFFF; text-decoration:none; font-weight:700; padding:6px 10px; border-radius:6px; font-size:11px;">
+              🟢 Open Direct WhatsApp Chat
+            </a>
+            <div style="font-size:9px; color:#64748B; margin-top:4px;">— OR REQUEST A WHATSAPP MESSAGE —</div>
+          </div>
           <div>
             <label style="color:#475569; font-weight:600;">Your Name</label>
             <input type="text" id="iveri-cb-name" placeholder="e.g. John Doe" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #CBD5E1; border-radius:6px; font-size:11px; margin-top:2px;" />
           </div>
           <div>
-            <label style="color:#475569; font-weight:600;">Phone Number or Email *</label>
+            <label id="iveri-cb-contact-label" style="color:#475569; font-weight:600;">Phone Number or Email *</label>
             <input type="text" id="iveri-cb-contact" placeholder="+91 98765 43210 or email" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #CBD5E1; border-radius:6px; font-size:11px; margin-top:2px;" />
           </div>
           <div>
-            <label style="color:#475569; font-weight:600;">How can we help?</label>
+            <label id="iveri-cb-note-label" style="color:#475569; font-weight:600;">How can we help?</label>
             <textarea id="iveri-cb-note" rows="2" placeholder="Describe your inquiry..." style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #CBD5E1; border-radius:6px; font-size:11px; margin-top:2px;"></textarea>
           </div>
           <button id="iveri-cb-submit" style="background:#4F46E5; color:#FFFFFF; border:none; padding:8px; border-radius:6px; font-weight:600; cursor:pointer; margin-top:4px;">Submit Callback Request</button>
@@ -362,16 +377,33 @@ let lastUserQuery = '';
 
       document.getElementById('iveri-biz-name').innerText = data.name || 'Support Assistant';
 
-      // Callback Button
+      // Callback Button (channel-aware icon and label)
       if (data.enable_callback !== false) {
         const cbBtn = document.getElementById('iveri-cb-btn');
         if (cbBtn) {
           cbBtn.style.display = 'flex';
-          if (data.callback_button_text) {
-            document.getElementById('iveri-cb-label').innerText = data.callback_button_text;
+          const ch = data.callback_channel || 'phone_and_email';
+          let icon = '📞';
+          let defLabel = 'Callback';
+          if (ch === 'phone') {
+            icon = '📞';
+            defLabel = 'Call Me';
+          } else if (ch === 'email') {
+            icon = '✉️';
+            defLabel = 'Email Us';
+          } else if (ch === 'whatsapp') {
+            icon = '💬';
+            defLabel = 'WhatsApp';
           }
+          const iconEl = document.getElementById('iveri-cb-icon');
+          const labelEl = document.getElementById('iveri-cb-label');
+          if (iconEl) iconEl.innerText = icon;
+          if (labelEl) labelEl.innerText = data.callback_button_text || defLabel;
           cbBtn.onclick = () => openWidgetCallbackModal();
         }
+      } else {
+        const cbBtn = document.getElementById('iveri-cb-btn');
+        if (cbBtn) cbBtn.style.display = 'none';
       }
 
       // WhatsApp Button
@@ -579,11 +611,84 @@ let lastUserQuery = '';
   };
 
   // ==========================================
-  // Human Callback / Contact Request Logic
+  // Dynamic Channel Handover & Callback Logic
   // ==========================================
+  function renderCallbackModalForChannel(channel, data) {
+    const titleEl = document.getElementById('iveri-cb-modal-title');
+    const subEl = document.getElementById('iveri-cb-modal-sub');
+    const contactLabel = document.getElementById('iveri-cb-contact-label');
+    const contactInput = document.getElementById('iveri-cb-contact');
+    const noteLabel = document.getElementById('iveri-cb-note-label');
+    const noteInput = document.getElementById('iveri-cb-note');
+    const submitBtn = document.getElementById('iveri-cb-submit');
+    const waDirect = document.getElementById('iveri-cb-wa-direct');
+    const waLink = document.getElementById('iveri-cb-wa-link');
+
+    const ch = channel || (data && data.callback_channel) || 'phone_and_email';
+
+    if (ch === 'phone') {
+      if (titleEl) titleEl.innerText = '📞 Request Phone Callback';
+      if (subEl) subEl.innerText = 'Leave your mobile number for a fast callback from our team.';
+      if (contactLabel) contactLabel.innerText = 'Phone / Mobile Number *';
+      if (contactInput) {
+        contactInput.type = 'tel';
+        contactInput.placeholder = 'e.g. +91 98765 43210 or (555) 019-2834';
+      }
+      if (noteLabel) noteLabel.innerText = 'Topic or Reason for Call (Optional)';
+      if (noteInput) noteInput.placeholder = 'Briefly tell us what you need assistance with...';
+      if (submitBtn) submitBtn.innerText = 'Request Phone Call';
+      if (waDirect) waDirect.style.display = 'none';
+    } else if (ch === 'email') {
+      if (titleEl) titleEl.innerText = '✉️ Request Email Follow-Up';
+      if (subEl) subEl.innerText = 'Send your question directly to our support team email inbox.';
+      if (contactLabel) contactLabel.innerText = 'Email Address *';
+      if (contactInput) {
+        contactInput.type = 'email';
+        contactInput.placeholder = 'e.g. yourname@company.com';
+      }
+      if (noteLabel) noteLabel.innerText = 'Your Inquiry or Message *';
+      if (noteInput) noteInput.placeholder = 'Type your question or issue in detail...';
+      if (submitBtn) submitBtn.innerText = 'Send Email Inquiry';
+      if (waDirect) waDirect.style.display = 'none';
+    } else if (ch === 'whatsapp') {
+      if (titleEl) titleEl.innerText = '💬 Connect on WhatsApp';
+      if (subEl) subEl.innerText = 'Chat directly with our support team or request a WhatsApp message.';
+      if (contactLabel) contactLabel.innerText = 'Your WhatsApp Mobile Number *';
+      if (contactInput) {
+        contactInput.type = 'tel';
+        contactInput.placeholder = 'e.g. +91 98765 43210';
+      }
+      if (noteLabel) noteLabel.innerText = 'What can we help you with?';
+      if (noteInput) noteInput.placeholder = 'Describe your inquiry...';
+      if (submitBtn) submitBtn.innerText = 'Request WhatsApp Message';
+
+      if (data && data.whatsapp_number && waDirect && waLink) {
+        const cleanWa = data.whatsapp_number.replace(/[^0-9]/g, '');
+        waLink.href = `https://wa.me/${cleanWa}?text=Hi%2C%20I%20have%20an%20inquiry%20regarding%20${encodeURIComponent((data && data.name) || 'your store')}`;
+        waDirect.style.display = 'block';
+      } else if (waDirect) {
+        waDirect.style.display = 'none';
+      }
+    } else {
+      // Default: phone_and_email
+      if (titleEl) titleEl.innerText = '📞 Request Human Callback';
+      if (subEl) subEl.innerText = 'Enter your contact info so our support team can reach you.';
+      if (contactLabel) contactLabel.innerText = 'Phone Number or Email Address *';
+      if (contactInput) {
+        contactInput.type = 'text';
+        contactInput.placeholder = '+91 98765 43210 or email@domain.com';
+      }
+      if (noteLabel) noteLabel.innerText = 'How can we help?';
+      if (noteInput) noteInput.placeholder = 'Describe your inquiry...';
+      if (submitBtn) submitBtn.innerText = (data && data.callback_button_text) ? data.callback_button_text : 'Submit Callback Request';
+      if (waDirect) waDirect.style.display = 'none';
+    }
+  }
+
   function openWidgetCallbackModal() {
     const modal = document.getElementById('iveri-cb-modal');
     if (!modal) return;
+    renderCallbackModalForChannel((businessData && businessData.callback_channel) || 'phone_and_email', businessData);
     const noteEl = document.getElementById('iveri-cb-note');
     if (noteEl && !noteEl.value && lastUserQuery) {
       noteEl.value = 'Regarding inquiry: ' + lastUserQuery;
@@ -607,9 +712,34 @@ let lastUserQuery = '';
     const name = nameEl ? nameEl.value.trim() : '';
     const contact = contactEl ? contactEl.value.trim() : '';
     const note = (noteEl ? noteEl.value.trim() : '') || lastUserQuery || 'General callback request';
+    const ch = (businessData && businessData.callback_channel) || 'phone_and_email';
 
     if (!contact) {
-      alert('Please enter your phone number or email address so we can reach you.');
+      if (ch === 'phone') {
+        alert('Please enter your phone number so our team can call you back.');
+      } else if (ch === 'email') {
+        alert('Please enter your email address so our team can reply to you.');
+      } else if (ch === 'whatsapp') {
+        alert('Please enter your WhatsApp mobile number.');
+      } else {
+        alert('Please enter your phone number or email address so we can reach you.');
+      }
+      if (contactEl) contactEl.focus();
+      return;
+    }
+
+    if (ch === 'phone' && contact.replace(/\D/g, '').length < 7) {
+      alert('Please enter a valid phone number (at least 7 digits with country/area code).');
+      if (contactEl) contactEl.focus();
+      return;
+    }
+    if (ch === 'email' && (!contact.includes('@') || !contact.includes('.'))) {
+      alert('Please enter a valid email address (e.g. name@company.com).');
+      if (contactEl) contactEl.focus();
+      return;
+    }
+    if (ch === 'whatsapp' && contact.replace(/\D/g, '').length < 7) {
+      alert('Please enter a valid WhatsApp mobile number (at least 7 digits with country code).');
       if (contactEl) contactEl.focus();
       return;
     }
@@ -647,6 +777,20 @@ let lastUserQuery = '';
         if (contactEl) contactEl.value = '';
         if (noteEl) noteEl.value = '';
 
+        let confirmTitle = '✅ Callback Request Submitted!';
+        let confirmBody = `Ticket <strong>#${data.ticket_number}</strong> created. Thank you${name ? ' ' + name : ''}! Our team has been notified with high priority and will contact you promptly at <strong>${contact}</strong>.`;
+
+        if (ch === 'phone') {
+          confirmTitle = '📞 Phone Callback Request Logged!';
+          confirmBody = `Ticket <strong>#${data.ticket_number}</strong> created. Thank you${name ? ' ' + name : ''}! An agent has been notified and will call you at <strong>${contact}</strong>.`;
+        } else if (ch === 'email') {
+          confirmTitle = '✉️ Email Follow-Up Request Received!';
+          confirmBody = `Inquiry <strong>#${data.ticket_number}</strong> received. Thank you${name ? ' ' + name : ''}! Our support team will reply to your email at <strong>${contact}</strong>.`;
+        } else if (ch === 'whatsapp') {
+          confirmTitle = '💬 WhatsApp Message Request Logged!';
+          confirmBody = `Request <strong>#${data.ticket_number}</strong> logged. Thank you${name ? ' ' + name : ''}! Our support team will message you on WhatsApp at <strong>${contact}</strong>.`;
+        }
+
         // Append confirmation card inside the chat messages container
         const msgsContainer = document.getElementById('iveri-msgs');
         const confirmBubble = document.createElement('div');
@@ -654,9 +798,9 @@ let lastUserQuery = '';
         confirmBubble.style.borderColor = '#A7F3D0';
         confirmBubble.style.background = '#F0FDF4';
         confirmBubble.innerHTML = `
-          <div style="font-weight:700; color:#065F46; margin-bottom:4px; font-size:13px;">✅ Callback Request Submitted!</div>
+          <div style="font-weight:700; color:#065F46; margin-bottom:4px; font-size:13px;">${confirmTitle}</div>
           <div style="font-size:12px; color:#166534; line-height:1.4;">
-            Ticket <strong>#${data.ticket_number}</strong> created. Thank you${name ? ' ' + name : ''}! Our team has been notified with high priority and will contact you promptly at <strong>${contact}</strong>.
+            ${confirmBody}
           </div>
         `;
         msgsContainer.appendChild(confirmBubble);
@@ -671,7 +815,8 @@ let lastUserQuery = '';
     } finally {
       if (submitBtn) {
         submitBtn.disabled = false;
-        submitBtn.innerText = 'Submit Callback Request';
+        const ch = (businessData && businessData.callback_channel) || 'phone_and_email';
+        submitBtn.innerText = ch === 'phone' ? 'Request Phone Call' : (ch === 'email' ? 'Send Email Inquiry' : (ch === 'whatsapp' ? 'Request WhatsApp Message' : 'Submit Callback Request'));
         submitBtn.style.opacity = '1';
       }
     }

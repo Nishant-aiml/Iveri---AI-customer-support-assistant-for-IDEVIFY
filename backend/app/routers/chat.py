@@ -488,7 +488,7 @@ async def get_citation_page_preview(
             terms_to_highlight.update(q_words)
 
         # Extract sentences from chunk content that match query
-        chunk_lines = [l.strip() for l in chunk.content.split("\n") if len(l.strip()) > 6]
+        chunk_lines = [line_str.strip() for line_str in chunk.content.split("\n") if len(line_str.strip()) > 6]
         for line in chunk_lines:
             if any(t.lower() in line.lower() for t in terms_to_highlight):
                 clean_line = line.strip(" -•*#").strip()

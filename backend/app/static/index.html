@@ -1237,7 +1237,7 @@
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
                   <label class="block text-[11px] font-mono text-slate-600 mb-1 font-semibold">Contact Channels Allowed</label>
-                  <select id="setting-callback-channel" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-primary" onchange="updateWidgetPreview()">
+                  <select id="setting-callback-channel" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-primary cursor-pointer" onchange="onCallbackChannelChange()">
                     <option value="phone_and_email">Phone & Email (Full Callback)</option>
                     <option value="phone">Phone Callback Only</option>
                     <option value="email">Email Follow-Up Only</option>
@@ -1247,6 +1247,38 @@
                 <div>
                   <label class="block text-[11px] font-mono text-slate-600 mb-1 font-semibold">Button Label</label>
                   <input type="text" id="setting-callback-btn-text" value="Request Callback" class="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-mono text-slate-900 focus:outline-none focus:border-primary" oninput="updateWidgetPreview()" />
+                </div>
+              </div>
+
+              <!-- Live Form Layout Preview Card (Shows exact form fields for each channel) -->
+              <div id="callback-form-preview-box" class="mt-2 p-3 bg-white rounded-xl border border-indigo-100 space-y-2 text-[11px] font-mono shadow-xs">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                  <div class="flex items-center gap-1.5 font-bold text-slate-800">
+                    <span id="cb-preview-badge-icon" class="text-primary text-sm material-symbols-outlined">contact_phone</span>
+                    <span id="cb-preview-title">Visitor Form: Phone & Email Callback</span>
+                  </div>
+                  <span id="cb-preview-tag" class="px-2 py-0.5 rounded-full bg-indigo-50 text-primary text-[10px] font-semibold border border-indigo-200">Dual Channel</span>
+                </div>
+                <div class="space-y-1 text-[10px] text-slate-600">
+                  <div class="flex items-center justify-between p-1.5 bg-slate-50 rounded border border-slate-100">
+                    <span class="font-semibold text-slate-700">Visitor Contact Field:</span>
+                    <span id="cb-preview-field" class="font-bold text-indigo-700">Phone or Email (Text)</span>
+                  </div>
+                  <div class="flex items-center justify-between p-1.5 bg-slate-50 rounded border border-slate-100">
+                    <span class="font-semibold text-slate-700">Input Placeholder:</span>
+                    <span id="cb-preview-placeholder" class="text-slate-500 italic">+91 98765 43210 or name@example.com</span>
+                  </div>
+                  <div class="flex items-center justify-between p-1.5 bg-slate-50 rounded border border-slate-100">
+                    <span class="font-semibold text-slate-700">Submit Button Text:</span>
+                    <span id="cb-preview-submit" class="font-bold text-emerald-600">Request Callback</span>
+                  </div>
+                </div>
+                <div class="pt-1 flex items-center justify-between">
+                  <span class="text-[10px] text-slate-400">Updates live in the simulated widget preview</span>
+                  <button type="button" onclick="togglePreviewCallbackModal(true)" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-primary font-semibold rounded text-[10px] transition flex items-center gap-1 border border-indigo-200 cursor-pointer">
+                    <span class="material-symbols-outlined text-[12px]">visibility</span>
+                    <span>Inspect Form Modal</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1295,15 +1327,66 @@
 
               <!-- Simulated Open Chat Window -->
               <div id="preview-chat-window" class="absolute bottom-16 right-4 w-[280px] bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden flex flex-col text-xs font-sans transition-all">
-                <div id="preview-header" class="p-3 bg-primary text-white flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <div id="preview-avatar-box" class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-[10px] overflow-hidden">
+                <div id="preview-header" class="p-2.5 bg-primary text-white flex items-center justify-between">
+                  <div class="flex items-center gap-2 min-w-0">
+                    <div id="preview-avatar-box" class="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center font-bold text-[10px] overflow-hidden shrink-0">
                       <span id="preview-avatar-initial">B</span>
                     </div>
-                    <span id="preview-name" class="font-bold text-xs">Support Assistant</span>
+                    <span id="preview-name" class="font-bold text-xs truncate">Support Assistant</span>
                   </div>
-                  <span class="material-symbols-outlined text-sm">close</span>
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <button id="preview-cb-btn" onclick="togglePreviewCallbackModal()" title="Simulate Visitor Callback Request" class="px-2 py-0.5 bg-white/20 hover:bg-white/30 text-white rounded text-[10px] font-mono font-semibold flex items-center gap-1 transition shadow-xs cursor-pointer">
+                      <span id="preview-cb-icon">📞</span>
+                      <span id="preview-cb-label">Callback</span>
+                    </button>
+                    <span class="material-symbols-outlined text-sm cursor-pointer opacity-70 hover:opacity-100">close</span>
+                  </div>
                 </div>
+
+                <!-- Simulated Interactive Callback Modal in Preview -->
+                <div id="preview-cb-modal" class="hidden absolute inset-0 bg-slate-900/60 backdrop-blur-xs z-30 flex items-center justify-center p-2.5 transition-all">
+                  <div class="bg-white rounded-xl p-3 w-full shadow-2xl border border-slate-200 text-slate-800 space-y-2 font-sans max-h-[95%] overflow-y-auto">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                      <div class="flex items-center gap-1 font-bold text-[11px] text-slate-900" id="preview-modal-heading">
+                        <span id="preview-modal-icon">📞</span>
+                        <span id="preview-modal-title-text">Request Human Callback</span>
+                      </div>
+                      <button onclick="togglePreviewCallbackModal(false)" class="text-slate-400 hover:text-slate-700 text-xs font-bold leading-none cursor-pointer">✕</button>
+                    </div>
+                    <div id="preview-modal-sub-text" class="text-[9.5px] text-slate-500 leading-tight">
+                      Leave your details and our support team will get back to you promptly.
+                    </div>
+                    <div id="preview-modal-form-body" class="space-y-1.5 text-[10px]">
+                      <div id="preview-modal-wa-direct-box" class="hidden p-1.5 bg-emerald-50 border border-emerald-200 rounded-lg text-center space-y-1">
+                        <button type="button" onclick="alert('Simulation: In production this instantly redirects the visitor to your official WhatsApp chat!');" class="w-full py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-bold text-[9.5px] transition flex items-center justify-center gap-1">
+                          <span>🟢 Direct WhatsApp Chat</span>
+                        </button>
+                        <div class="text-[8.5px] text-slate-400 font-mono">— OR REQUEST A MESSAGE —</div>
+                      </div>
+                      <div>
+                        <label class="block text-slate-600 font-semibold mb-0.5">Your Name</label>
+                        <input type="text" id="preview-modal-name" placeholder="e.g. John Doe" class="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded text-[10px] focus:outline-none focus:border-primary" />
+                      </div>
+                      <div>
+                        <label id="preview-modal-contact-label" class="block text-slate-600 font-semibold mb-0.5">Phone Number or Email *</label>
+                        <input type="text" id="preview-modal-contact-input" placeholder="+91 98765 43210 or email" class="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded text-[10px] focus:outline-none focus:border-primary" />
+                      </div>
+                      <div>
+                        <label id="preview-modal-note-label" class="block text-slate-600 font-semibold mb-0.5">How can we help?</label>
+                        <textarea id="preview-modal-note" rows="2" placeholder="Describe your inquiry..." class="w-full px-2 py-1 bg-slate-50 border border-slate-200 rounded text-[10px] focus:outline-none focus:border-primary"></textarea>
+                      </div>
+                      <button type="button" id="preview-modal-submit-btn" onclick="submitSimulatedCallback()" class="w-full py-1.5 bg-primary hover:bg-primary-hover text-white rounded font-bold text-[10px] transition shadow-xs cursor-pointer">
+                        Submit Callback Request
+                      </button>
+                    </div>
+                    <div id="preview-modal-success" class="hidden p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-900 text-center space-y-1">
+                      <div class="font-bold text-[11px] text-emerald-700">✓ Callback Simulated!</div>
+                      <div class="text-[9.5px] leading-tight" id="preview-modal-success-msg">Ticket #TICK-PREVIEW logged with high priority.</div>
+                      <button type="button" onclick="resetSimulatedCallbackModal()" class="mt-1 text-[9px] text-emerald-700 underline font-semibold cursor-pointer">Test Again</button>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="p-3 bg-slate-50 space-y-2 max-h-48 overflow-y-auto">
                   <div class="p-2.5 rounded-lg bg-white border border-slate-200 text-[11px] leading-relaxed text-slate-800">
                     <span id="preview-welcome-msg">Hello! How can I assist you today?</span>
@@ -3123,6 +3206,255 @@
       // Update snippet code highlights automatically
       if (typeof updateEmbedSnippet === 'function') {
         updateEmbedSnippet();
+      }
+
+      // Synchronize Human Callback & Handover Channel Layout
+      const enableCb = document.getElementById('setting-enable-callback')?.checked ?? true;
+      const cbChan = document.getElementById('setting-callback-channel')?.value || 'phone_and_email';
+      const cbBtnText = document.getElementById('setting-callback-btn-text')?.value || 'Request Callback';
+      updateCallbackPreviewLayout(enableCb, cbChan, cbBtnText);
+    }
+
+    // --- Dynamic Channel Layout & Callback Form Synchronization ---
+    const CALLBACK_CHANNEL_CONFIGS = {
+      phone_and_email: {
+        icon: '📞',
+        badgeIcon: 'contact_phone',
+        badgeText: 'Dual Channel',
+        tagClass: 'bg-indigo-50 text-primary border-indigo-200',
+        formTitle: 'Visitor Form: Phone & Email Callback',
+        modalHeading: 'Request Human Callback',
+        modalSub: 'Leave your contact info and our team will get back to you via phone or email.',
+        fieldDesc: 'Phone or Email (Text)',
+        inputLabel: 'Phone Number or Email Address *',
+        inputType: 'text',
+        placeholder: '+91 98765 43210 or name@example.com',
+        noteLabel: 'How can we help?',
+        notePlaceholder: 'Describe your inquiry...',
+        submitBtnText: 'Submit Callback Request',
+        defaultBtnLabel: 'Request Callback',
+        hasWaDirect: false
+      },
+      phone: {
+        icon: '📞',
+        badgeIcon: 'call',
+        badgeText: 'Phone Only',
+        tagClass: 'bg-blue-50 text-blue-600 border-blue-200',
+        formTitle: 'Visitor Form: Phone Callback Only',
+        modalHeading: 'Request Phone Callback',
+        modalSub: 'Leave your mobile number for a fast callback from our team.',
+        fieldDesc: 'Phone / Mobile Number (Tel)',
+        inputLabel: 'Phone / Mobile Number *',
+        inputType: 'tel',
+        placeholder: 'e.g. +91 98765 43210 or (555) 019-2834',
+        noteLabel: 'Topic or Reason for Call (Optional)',
+        notePlaceholder: 'Briefly tell us what you need assistance with...',
+        submitBtnText: 'Request Phone Call',
+        defaultBtnLabel: 'Request Phone Call',
+        hasWaDirect: false
+      },
+      email: {
+        icon: '✉️',
+        badgeIcon: 'mail',
+        badgeText: 'Email Only',
+        tagClass: 'bg-amber-50 text-amber-700 border-amber-200',
+        formTitle: 'Visitor Form: Email Follow-Up Only',
+        modalHeading: 'Request Email Follow-Up',
+        modalSub: 'Send your question directly to our support team email inbox.',
+        fieldDesc: 'Email Address (Email)',
+        inputLabel: 'Email Address *',
+        inputType: 'email',
+        placeholder: 'e.g. yourname@company.com',
+        noteLabel: 'Your Inquiry or Message *',
+        notePlaceholder: 'Type your question or issue in detail...',
+        submitBtnText: 'Send Email Inquiry',
+        defaultBtnLabel: 'Email Support',
+        hasWaDirect: false
+      },
+      whatsapp: {
+        icon: '💬',
+        badgeIcon: 'chat',
+        badgeText: 'Direct WhatsApp',
+        tagClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        formTitle: 'Visitor Form: Direct WhatsApp Chat',
+        modalHeading: 'Connect on WhatsApp',
+        modalSub: 'Chat directly with our team or request a WhatsApp message.',
+        fieldDesc: 'WhatsApp Mobile Number (Tel)',
+        inputLabel: 'Your WhatsApp Number *',
+        inputType: 'tel',
+        placeholder: 'e.g. +91 98765 43210',
+        noteLabel: 'What can we help you with?',
+        notePlaceholder: 'Describe what you need on WhatsApp...',
+        submitBtnText: 'Request WhatsApp Message',
+        defaultBtnLabel: 'Chat on WhatsApp',
+        hasWaDirect: true
+      }
+    };
+
+    function onCallbackChannelChange() {
+      const channelSelect = document.getElementById('setting-callback-channel');
+      const btnInput = document.getElementById('setting-callback-btn-text');
+      const ch = channelSelect ? channelSelect.value : 'phone_and_email';
+      const cfg = CALLBACK_CHANNEL_CONFIGS[ch] || CALLBACK_CHANNEL_CONFIGS.phone_and_email;
+
+      const defaultLabels = ['Request Callback', 'Request Phone Call', 'Call Me Back', 'Email Support', 'Send Email Inquiry', 'Chat on WhatsApp', 'WhatsApp Support', 'Callback', ''];
+      if (btnInput && defaultLabels.includes(btnInput.value.trim())) {
+        btnInput.value = cfg.defaultBtnLabel;
+      }
+
+      updateWidgetPreview();
+      togglePreviewCallbackModal(true); // Automatically open the modal in the preview window to demonstrate the new form!
+    }
+
+    function updateCallbackPreviewLayout(enableCb, cbChannel, cbBtnText) {
+      const cfg = CALLBACK_CHANNEL_CONFIGS[cbChannel] || CALLBACK_CHANNEL_CONFIGS.phone_and_email;
+
+      // 1. Update Left Studio Preview Box
+      const pBox = document.getElementById('callback-form-preview-box');
+      if (pBox) {
+        if (!enableCb) {
+          pBox.classList.add('opacity-50');
+        } else {
+          pBox.classList.remove('opacity-50');
+        }
+        const bIcon = document.getElementById('cb-preview-badge-icon');
+        const bTitle = document.getElementById('cb-preview-title');
+        const bTag = document.getElementById('cb-preview-tag');
+        const bField = document.getElementById('cb-preview-field');
+        const bHolder = document.getElementById('cb-preview-placeholder');
+        const bSubmit = document.getElementById('cb-preview-submit');
+
+        if (bIcon) bIcon.innerText = cfg.badgeIcon;
+        if (bTitle) bTitle.innerText = cfg.formTitle;
+        if (bTag) {
+          bTag.className = `px-2 py-0.5 rounded-full text-[10px] font-semibold border ${cfg.tagClass}`;
+          bTag.innerText = cfg.badgeText;
+        }
+        if (bField) bField.innerText = cfg.fieldDesc;
+        if (bHolder) bHolder.innerText = cfg.placeholder;
+        if (bSubmit) bSubmit.innerText = cbBtnText || cfg.submitBtnText;
+      }
+
+      // 2. Update Right Preview Widget Header Callback Button
+      const previewCbBtn = document.getElementById('preview-cb-btn');
+      const previewCbIcon = document.getElementById('preview-cb-icon');
+      const previewCbLabel = document.getElementById('preview-cb-label');
+      if (previewCbBtn) {
+        if (!enableCb) {
+          previewCbBtn.style.display = 'none';
+        } else {
+          previewCbBtn.style.display = 'flex';
+          if (previewCbIcon) previewCbIcon.innerText = cfg.icon;
+          if (previewCbLabel) previewCbLabel.innerText = cbBtnText || cfg.defaultBtnLabel;
+        }
+      }
+
+      // 3. Update Right Preview Widget Modal Form Fields
+      const modalIcon = document.getElementById('preview-modal-icon');
+      const modalTitle = document.getElementById('preview-modal-title-text');
+      const modalSub = document.getElementById('preview-modal-sub-text');
+      const contactLabel = document.getElementById('preview-modal-contact-label');
+      const contactInput = document.getElementById('preview-modal-contact-input');
+      const noteLabel = document.getElementById('preview-modal-note-label');
+      const noteInput = document.getElementById('preview-modal-note');
+      const submitBtn = document.getElementById('preview-modal-submit-btn');
+      const waDirectBox = document.getElementById('preview-modal-wa-direct-box');
+
+      if (modalIcon) modalIcon.innerText = cfg.icon;
+      if (modalTitle) modalTitle.innerText = cfg.modalHeading;
+      if (modalSub) modalSub.innerText = cfg.modalSub;
+      if (contactLabel) contactLabel.innerText = cfg.inputLabel;
+      if (contactInput) {
+        contactInput.type = cfg.inputType;
+        contactInput.placeholder = cfg.placeholder;
+      }
+      if (noteLabel) noteLabel.innerText = cfg.noteLabel;
+      if (noteInput) noteInput.placeholder = cfg.notePlaceholder;
+      if (submitBtn) submitBtn.innerText = cfg.submitBtnText;
+
+      if (waDirectBox) {
+        if (cfg.hasWaDirect) {
+          waDirectBox.classList.remove('hidden');
+        } else {
+          waDirectBox.classList.add('hidden');
+        }
+      }
+    }
+
+    function togglePreviewCallbackModal(forceOpen) {
+      const modal = document.getElementById('preview-cb-modal');
+      if (!modal) return;
+      if (forceOpen === true) {
+        modal.classList.remove('hidden');
+      } else if (forceOpen === false) {
+        modal.classList.add('hidden');
+      } else {
+        modal.classList.toggle('hidden');
+      }
+      resetSimulatedCallbackModal();
+    }
+
+    function resetSimulatedCallbackModal() {
+      const formBody = document.getElementById('preview-modal-form-body');
+      const successBox = document.getElementById('preview-modal-success');
+      const nameInput = document.getElementById('preview-modal-name');
+      const contactInput = document.getElementById('preview-modal-contact-input');
+      const noteInput = document.getElementById('preview-modal-note');
+
+      if (formBody) formBody.classList.remove('hidden');
+      if (successBox) successBox.classList.add('hidden');
+      if (nameInput) nameInput.value = '';
+      if (contactInput) contactInput.value = '';
+      if (noteInput) noteInput.value = '';
+    }
+
+    function submitSimulatedCallback() {
+      const ch = document.getElementById('setting-callback-channel')?.value || 'phone_and_email';
+      const cfg = CALLBACK_CHANNEL_CONFIGS[ch] || CALLBACK_CHANNEL_CONFIGS.phone_and_email;
+      const contactInput = document.getElementById('preview-modal-contact-input');
+      const nameInput = document.getElementById('preview-modal-name');
+      const contact = contactInput ? contactInput.value.trim() : '';
+      const name = nameInput ? nameInput.value.trim() : '';
+
+      if (!contact) {
+        alert(cfg.inputType === 'email' ? 'Please enter an email address.' : (cfg.inputType === 'tel' ? 'Please enter a phone number.' : 'Please enter your phone number or email.'));
+        if (contactInput) contactInput.focus();
+        return;
+      }
+
+      if (ch === 'phone' && contact.replace(/\D/g, '').length < 7) {
+        alert('Please enter a valid phone number (at least 7 digits).');
+        if (contactInput) contactInput.focus();
+        return;
+      }
+      if (ch === 'email' && (!contact.includes('@') || !contact.includes('.'))) {
+        alert('Please enter a valid email address (e.g. name@company.com).');
+        if (contactInput) contactInput.focus();
+        return;
+      }
+      if (ch === 'whatsapp' && contact.replace(/\D/g, '').length < 7) {
+        alert('Please enter a valid WhatsApp phone number (at least 7 digits).');
+        if (contactInput) contactInput.focus();
+        return;
+      }
+
+      const formBody = document.getElementById('preview-modal-form-body');
+      const successBox = document.getElementById('preview-modal-success');
+      const successMsg = document.getElementById('preview-modal-success-msg');
+      const ticketNum = 'TICK-' + Math.floor(1000 + Math.random() * 9000);
+
+      if (formBody) formBody.classList.add('hidden');
+      if (successBox) successBox.classList.remove('hidden');
+      if (successMsg) {
+        if (ch === 'phone') {
+          successMsg.innerHTML = `Ticket <strong>#${ticketNum}</strong> simulated! Agent notified to call <strong>${escapeHtml(contact)}</strong>.`;
+        } else if (ch === 'email') {
+          successMsg.innerHTML = `Inquiry <strong>#${ticketNum}</strong> simulated! Support notified to email <strong>${escapeHtml(contact)}</strong>.`;
+        } else if (ch === 'whatsapp') {
+          successMsg.innerHTML = `Request <strong>#${ticketNum}</strong> simulated! Support notified to message <strong>${escapeHtml(contact)}</strong> on WhatsApp.`;
+        } else {
+          successMsg.innerHTML = `Ticket <strong>#${ticketNum}</strong> simulated! Team will contact <strong>${escapeHtml(contact)}</strong> promptly.`;
+        }
       }
     }
 
