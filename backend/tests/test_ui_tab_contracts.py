@@ -122,5 +122,23 @@ class TestUiTabContracts(unittest.TestCase):
         self.assertIn("AI Answered", self.html)
         self.assertIn("Unanswered / Human Escalated", self.html)
 
+    def test_11_callback_form_inspector_modal_and_avatar_data_urls(self):
+        """Ensures dedicated callback form inspector modal is mounted at root body and widget supports Data URLs."""
+        # Check inspector modal presence at root body
+        self.assertIn('id="inspect-callback-modal"', self.html)
+        self.assertIn('z-[99999]', self.html)
+        self.assertIn('btn-inspect-callback-modal', self.html)
+        self.assertIn('openInspectFormModal()', self.html)
+
+        # Check preview bubble has overflow-hidden to prevent square bleed
+        self.assertIn('id="preview-bubble"', self.html)
+        self.assertIn('overflow-hidden', self.html)
+
+        # Verify widget.js handles data URLs and has overflow hidden
+        with open("backend/app/static/widget.js", "r", encoding="utf-8") as f:
+            w_js = f.read()
+        self.assertIn("overflow: hidden;", w_js)
+        self.assertIn("rawAv.startsWith('data:')", w_js)
+
 if __name__ == "__main__":
     unittest.main()

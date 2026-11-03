@@ -365,9 +365,10 @@
       // Avatar DP
       const avatarContainer = document.getElementById('header-avatar');
       if (avatarContainer && data.avatar_url) {
-        const resolvedAvatar = (data.avatar_url.startsWith('http://') || data.avatar_url.startsWith('https://'))
-          ? data.avatar_url
-          : `${window.location.origin.replace(/\/+$/, '')}/${data.avatar_url.replace(/^\/+/, '')}`;
+        const rawAv = (data.avatar_url || '').trim();
+        const resolvedAvatar = (rawAv.startsWith('http://') || rawAv.startsWith('https://') || rawAv.startsWith('data:') || rawAv.startsWith('blob:'))
+          ? rawAv
+          : `${window.location.origin.replace(/\/+$/, '')}/${rawAv.replace(/^\/+/, '')}`;
         avatarContainer.innerHTML = `<img src="${resolvedAvatar}" alt="${(data.name || '').replace(/"/g, '&quot;')}" class="w-full h-full object-cover rounded-xl" onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\\'material-symbols-outlined text-[20px] sm:text-[22px]\\'>support_agent</span>';">`;
       }
 

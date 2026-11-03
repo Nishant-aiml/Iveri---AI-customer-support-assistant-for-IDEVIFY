@@ -5,7 +5,7 @@ class BusinessSettingsUpdateRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=100)
     tone: Optional[str] = Field(None, pattern="^(friendly|formal)$")
     brand_color: Optional[str] = Field(None, pattern="^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$")
-    avatar_url: Optional[str] = Field(None, max_length=512)
+    avatar_url: Optional[str] = Field(None, max_length=2_000_000)
     widget_position: Optional[str] = Field(None, pattern="^(bottom-right|bottom-left)$")
     welcome_message: Optional[str] = Field(None, min_length=2, max_length=500)
     custom_prompt: Optional[str] = Field(None, max_length=2000)

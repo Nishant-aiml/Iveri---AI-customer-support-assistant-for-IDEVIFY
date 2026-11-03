@@ -15,7 +15,7 @@ class Business(Base, TimestampMixin):
     # Customization Settings
     tone = Column(String(50), default="friendly", nullable=False)
     brand_color = Column(String(20), default="#2563eb", nullable=False)
-    avatar_url = Column(String(512), default="", nullable=False)
+    avatar_url = Column(Text, default="", nullable=False)
     widget_position = Column(String(20), default="bottom-right", nullable=False)
     welcome_message = Column(Text, default="Hello! How can I help you today?", nullable=False)
     custom_prompt = Column(Text, default="", nullable=False)

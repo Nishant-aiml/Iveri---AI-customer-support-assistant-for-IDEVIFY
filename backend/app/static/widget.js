@@ -75,6 +75,7 @@ window.submitWidgetCallbackRequest = function() {
       align-items: center;
       justify-content: center;
       z-index: 999999;
+      overflow: hidden;
       transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
       background-color: #4F46E5;
       color: white;
@@ -507,16 +508,23 @@ window.submitWidgetCallbackRequest = function() {
         chatWindow.style.right = 'auto';
       }
 
-      if (data.avatar_url) {
-        const resolvedAvatar = (data.avatar_url.startsWith('http://') || data.avatar_url.startsWith('https://'))
-          ? data.avatar_url
-          : `${apiBaseUrl.replace(/\/+$/, '')}/${data.avatar_url.replace(/^\/+/, '')}`;
+      if (data.avatar_url && data.avatar_url.trim()) {
+        const rawAv = data.avatar_url.trim();
+        const resolvedAvatar = (rawAv.startsWith('http://') || rawAv.startsWith('https://') || rawAv.startsWith('data:') || rawAv.startsWith('blob:'))
+          ? rawAv
+          : `${apiBaseUrl.replace(/\/+$/, '')}/${rawAv.replace(/^\/+/, '')}`;
 
         const img = new Image();
+        img.crossOrigin = 'anonymous';
         img.onload = function() {
-          bubble.innerHTML = `<img src="${resolvedAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="">`;
+          bubble.innerHTML = `<img src="${resolvedAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" alt="">`;
+          bubble.style.padding = '0';
+          bubble.style.overflow = 'hidden';
           const avatarEl = document.getElementById('iveri-header-avatar');
-          if (avatarEl) avatarEl.innerHTML = `<img src="${resolvedAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="">`;
+          if (avatarEl) {
+            avatarEl.innerHTML = `<img src="${resolvedAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;display:block;" alt="">`;
+            avatarEl.style.overflow = 'hidden';
+          }
         };
         img.onerror = function() {
           console.warn('[Iveri Widget] Custom avatar failed to load:', resolvedAvatar);
