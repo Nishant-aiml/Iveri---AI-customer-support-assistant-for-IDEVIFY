@@ -130,35 +130,28 @@ class PreLLMCircuitBreaker:
         "title", "details", "info", "information", "about", "tell"
     }
 
-    # Common business domain concept mappings allowing natural conversational queries without brittle verbatim word matching
+    # Universal enterprise inquiry concept mappings allowing natural conversational queries
+    # across any business domain (e-commerce, SaaS, healthcare, services, retail) without brittle verbatim word matching
     CONCEPT_GROUPS = {
         "location": {
             "query_terms": {"location", "located", "where", "address", "city", "place", "headquarters", "hq", "office", "country", "state", "situate", "situated", "based"},
-            "context_patterns": [r"\b(based|located|location|headquarters|hq|office|city|address|street|pune|mumbai|delhi|bengaluru|bangalore|hyderabad|chennai|kolkata|india|usa|uk)\b"]
+            "context_patterns": [r"\b(based|located|location|headquarters|hq|office|city|address|street|avenue|road|suite|state|country|place|region)\b"]
         },
         "identity": {
             "query_terms": {"who", "name", "company", "brand", "business", "firm", "about", "founded", "founder", "started", "established"},
-            "context_patterns": [r"\b(company|co|brand|store|business|firm|shop|roaster|provider|founded|established|started)\b"]
+            "context_patterns": [r"\b(company|co|brand|store|business|firm|shop|provider|services|organization|founded|established|started)\b"]
         },
         "contact": {
             "query_terms": {"contact", "reach", "email", "phone", "call", "support", "help", "helpline", "care", "touch"},
             "context_patterns": [r"\b(contact|email|phone|call|support|help|helpline|care|reach|tel)\b", r"[\w\.-]+@[\w\.-]+", r"\+?\d{2,4}[-\s]?\d{3,5}[-\s]?\d{4}"]
         },
-        "pricing_products": {
-            "query_terms": {"product", "products", "item", "items", "sell", "goods", "offering", "service", "services", "catalog", "pricing", "price", "cost", "plan", "plans", "package"},
-            "context_patterns": [r"\b(product|products|item|items|goods|service|services|catalog|pricing|price|cost|rs|inr|\$|broadband|package|roast|beans|coffee|grinder|dripper)\b"]
+        "offerings_pricing": {
+            "query_terms": {"product", "products", "item", "items", "sell", "goods", "offering", "offerings", "service", "services", "catalog", "pricing", "price", "cost", "plan", "plans", "rate", "rates", "fee", "fees", "worth", "value", "discount", "discounts", "point", "points", "reward", "rewards", "loyalty", "redeem", "redemption", "charge", "charges", "package", "tier", "subscription", "menu"},
+            "context_patterns": [r"\b(product|products|item|items|goods|service|services|catalog|pricing|price|cost|rate|rates|fee|fees|plan|plans|charge|charges|worth|value|point|points|reward|rewards|discount|discounts|offer|sale|package|tier|per|month|annual|total|save|redeem|subscription)\b", r"[\$€£₹]|rs\.?|inr"]
         },
-        "shipping_delivery": {
-            "query_terms": {"ship", "shipping", "delivery", "deliver", "transit", "dispatch", "arrive", "courier", "postage", "freight"},
-            "context_patterns": [r"\b(ship|shipping|delivery|deliver|transit|dispatch|courier|postage|freight)\b"]
-        },
-        "returns_refunds": {
-            "query_terms": {"return", "returns", "refund", "refunds", "cancel", "cancellation", "warranty", "exchange", "moneyback"},
-            "context_patterns": [r"\b(return|returns|refund|refunds|cancel|cancellation|warranty|replacement|defect)\b"]
-        },
-        "loyalty_rewards": {
-            "query_terms": {"point", "points", "brewpoint", "brewpoints", "reward", "rewards", "loyalty", "worth", "value", "redeem", "redemption", "discount", "discounts", "earn", "earning", "spent"},
-            "context_patterns": [r"\b(point|points|brewpoint|brewpoints|reward|rewards|loyalty|worth|redeem|discount|discounts|earned|earn|spent|program)\b"]
+        "policies_delivery": {
+            "query_terms": {"return", "returns", "refund", "refunds", "cancel", "cancellation", "warranty", "exchange", "moneyback", "ship", "shipping", "delivery", "deliver", "transit", "dispatch", "arrive", "courier", "postage", "freight", "policy", "guarantee"},
+            "context_patterns": [r"\b(return|returns|refund|refunds|cancel|cancellation|warranty|replacement|defect|exchange|ship|shipping|delivery|deliver|transit|dispatch|courier|postage|freight|policy|order|days|hours)\b"]
         }
     }
 
@@ -225,17 +218,27 @@ class PreLLMCircuitBreaker:
                         }
 
             # Check semantic grounding across concepts or literal substring presence
+            PRONOUN_FOLLOWUPS = {"this", "that", "it", "its", "these", "those", "they", "them", "same"}
+            has_pronoun_ref = bool(set(tokens) & PRONOUN_FOLLOWUPS)
+
             grounded_hits = []
             for t in tokens:
                 if re.search(r"\b" + re.escape(t) + r"\b", top_text_clean):
                     grounded_hits.append(t)
                     continue
-                # Concept-level grounding (e.g. 'located' -> 'based in Pune', 'name' -> 'BrewNest')
+                # Concept-level grounding across universal categories
                 for group_name, group_cfg in self.CONCEPT_GROUPS.items():
                     if t in group_cfg["query_terms"]:
                         if any(re.search(pat, top_text_clean, re.IGNORECASE) for pat in group_cfg["context_patterns"]):
                             grounded_hits.append(f"{t}:{group_name}")
                             break
+
+            # If no literal tokens matched, check for valid multi-turn conversational coreference or high neural similarity
+            if not grounded_hits:
+                if has_pronoun_ref and (dense_sim >= 0.38 or sparse_score > 0.0):
+                    grounded_hits.append("followup_context_grounded")
+                elif dense_sim >= 0.48:
+                    grounded_hits.append("semantic_dense_grounded")
 
             if not grounded_hits:
                 logger.info(f"Circuit breaker tripped: Query entities {tokens} missing from retrieved content (Dense={dense_sim:.3f}).")

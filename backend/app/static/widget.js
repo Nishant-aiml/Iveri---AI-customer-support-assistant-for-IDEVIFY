@@ -6,6 +6,26 @@ function escapeHtml(str) {
     return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
   });
 }
+let _iveri_openModal = null;
+let _iveri_closeModal = null;
+let _iveri_submitModal = null;
+
+window.openWidgetCallbackModal = function() {
+  if (typeof _iveri_openModal === 'function') {
+    _iveri_openModal();
+  }
+};
+window.closeWidgetCallbackModal = function() {
+  if (typeof _iveri_closeModal === 'function') {
+    _iveri_closeModal();
+  }
+};
+window.submitWidgetCallbackRequest = function() {
+  if (typeof _iveri_submitModal === 'function') {
+    _iveri_submitModal();
+  }
+};
+
 (function () {
   // Find script element and extract configuration
   const currentScript = document.currentScript || (function() {
@@ -274,7 +294,7 @@ function escapeHtml(str) {
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
-        <button id="iveri-cb-btn" title="Request Callback" style="display:none; background:#EEF2FF; border:1px solid #C7D2FE; color:#4F46E5; font-size:11px; font-weight:600; cursor:pointer; padding:3px 7px; border-radius:6px; align-items:center; gap:3px;">
+        <button id="iveri-cb-btn" onclick="if(typeof openWidgetCallbackModal==='function'){openWidgetCallbackModal();}else if(window.openWidgetCallbackModal){window.openWidgetCallbackModal();}" title="Request Callback" style="display:none; background:#EEF2FF; border:1px solid #C7D2FE; color:#4F46E5; font-size:11px; font-weight:600; cursor:pointer; padding:3px 7px; border-radius:6px; align-items:center; gap:3px;">
           <span id="iveri-cb-icon">📞</span> <span id="iveri-cb-label">Callback</span>
         </button>
         <a id="iveri-wa-btn" title="Chat on WhatsApp" target="_blank" style="display:none; background:#ECFDF5; border:1px solid #A7F3D0; color:#059669; font-size:11px; font-weight:600; text-decoration:none; padding:3px 7px; border-radius:6px; align-items:center; gap:3px;">
@@ -292,11 +312,11 @@ function escapeHtml(str) {
         <div class="iveri-starters" id="iveri-starter-container"></div>
       </div>
     </div>
-    <div id="iveri-cb-modal" style="display:none; position:absolute; inset:0; background:rgba(15,23,42,0.6); backdrop-filter:blur(2px); z-index:50; padding:16px; align-items:center; justify-content:center;">
-      <div style="background:#FFFFFF; border-radius:12px; padding:16px; width:100%; max-width:320px; box-shadow:0 10px 25px rgba(0,0,0,0.2); font-family:inherit;">
+    <div id="iveri-cb-modal" style="display:none; position:absolute; top:0; left:0; right:0; bottom:0; width:100%; height:100%; background:rgba(15,23,42,0.65); backdrop-filter:blur(3px); -webkit-backdrop-filter:blur(3px); z-index:9999999; padding:16px; box-sizing:border-box; align-items:center; justify-content:center;">
+      <div style="background:#FFFFFF; border-radius:12px; padding:16px; width:100%; max-width:320px; box-shadow:0 10px 25px rgba(0,0,0,0.25); font-family:inherit; position:relative; z-index:10000000;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
           <div id="iveri-cb-modal-title" style="font-weight:700; font-size:13px; color:#0F172A;">📞 Request Human Callback</div>
-          <button id="iveri-cb-modal-close" style="background:none; border:none; font-size:18px; color:#94A3B8; cursor:pointer;">×</button>
+          <button id="iveri-cb-modal-close" onclick="if(typeof closeWidgetCallbackModal==='function'){closeWidgetCallbackModal();}else if(window.closeWidgetCallbackModal){window.closeWidgetCallbackModal();}" style="background:none; border:none; font-size:18px; color:#94A3B8; cursor:pointer; padding:0 4px; line-height:1;">×</button>
         </div>
         <div id="iveri-cb-modal-sub" style="font-size:10.5px; color:#64748B; margin-bottom:10px; line-height:1.3;">
           Enter your contact info so our support team can reach you.
@@ -320,7 +340,7 @@ function escapeHtml(str) {
             <label id="iveri-cb-note-label" style="color:#475569; font-weight:600;">How can we help?</label>
             <textarea id="iveri-cb-note" rows="2" placeholder="Describe your inquiry..." style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #CBD5E1; border-radius:6px; font-size:11px; margin-top:2px;"></textarea>
           </div>
-          <button id="iveri-cb-submit" style="background:#4F46E5; color:#FFFFFF; border:none; padding:8px; border-radius:6px; font-weight:600; cursor:pointer; margin-top:4px;">Submit Callback Request</button>
+          <button id="iveri-cb-submit" onclick="if(typeof submitWidgetCallbackRequest==='function'){submitWidgetCallbackRequest();}else if(window.submitWidgetCallbackRequest){window.submitWidgetCallbackRequest();}" style="background:#4F46E5; color:#FFFFFF; border:none; padding:8px; border-radius:6px; font-weight:600; cursor:pointer; margin-top:4px;">Submit Callback Request</button>
         </div>
       </div>
     </div>
@@ -837,21 +857,34 @@ function escapeHtml(str) {
 
   function openWidgetCallbackModal() {
     const modal = document.getElementById('iveri-cb-modal');
-    if (!modal) return;
+    if (!modal) {
+      console.warn('[Iveri Widget] Callback modal element #iveri-cb-modal not found in DOM.');
+      return;
+    }
     renderCallbackModalForChannel((businessData && businessData.callback_channel) || 'phone_and_email', businessData);
     const noteEl = document.getElementById('iveri-cb-note');
     if (noteEl && !noteEl.value && lastUserQuery) {
       noteEl.value = 'Regarding inquiry: ' + lastUserQuery;
     }
     modal.style.display = 'flex';
+    modal.style.zIndex = '9999999';
     const contactInput = document.getElementById('iveri-cb-contact');
-    if (contactInput) contactInput.focus();
+    if (contactInput) {
+      setTimeout(() => contactInput.focus(), 60);
+    }
   }
 
   function closeWidgetCallbackModal() {
     const modal = document.getElementById('iveri-cb-modal');
     if (modal) modal.style.display = 'none';
   }
+
+  _iveri_openModal = openWidgetCallbackModal;
+  _iveri_closeModal = closeWidgetCallbackModal;
+  _iveri_submitModal = submitWidgetCallbackRequest;
+  window.openWidgetCallbackModal = openWidgetCallbackModal;
+  window.closeWidgetCallbackModal = closeWidgetCallbackModal;
+  window.submitWidgetCallbackRequest = submitWidgetCallbackRequest;
 
   async function submitWidgetCallbackRequest() {
     const nameEl = document.getElementById('iveri-cb-name');

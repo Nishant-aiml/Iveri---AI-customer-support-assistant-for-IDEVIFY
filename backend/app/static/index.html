@@ -1250,6 +1250,21 @@
                 </div>
               </div>
 
+              <!-- Dedicated Business WhatsApp Number Field (Revealed when WhatsApp channel is selected) -->
+              <div id="setting-callback-whatsapp-box" class="hidden p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl space-y-1.5 text-xs font-mono animate-in fade-in duration-150">
+                <div class="flex items-center justify-between">
+                  <label class="font-bold text-emerald-800 flex items-center gap-1.5 text-[11px]">
+                    <span class="material-symbols-outlined text-[15px] text-emerald-600">chat</span>
+                    <span>Your Support WhatsApp Number *</span>
+                  </label>
+                  <span class="text-[10px] text-emerald-600">Include country code</span>
+                </div>
+                <div class="flex gap-2">
+                  <input type="text" id="setting-callback-wa-number" placeholder="+14155238886 or +919876543210" class="flex-1 px-3 py-1.5 bg-white border border-emerald-300 rounded-lg text-xs font-mono text-slate-900 focus:outline-none focus:border-emerald-600" oninput="updateWidgetPreview()" />
+                </div>
+                <p class="text-[10px] text-emerald-700 font-sans leading-tight">Visitors will see a <strong>🟢 Open Direct WhatsApp Chat</strong> button linking to <code>wa.me/&lt;number&gt;</code>, plus a field to request a WhatsApp message.</p>
+              </div>
+
               <!-- Live Form Layout Preview Card (Shows exact form fields for each channel) -->
               <div id="callback-form-preview-box" class="mt-2 p-3 bg-white rounded-xl border border-indigo-100 space-y-2 text-[11px] font-mono shadow-xs">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-1.5">
@@ -1809,21 +1824,24 @@
 
   </main>
 
-  <!-- In-Console Business Owner Navigation Copilot -->
-  <div id="copilot-container" class="fixed bottom-20 md:bottom-6 right-3 sm:right-6 z-50 flex items-center gap-1.5 select-none">
+  <!-- In-Console Business Owner Navigation Copilot (Draggable & Non-Blocking) -->
+  <div id="copilot-container" class="fixed bottom-24 sm:bottom-24 md:bottom-8 right-3 sm:right-6 z-40 flex items-center gap-1.5 select-none touch-none transition-transform" style="touch-action:none;">
     <!-- Collapsible Full Pill -->
-    <div id="copilot-pill" class="flex items-center bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white rounded-full shadow-lg shadow-indigo-500/25 transition-all transform hover:scale-102">
-      <button id="copilot-btn" onclick="toggleCopilot()" class="px-3.5 sm:px-4 py-2 sm:py-2.5 flex items-center gap-1.5 sm:gap-2 font-semibold text-xs font-mono text-white focus:outline-none">
+    <div id="copilot-pill" class="flex items-center bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white rounded-full shadow-lg shadow-indigo-500/25 transition-all transform hover:scale-102 cursor-grab active:cursor-grabbing">
+      <button id="copilot-btn" onclick="toggleCopilot()" class="px-3.5 sm:px-4 py-2 sm:py-2.5 flex items-center gap-1.5 sm:gap-2 font-semibold text-xs font-mono text-white focus:outline-none cursor-pointer">
         <span class="material-symbols-outlined text-[17px] sm:text-[18px]">assistant</span>
         <span>Console Copilot</span>
       </button>
-      <button onclick="minimizeCopilot(event)" title="Minimize Copilot to small icon" class="pr-2.5 pl-1 py-2 sm:py-2.5 text-white/70 hover:text-white flex items-center justify-center transition border-l border-white/20">
+      <button onclick="minimizeCopilot(event)" title="Minimize Copilot to small icon" class="pr-2 pl-1 py-2 sm:py-2.5 text-white/70 hover:text-white flex items-center justify-center transition border-l border-white/20 cursor-pointer">
         <span class="material-symbols-outlined text-[15px]">remove</span>
+      </button>
+      <button onclick="dismissCopilot(event)" title="Hide Console Copilot" class="pr-2.5 pl-1 py-2 sm:py-2.5 text-white/70 hover:text-white flex items-center justify-center transition border-l border-white/20 cursor-pointer">
+        <span class="material-symbols-outlined text-[15px]">close</span>
       </button>
     </div>
 
     <!-- Minimized Floating Action Circle (FAB) -->
-    <button id="copilot-fab" onclick="restoreCopilot(true)" title="Expand Console Copilot" class="hidden w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white shadow-lg shadow-indigo-500/30 flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 border border-white/40 group">
+    <button id="copilot-fab" onclick="restoreCopilot(true)" title="Expand Console Copilot (drag anywhere)" class="hidden w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white shadow-lg shadow-indigo-500/30 flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 border border-white/40 group cursor-grab active:cursor-grabbing">
       <span class="material-symbols-outlined text-[19px] group-hover:rotate-12 transition-transform">assistant</span>
     </button>
 
@@ -2215,6 +2233,17 @@
           if (cbChan) cbChan.value = currentBusiness.callback_channel || 'phone_and_email';
           const cbBtn = document.getElementById('setting-callback-btn-text');
           if (cbBtn) cbBtn.value = currentBusiness.callback_button_text || 'Request Callback';
+
+          const cbWaInput = document.getElementById('setting-callback-wa-number');
+          if (cbWaInput) cbWaInput.value = currentBusiness.whatsapp_number || '';
+          const cbWaBox = document.getElementById('setting-callback-whatsapp-box');
+          if (cbWaBox) {
+            if (currentBusiness.callback_channel === 'whatsapp') {
+              cbWaBox.classList.remove('hidden');
+            } else {
+              cbWaBox.classList.add('hidden');
+            }
+          }
 
           // Populate Public Standalone Link
           if (currentBusiness.slug) {
@@ -3304,6 +3333,15 @@
         btnInput.value = cfg.defaultBtnLabel;
       }
 
+      const waBox = document.getElementById('setting-callback-whatsapp-box');
+      if (waBox) {
+        if (ch === 'whatsapp') {
+          waBox.classList.remove('hidden');
+        } else {
+          waBox.classList.add('hidden');
+        }
+      }
+
       updateWidgetPreview();
       togglePreviewCallbackModal(true); // Automatically open the modal in the preview window to demonstrate the new form!
     }
@@ -3605,6 +3643,11 @@
         callback_button_text: document.getElementById('setting-callback-btn-text')?.value || 'Request Callback'
       };
 
+      const waVal = document.getElementById('setting-callback-wa-number')?.value?.trim();
+      if (waVal !== undefined) {
+        body.whatsapp_number = waVal;
+      }
+
       try {
         const res = await fetch('/api/business/settings', {
           method: 'PUT',
@@ -3862,6 +3905,75 @@
       } catch (_) {}
     }
 
+    function dismissCopilot(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      minimizeCopilot(e);
+      try {
+        localStorage.setItem('iveri_copilot_minimized', 'true');
+      } catch (_) {}
+    }
+
+    function makeCopilotDraggable() {
+      const container = document.getElementById('copilot-container');
+      if (!container) return;
+
+      let isDragging = false;
+      let startX = 0, startY = 0;
+      let initialLeft = 0, initialTop = 0;
+      let hasMoved = false;
+
+      function onPointerDown(e) {
+        // Ignore clicks on internal action buttons
+        if (e.target.closest('button') && !e.target.closest('#copilot-btn') && !e.target.closest('#copilot-fab')) return;
+        
+        isDragging = true;
+        hasMoved = false;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        const rect = container.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+
+        document.addEventListener('pointermove', onPointerMove);
+        document.addEventListener('pointerup', onPointerUp);
+      }
+
+      function onPointerMove(e) {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+
+        if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+          hasMoved = true;
+        }
+
+        if (hasMoved) {
+          const maxLeft = window.innerWidth - container.offsetWidth - 12;
+          const maxTop = window.innerHeight - container.offsetHeight - 12;
+          const newLeft = Math.max(12, Math.min(maxLeft, initialLeft + dx));
+          const newTop = Math.max(12, Math.min(maxTop, initialTop + dy));
+
+          container.style.left = `${newLeft}px`;
+          container.style.top = `${newTop}px`;
+          container.style.right = 'auto';
+          container.style.bottom = 'auto';
+        }
+      }
+
+      function onPointerUp(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        document.removeEventListener('pointermove', onPointerMove);
+        document.removeEventListener('pointerup', onPointerUp);
+      }
+
+      container.addEventListener('pointerdown', onPointerDown);
+    }
+
     function initCopilotState() {
       try {
         const isMin = localStorage.getItem('iveri_copilot_minimized') === 'true';
@@ -3874,6 +3986,7 @@
           if (fab) fab.classList.remove('hidden');
         }
       } catch (_) {}
+      makeCopilotDraggable();
     }
     initCopilotState();
 

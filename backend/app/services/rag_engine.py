@@ -160,15 +160,41 @@ class HybridRAGEngine:
             if clean_query.lower() != user_query.lower():
                 logger.info(f"Query typo corrected: '{user_query}' -> '{clean_query}'")
 
-        # Query Expansion for Domain-Aware Search
+        # Step 1.6: Universal Coreference & Conversational Contextualization
         expanded_query = clean_query
         q_lower = clean_query.lower()
-        if any(w in q_lower for w in ["product", "products", "item", "items", "plan", "plans", "broadband", "package"]):
-            expanded_query = f"{clean_query} plans pricing products broadband"
-        elif any(w in q_lower for w in ["gst", "tax", "vat"]):
-            expanded_query = f"{clean_query} 18% gst taxes billing"
-        elif any(w in q_lower for w in ["point", "points", "brewpoint", "brewpoints", "loyalty", "reward", "rewards"]):
-            expanded_query = f"{clean_query} brewpoints loyalty program points rewards discount"
+        is_followup = False
+
+        PRONOUN_FOLLOWUPS = {"this", "that", "it", "its", "these", "those", "they", "them", "same", "worth"}
+        q_words = set(re.findall(r"\b\w+\b", q_lower))
+        has_pronoun_ref = bool(q_words & PRONOUN_FOLLOWUPS)
+        is_short_q = len(q_words) <= 5
+
+        if (has_pronoun_ref or is_short_q) and chat_history:
+            recent_turns = [m for m in chat_history if m.get("content")]
+            if recent_turns:
+                prior_texts = []
+                for m in reversed(recent_turns[-3:]):
+                    prior_texts.append(m.get("content", ""))
+                combined_prior = " ".join(prior_texts)
+
+                # Extract salient topic keywords from preceding turns
+                context_words = [
+                    w for w in re.findall(r"\b[a-zA-Z]{3,}\b", combined_prior)
+                    if w.lower() not in IMMUTABLE_WORDS and w.lower() not in {
+                        "sorry", "hello", "hi", "help", "assist", "welcome", "question", 
+                        "thank", "thanks", "logged", "information", "documents"
+                    }
+                ]
+                if context_words:
+                    is_followup = True
+                    deduped_context = list(dict.fromkeys(context_words))[:7]
+                    expanded_query = f"{clean_query} {' '.join(deduped_context)}"
+                    logger.info(f"Conversational coreference contextualized: '{clean_query}' -> '{expanded_query}'")
+
+        # General inquiry domain synonyms (generic offering & pricing dimensions for any enterprise)
+        if any(w in q_lower for w in ["product", "products", "offering", "offerings", "catalog"]):
+            expanded_query = f"{expanded_query} offerings services plans products catalog"
 
         # Step 2: Concurrent Multi-Hybrid Retrieval (Dense Vector + Sparse BM25 in parallel)
         import asyncio
@@ -188,7 +214,7 @@ class HybridRAGEngine:
         gate_decision = circuit_breaker.evaluate(
             fused_chunks=fused_chunks,
             threshold=settings.CONFIDENCE_THRESHOLD,
-            query=clean_query
+            query=expanded_query
         )
 
         if not gate_decision["can_answer"]:
@@ -210,7 +236,9 @@ class HybridRAGEngine:
             retrieved_chunks=fused_chunks,
             business_name=business_name,
             tone=tone,
-            custom_prompt=business_settings.get("custom_prompt", "")
+            custom_prompt=business_settings.get("custom_prompt", ""),
+            chat_history=chat_history,
+            is_followup=is_followup
         )
 
         # Step 5.5: Outbound Guardrail Check (Secret Leakage & Grounding Filter)

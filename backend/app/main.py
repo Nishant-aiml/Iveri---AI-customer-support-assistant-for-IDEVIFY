@@ -154,9 +154,18 @@ async def serve_pwa_service_worker():
     )
 
 @app.get("/widget.js", tags=["Widget"])
+@app.get("/static/widget.js", tags=["Widget"])
 async def serve_widget_script():
-    """Serves the standalone embeddable chat widget script."""
-    return FileResponse(os.path.join(_static_dir, "widget.js"), media_type="application/javascript")
+    """Serves the standalone embeddable chat widget script with aggressive no-cache headers."""
+    return FileResponse(
+        os.path.join(_static_dir, "widget.js"),
+        media_type="application/javascript",
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+            "Pragma": "no-cache",
+            "Expires": "0"
+        }
+    )
 
 @app.get("/dashboard", tags=["UI"])
 @app.get("/", tags=["UI"])
