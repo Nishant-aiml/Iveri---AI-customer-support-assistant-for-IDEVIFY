@@ -35,6 +35,10 @@ rank-bm25>=0.2.2
 laya>=0.4.20
 numpy>=1.26.0
 
+# Web Push & Mobile PWA Notifications
+pywebpush>=2.5.0
+py-vapid>=1.9.6
+
 # Testing
 pytest>=8.0.0
 pytest-asyncio>=0.23.5

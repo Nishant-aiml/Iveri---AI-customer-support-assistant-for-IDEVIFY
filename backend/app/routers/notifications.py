@@ -166,5 +166,10 @@ async def subscribe_push_notifications(
         )
         db.add(sub)
         await db.commit()
+    else:
+        existing.p256dh = req.p256dh
+        existing.auth = req.auth
+        existing.user_id = owner.id
+        await db.commit()
 
     return {"status": "success", "message": "Device successfully subscribed to real-time mobile push notifications."}

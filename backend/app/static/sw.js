@@ -64,13 +64,14 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-// Web Push Notification Handler (Native Phone Vibration & Ringing)
+// Web Push Notification Handler (Native Phone Vibration, App Icon Badging & Ringing)
 self.addEventListener('push', (event) => {
   let payload = {
     title: '🔔 Iveri Customer Notification',
     body: 'A new customer request or ticket requires your attention.',
     url: '/dashboard#tickets',
-    tag: 'iveri-alert'
+    tag: 'iveri-alert',
+    unread_count: 1
   };
 
   if (event.data) {
@@ -81,17 +82,31 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // 1. Update Native Home Screen App Icon Badge Count (like WhatsApp)
+  const unreadCount = parseInt(payload.unread_count || 1, 10);
+  if ('setAppBadge' in self.navigator) {
+    self.navigator.setAppBadge(unreadCount).catch((err) => {
+      console.warn('App badge set error:', err);
+    });
+  }
+
+  // 2. High-Priority System Notification (wakes closed phone with vibration & sound)
   const notificationOptions = {
     body: payload.body,
     icon: '/static/icons/icon-192.png',
     badge: '/static/icons/icon-192.png',
-    vibrate: [200, 100, 200],
-    data: { url: payload.url || '/dashboard#tickets' },
+    vibrate: [300, 100, 300, 100, 300],
+    data: {
+      url: payload.url || '/dashboard#tickets',
+      unread_count: unreadCount
+    },
     actions: [
       { action: 'open', title: 'Open Dashboard' },
       { action: 'dismiss', title: 'Dismiss' }
     ],
-    tag: payload.tag || 'iveri-ticket'
+    tag: payload.tag || 'iveri-ticket',
+    renotify: true,
+    requireInteraction: true
   };
 
   event.waitUntil(
@@ -102,7 +117,17 @@ self.addEventListener('push', (event) => {
 // Notification Tap / Click Action
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/dashboard';
+
+  // Clear or reset native app badge on user engagement
+  if ('clearAppBadge' in self.navigator) {
+    self.navigator.clearAppBadge().catch(() => {});
+  }
+
+  if (event.action === 'dismiss') {
+    return;
+  }
+
+  const targetUrl = (event.notification.data && event.notification.data.url) ? event.notification.data.url : '/dashboard#tickets';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
@@ -117,4 +142,20 @@ self.addEventListener('notificationclick', (event) => {
       }
     })
   );
+});
+
+// App Badge Communication Channel with Frontend
+self.addEventListener('message', (event) => {
+  if (!event.data) return;
+  if (event.data.type === 'SET_BADGE') {
+    const count = parseInt(event.data.count || 0, 10);
+    if ('setAppBadge' in self.navigator) {
+      if (count > 0) self.navigator.setAppBadge(count).catch(() => {});
+      else if ('clearAppBadge' in self.navigator) self.navigator.clearAppBadge().catch(() => {});
+    }
+  } else if (event.data.type === 'CLEAR_BADGE') {
+    if ('clearAppBadge' in self.navigator) {
+      self.navigator.clearAppBadge().catch(() => {});
+    }
+  }
 });

@@ -2,6 +2,7 @@ import random
 import logging
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy import func
 from app.models.business import Business
 from app.models.user import User
 from app.models.ticket import Ticket
@@ -94,8 +95,9 @@ class NotificationService:
         except Exception as owner_err:
             logger.warning(f"Could not retrieve owner email: {owner_err}")
 
-        # Pre-fetch Push Subscriptions while DB session is open
+        # Pre-fetch Push Subscriptions and current unread count while DB session is open
         push_subs_data = []
+        current_unread_count = 1
         try:
             push_query = select(PushSubscription).where(PushSubscription.business_id == business.id)
             subs = (await db.execute(push_query)).scalars().all()
@@ -103,6 +105,12 @@ class NotificationService:
                 {"endpoint": sub.endpoint, "keys": {"p256dh": sub.p256dh, "auth": sub.auth}}
                 for sub in subs
             ]
+            current_unread_count = (await db.execute(
+                select(func.count(Notification.id)).where(
+                    Notification.business_id == business.id,
+                    Notification.is_read.is_(False)
+                )
+            )).scalar() or 1
         except Exception as p_err:
             logger.warning(f"Push subscriptions query notice: {p_err}")
 
@@ -128,13 +136,16 @@ class NotificationService:
                 except Exception as e:
                     logger.warning(f"Email dispatch error: {e}")
 
-            # 4b. Web Push
+            # 4b. Web Push (Delivered to phone even when app is closed)
             for sub_dict in push_subs_data:
                 try:
                     push_payload = {
                         "title": f"🚨 {notif_title}",
                         "body": f"{contact_info}: {description[:120]}",
-                        "url": "/dashboard#tickets"
+                        "url": "/dashboard#tickets",
+                        "unread_count": current_unread_count,
+                        "tag": f"ticket-{ticket_num}",
+                        "ticket_number": ticket_num
                     }
                     await push_service.send_web_push(sub_dict, push_payload)
                 except Exception as e:

@@ -182,3 +182,45 @@ class TestNotificationsAndUiEnhancements(unittest.IsolatedAsyncioTestCase):
         self.assertIn("messages", first_session)
         self.assertIn("session_id", first_session)
         self.assertIn("message_count", first_session)
+
+    async def test_05_web_push_vapid_endpoint_and_badging_contracts(self):
+        """Verifies VAPID public key generation, push subscription registration, and app badging contracts."""
+        # 1. VAPID public key endpoint
+        res = await self.client.get("/api/notifications/push/vapid-public-key")
+        self.assertEqual(res.status_code, 200)
+        pub_key = res.json().get("public_key")
+        self.assertTrue(pub_key)
+        self.assertEqual(len(pub_key), 87, "VAPID public key must be 87 chars uncompressed base64url")
+
+        # 2. Push subscription registration
+        mock_endpoint = f"https://fcm.googleapis.com/fcm/send/mock_token_{self.uid}"
+        sub_res = await self.client.post(
+            "/api/notifications/push/subscribe",
+            headers=self.headers,
+            json={
+                "endpoint": mock_endpoint,
+                "p256dh": "mock_p256dh_key",
+                "auth": "mock_auth_secret"
+            }
+        )
+        self.assertEqual(sub_res.status_code, 200)
+        self.assertEqual(sub_res.json()["status"], "success")
+
+        # 3. Check Service Worker badging and push contracts
+        sw_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "static", "sw.js"))
+        with open(sw_path, "r", encoding="utf-8") as f:
+          sw_code = f.read()
+
+        self.assertIn("setAppBadge", sw_code)
+        self.assertIn("clearAppBadge", sw_code)
+        self.assertIn("self.addEventListener('push'", sw_code)
+        self.assertIn("unread_count", sw_code)
+
+        # 4. Check Frontend index.html badging & sync contracts
+        html_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "app", "static", "index.html"))
+        with open(html_path, "r", encoding="utf-8") as f:
+          html_code = f.read()
+
+        self.assertIn("syncPushSubscription", html_code)
+        self.assertIn("setAppBadge", html_code)
+        self.assertIn("clearAppBadge", html_code)

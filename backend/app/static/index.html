@@ -2479,6 +2479,7 @@
       } else if ('Notification' in window && Notification.permission === 'granted') {
         const toggleBtn = document.getElementById('push-toggle-btn');
         if (toggleBtn) toggleBtn.innerText = 'Push Active ✓';
+        if (typeof syncPushSubscription === 'function') syncPushSubscription();
       }
     }
 
@@ -6354,6 +6355,21 @@
           }
         }
 
+        // 2b. Native App Icon Badge on phone home screen (like WhatsApp)
+        if ('setAppBadge' in navigator) {
+          if (unreadCount > 0) {
+            navigator.setAppBadge(unreadCount).catch(() => {});
+          } else if ('clearAppBadge' in navigator) {
+            navigator.clearAppBadge().catch(() => {});
+          }
+        }
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: unreadCount > 0 ? 'SET_BADGE' : 'CLEAR_BADGE',
+            count: unreadCount
+          });
+        }
+
         // 3. Tab Title Alert
         if (unreadCount > 0) {
           document.title = `(${unreadCount}) 🚨 Alerts - Iveri Console`;
@@ -6467,6 +6483,12 @@
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + authToken }
         });
+        if ('clearAppBadge' in navigator) {
+          navigator.clearAppBadge().catch(() => {});
+        }
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_BADGE' });
+        }
         loadNotifications();
       } catch (e) {
         console.error("markAllNotificationsRead error:", e);
@@ -6484,6 +6506,44 @@
       return outputArray;
     }
 
+    async function syncPushSubscription() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !authToken) return;
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const vapidRes = await fetch('/api/notifications/push/vapid-public-key');
+        if (!vapidRes.ok) return;
+        const { public_key } = await vapidRes.json();
+        if (!public_key) return;
+
+        let sub = await reg.pushManager.getSubscription();
+        const appServerKey = urlBase64ToUint8Array(public_key);
+
+        if (!sub) {
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: appServerKey
+          });
+        }
+        const subJson = sub.toJSON();
+        if (subJson && subJson.endpoint) {
+          await fetch('/api/notifications/push/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+            body: JSON.stringify({
+              endpoint: subJson.endpoint,
+              p256dh: subJson.keys?.p256dh || '',
+              auth: subJson.keys?.auth || ''
+            })
+          });
+          const toggleBtn = document.getElementById('push-toggle-btn');
+          if (toggleBtn) toggleBtn.innerText = "Push Active ✓";
+          console.info("[Iveri Push] Background PushSubscription synced with server successfully.");
+        }
+      } catch (swErr) {
+        console.info("[Iveri Push] Subscription sync notice:", swErr);
+      }
+    }
+
     async function requestPushPermission() {
       if (!('Notification' in window)) {
         alert("Web notifications are not supported on this browser.");
@@ -6495,39 +6555,12 @@
           playNotificationChime();
           try {
             new Notification("🔔 Iveri Alerts Active!", {
-              body: "You will receive instant alerts on this device whenever tickets or WhatsApp messages arrive.",
+              body: "You will receive instant alerts on this device whenever tickets or WhatsApp messages arrive, even when the app is closed.",
               icon: "/static/icons/icon-192.png"
             });
           } catch(e) {}
 
-          // Service Worker Push registration
-          if ('serviceWorker' in navigator && authToken) {
-            try {
-              const reg = await navigator.serviceWorker.ready;
-              const vapidRes = await fetch('/api/notifications/push/vapid-public-key');
-              if (vapidRes.ok) {
-                const { public_key } = await vapidRes.json();
-                if (public_key) {
-                  const sub = await reg.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey: urlBase64ToUint8Array(public_key)
-                  });
-                  const subJson = sub.toJSON();
-                  await fetch('/api/notifications/push/subscribe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-                    body: JSON.stringify({
-                      endpoint: subJson.endpoint,
-                      p256dh: subJson.keys?.p256dh || '',
-                      auth: subJson.keys?.auth || ''
-                    })
-                  });
-                }
-              }
-            } catch (swErr) {
-              console.info("Service worker push note:", swErr);
-            }
-          }
+          await syncPushSubscription();
 
           const banner = document.getElementById('desktop-notif-prompt');
           if (banner) banner.classList.add('hidden');
