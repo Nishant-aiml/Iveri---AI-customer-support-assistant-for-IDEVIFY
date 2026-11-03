@@ -904,6 +904,65 @@
       </div>
     </section>
 
+    <!-- Dedicated Unanswered Chat Inspector Modal with Targeted Question Highlighting -->
+    <div id="unanswered-chat-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+      <div class="bg-white rounded-2xl max-w-2xl w-full p-4 sm:p-6 space-y-4 shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col animate-in fade-in zoom-in duration-150">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3 shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 text-xs font-mono font-bold" id="unanswered-modal-ticket-badge">TICK-XXXX</span>
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm">Unanswered Chat Session Inspector</h3>
+              <p class="text-[11px] text-slate-400 font-mono" id="unanswered-modal-meta">Customer dialogue transcript</p>
+            </div>
+          </div>
+          <button onclick="closeUnansweredChatModal()" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer">
+            <span class="material-symbols-outlined text-xl">close</span>
+          </button>
+        </div>
+
+        <!-- Highlighted Question Banner -->
+        <div class="p-3 bg-amber-50/90 border border-amber-200 rounded-xl space-y-1 shrink-0 shadow-2xs">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-800 font-mono">
+              <span class="material-symbols-outlined text-[15px] text-amber-600">warning</span>
+              <span>Target Question Requiring Business Response</span>
+            </div>
+            <span class="px-2 py-0.5 rounded text-[9px] font-mono font-semibold bg-amber-200 text-amber-900" id="unanswered-modal-status-pill">OPEN</span>
+          </div>
+          <div id="unanswered-modal-target-question" class="text-slate-900 font-sans font-semibold text-xs sm:text-sm pl-0.5">
+            Loading...
+          </div>
+        </div>
+
+        <!-- Scrollable Conversation Transcript -->
+        <div id="unanswered-modal-transcript-container" class="space-y-3 overflow-y-auto pr-1 flex-1 min-h-[220px] max-h-[460px] p-3 bg-slate-50/70 rounded-xl border border-slate-100">
+          <div class="text-center py-12 text-slate-400 text-xs font-mono">
+            Loading chat messages...
+          </div>
+        </div>
+
+        <!-- Action / Footer Controls -->
+        <div class="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-slate-100 shrink-0 text-xs font-mono">
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="openResolveFromUnansweredModal()" class="px-3 py-1.5 bg-primary hover:bg-primary-hover text-white font-semibold rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer">
+              <span class="material-symbols-outlined text-[15px]">school</span>
+              <span>Resolve & Train AI on this Question</span>
+            </button>
+            <button type="button" id="unanswered-modal-view-chats-btn" onclick="openInChatsTabFromModal()" class="px-3 py-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-semibold rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer">
+              <span class="material-symbols-outlined text-[15px] text-primary">forum</span>
+              <span>Open in 2-Pane History</span>
+            </button>
+          </div>
+          <button type="button" onclick="closeUnansweredChatModal()" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 font-medium rounded-lg transition cursor-pointer">
+            Close
+          </button>
+        </div>
+
+      </div>
+    </div>
+
     <!-- Ticket Resolution Modal (Closed-Loop Learning) -->
     <div id="resolve-ticket-modal" class="hidden fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl max-w-xl w-full p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto animate-in fade-in zoom-in duration-150">
@@ -3121,7 +3180,9 @@
       }
     }
 
-    async function selectSession(sessionId) {
+    let activeCurrentSessionData = null;
+
+    async function selectSession(sessionId, highlightQuery = '') {
       selectedSessionId = sessionId;
       document.querySelectorAll('.chat-session-item').forEach(el => el.classList.remove('active'));
       const activeEl = document.getElementById(`session-card-${sessionId}`);
@@ -3133,7 +3194,8 @@
         });
         if (res.ok) {
           const s = await res.json();
-          renderSessionDetail(s);
+          activeCurrentSessionData = s;
+          renderSessionDetail(s, highlightQuery);
           if (window.innerWidth < 1024) {
             const detailContainer = document.getElementById('session-detail-container');
             if (detailContainer) {
@@ -3146,10 +3208,12 @@
       }
     }
 
-    function renderSessionDetail(s) {
+    function renderSessionDetail(s, highlightQuery = '') {
+      activeCurrentSessionData = s;
       const detailContainer = document.getElementById('session-detail-container');
       const shareUrl = `${window.location.origin}/share/${s.session_id}`;
       const dtStart = formatExactDateTime(s.started_at);
+      const cleanHl = highlightQuery ? highlightQuery.trim().toLowerCase() : '';
 
       detailContainer.innerHTML = `
         <div class="lg:hidden pb-2 mb-1 border-b border-slate-100">
@@ -3157,6 +3221,15 @@
             <span class="material-symbols-outlined text-[15px]">arrow_upward</span> Back to Conversations List
           </button>
         </div>
+        ${cleanHl ? `
+          <div class="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between text-xs font-mono text-amber-900 shadow-2xs">
+            <div class="flex items-center gap-1.5 truncate">
+              <span class="material-symbols-outlined text-amber-600 text-[16px]">priority_high</span>
+              <span>Target Question Highlighted: <strong class="font-sans font-semibold">${escapeHtml(highlightQuery)}</strong></span>
+            </div>
+            <button onclick="renderSessionDetail(activeCurrentSessionData, '')" class="text-amber-700 hover:text-amber-900 text-[10px] font-bold underline shrink-0 cursor-pointer">Clear Highlight</button>
+          </div>
+        ` : ''}
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 border-b border-slate-100 gap-2">
           <div>
             <div class="flex items-center gap-2">
@@ -3190,9 +3263,16 @@
         <div class="space-y-4 max-h-[460px] overflow-y-auto pr-2">
           ${s.messages.map(m => {
             const dtMsg = formatExactDateTime(m.created_at);
+            const isMatch = cleanHl && m.sender === 'customer' && m.content.toLowerCase().includes(cleanHl);
             return `
-            <div class="flex flex-col ${m.sender === 'customer' ? 'items-end' : 'items-start'}">
-              <div class="max-w-[85%] p-3.5 rounded-2xl text-xs leading-relaxed ${m.sender === 'customer' ? 'bg-primary text-white rounded-tr-xs' : 'bg-slate-50 border border-slate-200 text-slate-900 rounded-tl-xs'}">
+            <div ${isMatch ? 'id="pane-highlighted-msg"' : ''} class="flex flex-col ${m.sender === 'customer' ? 'items-end' : 'items-start'}">
+              ${isMatch ? `
+                <div class="flex items-center gap-1 text-[10px] font-mono font-bold text-amber-700 mb-1">
+                  <span class="material-symbols-outlined text-[13px] text-amber-600 animate-bounce">priority_high</span>
+                  <span>UNANSWERED QUESTION</span>
+                </div>
+              ` : ''}
+              <div class="max-w-[85%] p-3.5 rounded-2xl text-xs leading-relaxed ${isMatch ? 'bg-amber-400 text-slate-950 border-2 border-amber-500 ring-4 ring-amber-200/70 shadow-md font-semibold' : (m.sender === 'customer' ? 'bg-primary text-white' : 'bg-slate-50 border border-slate-200 text-slate-900')} ${m.sender === 'customer' ? 'rounded-tr-xs' : 'rounded-tl-xs'}">
                 <p class="font-sans whitespace-pre-wrap">${escapeHtml(m.content)}</p>
                 ${m.citations && m.citations.length > 0 ? `
                   <div class="mt-2 pt-2 border-t ${m.sender === 'customer' ? 'border-primary-hover' : 'border-slate-200'} text-[10px] font-mono space-y-1">
@@ -3215,6 +3295,13 @@
           }).join('')}
         </div>
       `;
+
+      if (cleanHl) {
+        setTimeout(() => {
+          const el = document.getElementById('pane-highlighted-msg');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 150);
+      }
     }
 
     function copySessionShare(sessionId) {
@@ -5022,26 +5109,39 @@
             rowQuickIcons += '<a href="https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(t.customer_email) + '&su=' + encodeURIComponent(prefillSubject) + '&body=' + encodeURIComponent(prefillBody) + '" target="_blank" title="Open in Gmail" class="p-1 rounded-md bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 inline-flex items-center justify-center transition"><span class="material-symbols-outlined text-[14px]">mail</span></a>';
           }
 
+          let inspectBtn = '<button onclick="inspectUnansweredChat(\'' + t.id + '\')" title="Inspect Chat Conversation & Highlighted Question" class="p-1 rounded-md bg-indigo-50 hover:bg-indigo-100 text-primary border border-indigo-200 inline-flex items-center justify-center transition cursor-pointer"><span class="material-symbols-outlined text-[14px]">chat</span></button>';
+
           let actionBtn = '';
           if (t.status === 'resolved') {
-            actionBtn = '<div class="flex items-center gap-1.5 justify-end whitespace-nowrap">' + rowQuickIcons +
+            actionBtn = '<div class="flex items-center gap-1.5 justify-end whitespace-nowrap">' + rowQuickIcons + inspectBtn +
               '<button onclick="reNotifyCustomer(\'' + safeTicket + '\')" title="Send automated WhatsApp / Email resolution notification to customer" class="px-2 py-0.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-semibold flex items-center gap-1 transition shadow-2xs"><span class="material-symbols-outlined text-[13px]">send</span> Notify</button>' +
               '<span class="text-[11px] text-emerald-700 font-bold flex items-center gap-0.5"><span class="material-symbols-outlined text-[14px]">check_circle</span> Trained</span>' +
               '<button onclick="deleteTicket(\'' + t.id + '\', \'' + safeTicket + '\')" title="Delete Ticket" class="p-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 inline-flex items-center justify-center transition cursor-pointer"><span class="material-symbols-outlined text-[14px]">delete</span></button>' +
               '</div>';
           } else {
-            actionBtn = '<div class="flex items-center gap-1.5 justify-end whitespace-nowrap">' + rowQuickIcons +
+            actionBtn = '<div class="flex items-center gap-1.5 justify-end whitespace-nowrap">' + rowQuickIcons + inspectBtn +
               '<button onclick="openResolveTicketModal(\'' + safeTicket + '\', \'' + safeDesc + '\', \'' + safeName + '\', \'' + safePhone + '\', \'' + safeEmail + '\', \'' + safeChan + '\')" class="px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded-lg text-[11px] font-semibold transition flex items-center gap-1 shadow-xs"><span class="material-symbols-outlined text-[13px]">school</span> Resolve & Train</button>' +
               '<button onclick="deleteTicket(\'' + t.id + '\', \'' + safeTicket + '\')" title="Delete Ticket" class="p-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 inline-flex items-center justify-center transition cursor-pointer"><span class="material-symbols-outlined text-[14px]">delete</span></button>' +
               '</div>';
           }
 
           return '<tr class="hover:bg-slate-50/80 transition">' +
-            '<td class="py-3 px-4 font-bold text-slate-900">' + t.ticket_number + '</td>' +
+            '<td class="py-3 px-4 font-bold text-slate-900">' +
+              '<button onclick="inspectUnansweredChat(\'' + t.id + '\')" title="Inspect chat history & highlighted question" class="group font-bold text-primary hover:text-primary-hover flex items-center gap-1 cursor-pointer transition text-left">' +
+                '<span>' + t.ticket_number + '</span>' +
+                '<span class="material-symbols-outlined text-[13px] opacity-70 group-hover:opacity-100 transition">open_in_new</span>' +
+              '</button>' +
+            '</td>' +
             '<td class="py-3 px-4">' + priorityPill + '</td>' +
             '<td class="py-3 px-4">' + chanPill + '</td>' +
             '<td class="py-3 px-4"><div class="font-medium text-slate-800">' + customerDisplay + '</div>' + (contactInfo ? '<div class="text-[10px] text-slate-400">' + contactInfo + '</div>' : '') + '</td>' +
-            '<td class="py-3 px-4 max-w-xs"><div class="font-semibold text-slate-800 truncate">' + escapeHtml(t.subject || 'Customer Inquiry') + '</div><div class="text-[11px] text-slate-500 truncate">' + escapeHtml(t.description) + '</div></td>' +
+            '<td class="py-3 px-4 max-w-xs cursor-pointer group" onclick="inspectUnansweredChat(\'' + t.id + '\')" title="Click to inspect unanswered chat history">' +
+              '<div class="font-semibold text-slate-800 group-hover:text-primary transition truncate flex items-center gap-1">' +
+                '<span>' + escapeHtml(t.subject || 'Customer Inquiry') + '</span>' +
+                '<span class="material-symbols-outlined text-[12px] opacity-0 group-hover:opacity-100 text-primary transition">visibility</span>' +
+              '</div>' +
+              '<div class="text-[11px] text-slate-500 group-hover:text-slate-700 transition truncate">' + escapeHtml(t.description) + '</div>' +
+            '</td>' +
             '<td class="py-3 px-4">' + statusPill + '</td>' +
             '<td class="py-3 px-4 text-slate-400 text-[11px]">' + dateStr + '</td>' +
             '<td class="py-3 px-4 text-right">' + actionBtn + '</td>' +
@@ -5050,6 +5150,161 @@
       } catch (err) {
         console.error("loadTickets error:", err);
       }
+    }
+
+    let activeUnansweredTicket = null;
+
+    async function inspectUnansweredChat(ticketId) {
+      if (!authToken || !ticketId) return;
+
+      const modal = document.getElementById('unanswered-chat-modal');
+      const badge = document.getElementById('unanswered-modal-ticket-badge');
+      const meta = document.getElementById('unanswered-modal-meta');
+      const qText = document.getElementById('unanswered-modal-target-question');
+      const transcript = document.getElementById('unanswered-modal-transcript-container');
+      const viewChatsBtn = document.getElementById('unanswered-modal-view-chats-btn');
+
+      if (badge) badge.innerText = "Loading...";
+      if (qText) qText.innerText = "Retrieving conversation context...";
+      if (transcript) transcript.innerHTML = '<div class="text-center py-12 text-slate-400 text-xs font-mono"><span class="material-symbols-outlined text-xl animate-spin text-primary">sync</span><div class="mt-2">Loading customer conversation transcript...</div></div>';
+      if (modal) modal.classList.remove('hidden');
+
+      try {
+        const res = await fetch('/api/tickets/' + ticketId + '/conversation', {
+          headers: { 'Authorization': 'Bearer ' + authToken }
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          if (transcript) transcript.innerHTML = `<div class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-mono">${escapeHtml(err.detail || "Failed to load chat history.")}</div>`;
+          return;
+        }
+
+        const data = await res.json();
+        activeUnansweredTicket = data;
+
+        if (badge) badge.innerText = data.ticket_number;
+        const custName = data.customer_name || data.customer_email || data.customer_phone || 'Visitor';
+        if (meta) meta.innerText = `${custName} • ${data.channel.toUpperCase()} • Priority: ${data.priority.toUpperCase()}`;
+        if (qText) qText.innerText = data.unanswered_question;
+
+        const statusPill = document.getElementById('unanswered-modal-status-pill');
+        if (statusPill) {
+          statusPill.innerText = data.status.toUpperCase();
+          if (data.status === 'resolved') {
+            statusPill.className = "px-2 py-0.5 rounded text-[9px] font-mono font-semibold bg-emerald-100 text-emerald-800";
+          } else {
+            statusPill.className = "px-2 py-0.5 rounded text-[9px] font-mono font-semibold bg-amber-200 text-amber-900";
+          }
+        }
+
+        if (viewChatsBtn) {
+          if (data.session_id) {
+            viewChatsBtn.classList.remove('hidden');
+          } else {
+            viewChatsBtn.classList.add('hidden');
+          }
+        }
+
+        if (!data.has_chat_session || !data.messages || data.messages.length === 0) {
+          transcript.innerHTML = `
+            <div class="p-6 text-center space-y-2">
+              <span class="material-symbols-outlined text-3xl text-amber-500">contact_support</span>
+              <div class="text-xs font-semibold text-slate-800">Direct Inquiry Without Interactive Chat</div>
+              <p class="text-[11px] text-slate-500 max-w-md mx-auto">This ticket was submitted via a direct contact form, urgent callback request, or phone inquiry. The specific customer question is shown in the banner above.</p>
+            </div>
+          `;
+          return;
+        }
+
+        transcript.innerHTML = data.messages.map((m) => {
+          const dt = formatExactDateTime(m.created_at);
+          if (m.is_unanswered_target) {
+            return `
+              <div id="unanswered-target-msg" class="flex flex-col items-end my-3">
+                <div class="flex items-center gap-1.5 text-[10px] font-mono font-bold text-amber-800 bg-amber-100/90 px-2.5 py-0.5 rounded-full border border-amber-300 mb-1.5 shadow-2xs">
+                  <span class="material-symbols-outlined text-[13px] text-amber-700 animate-bounce">priority_high</span>
+                  <span>UNANSWERED QUESTION TRIGGER (NO RAG MATCH)</span>
+                </div>
+                <div class="max-w-[88%] p-3.5 rounded-2xl text-xs leading-relaxed bg-amber-400 text-slate-950 border-2 border-amber-500 ring-4 ring-amber-200/70 shadow-md font-semibold rounded-tr-xs">
+                  <p class="font-sans whitespace-pre-wrap text-slate-950">${escapeHtml(m.content)}</p>
+                  <div class="mt-2 pt-1.5 border-t border-amber-500/50 flex items-center justify-between text-[9px] font-mono text-amber-950">
+                    <span class="font-bold">Customer Inquiry</span>
+                    <span>${dt.dayShort}, ${dt.timeShort}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          } else if (m.sender === 'customer') {
+            return `
+              <div class="flex flex-col items-end my-2">
+                <div class="max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed bg-primary text-white shadow-2xs rounded-tr-xs">
+                  <p class="font-sans whitespace-pre-wrap">${escapeHtml(m.content)}</p>
+                  <div class="mt-1.5 pt-1 border-t border-primary-hover flex items-center justify-between text-[9px] font-mono opacity-80">
+                    <span>Customer</span>
+                    <span>${dt.timeShort}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          } else {
+            const isFallback = !m.is_answered;
+            return `
+              <div class="flex flex-col items-start my-2">
+                ${isFallback ? `
+                  <div class="flex items-center gap-1 text-[10px] font-mono font-bold text-rose-600 mb-1">
+                    <span class="material-symbols-outlined text-[13px]">help_center</span>
+                    <span>AI Fallback Response (Triggered Ticket Creation)</span>
+                  </div>
+                ` : ''}
+                <div class="max-w-[85%] p-3 rounded-2xl text-xs leading-relaxed ${isFallback ? 'bg-rose-50 border border-rose-200 text-rose-950 shadow-2xs' : 'bg-white border border-slate-200 text-slate-900 shadow-2xs'} rounded-tl-xs">
+                  <p class="font-sans whitespace-pre-wrap">${escapeHtml(m.content)}</p>
+                  <div class="mt-1.5 pt-1 border-t ${isFallback ? 'border-rose-200 text-rose-700' : 'border-slate-100 text-slate-400'} flex items-center justify-between text-[9px] font-mono">
+                    <span>AI Assistant</span>
+                    <span>${dt.timeShort}</span>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+        }).join('');
+
+        // Smoothly scroll to the highlighted target message
+        setTimeout(() => {
+          const targetEl = document.getElementById('unanswered-target-msg');
+          if (targetEl) targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 120);
+
+      } catch (err) {
+        console.error("inspectUnansweredChat error:", err);
+        if (transcript) transcript.innerHTML = `<div class="p-4 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-mono">Network error loading chat history.</div>`;
+      }
+    }
+
+    function closeUnansweredChatModal() {
+      const modal = document.getElementById('unanswered-chat-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function openResolveFromUnansweredModal() {
+      if (!activeUnansweredTicket) return;
+      closeUnansweredChatModal();
+      openResolveTicketModal(
+        activeUnansweredTicket.ticket_number,
+        activeUnansweredTicket.unanswered_question,
+        activeUnansweredTicket.customer_name || '',
+        activeUnansweredTicket.customer_phone || '',
+        activeUnansweredTicket.customer_email || '',
+        activeUnansweredTicket.channel || 'widget'
+      );
+    }
+
+    function openInChatsTabFromModal() {
+      if (!activeUnansweredTicket || !activeUnansweredTicket.session_id) return;
+      const sId = activeUnansweredTicket.session_id;
+      const targetQ = activeUnansweredTicket.unanswered_question;
+      closeUnansweredChatModal();
+      switchTab('chats');
+      selectSession(sId, targetQ);
     }
 
     let activeTicketCustomerPhone = '';

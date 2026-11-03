@@ -96,7 +96,21 @@ class TestTicketsNotificationsTwilio(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(t.status, "open")
             self.assertEqual(t.channel, "widget")
             self.assertEqual(t.customer_email, "customer@example.com")
-            print(f"[PASS] 01: Ticket auto-created: {t.ticket_number}")
+            t_id = t.id
+            t_num = t.ticket_number
+            print(f"[PASS] 01: Ticket auto-created: {t_num}")
+
+        # 4. Verify conversation inspection endpoint identifies and highlights the unanswered question
+        conv_res = await self.client.get(f"/api/tickets/{t_id}/conversation", headers=self.auth_headers)
+        self.assertEqual(conv_res.status_code, 200)
+        conv_data = conv_res.json()
+        self.assertEqual(conv_data["ticket_number"], t_num)
+        self.assertTrue(conv_data["has_chat_session"])
+        self.assertGreaterEqual(len(conv_data["messages"]), 2)
+        target_msgs = [m for m in conv_data["messages"] if m["is_unanswered_target"]]
+        self.assertEqual(len(target_msgs), 1)
+        self.assertIn("repair broken laptop screens", target_msgs[0]["content"])
+        print(f"[PASS] 01: Unanswered conversation inspector verified with highlighted target: {target_msgs[0]['content']}")
 
     async def test_02_contact_request_creates_urgent_ticket(self):
         """Verifies customer callback/contact request creates an urgent ticket."""
