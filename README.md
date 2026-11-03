@@ -276,10 +276,11 @@ $$\mathrm{Score}_{\mathrm{RRF}}(d) = \sum_{m \in \{\mathrm{dense},\, \mathrm{spa
 - **Dense Semantic Layer**: Local ChromaDB collection computing cosine distance on normalized embeddings.
 - **Sparse Lexical Layer**: In-memory `rank-bm25` index enhanced with domain-specific synonym expansion (e.g., `equipment` $\rightarrow$ `router, modem, ONT, cables`; `pricing` $\rightarrow$ `plans, tariffs, rates`).
 
-### 3. Pre-LLM Deterministic Confidence Circuit Breaker
+### 3. Pre-LLM Deterministic Confidence Circuit Breaker & Universal Grounding
 Unlike naive RAG systems that pass weak context to an LLM and "hope" the system prompt prevents hallucination, Iveri evaluates retrieval confidence *before* calling any generative model:
-- If combined fused confidence is below threshold ($\tau = 0.55$), the circuit breaker trips.
-- The assistant immediately returns a polite, verified fallback:
+- **Universal Domain-Agnostic Architecture**: Zero hardcoded store keywords or product tokens. Evaluates dense semantic embeddings, dynamic vocabulary extracted from tenant documents, and universal inquiry dimensions (identity, offerings & pricing, contact, location, policies).
+- **Multi-Turn Coreference Resolution**: Anaphoric follow-up queries (e.g., *"how much is this worth?"*, *"how do I get it?"*, *"what about delivery?"*) automatically contextualize against conversation dialogue history, answer based on the continuation of the preceding topic, and append friendly disambiguation guidance (`"If you were referring to a different item, product, or policy, please let me know and I'll be glad to help!"`).
+- If combined fused confidence is below threshold ($\tau = 0.55$), the circuit breaker trips and returns a polite, verified fallback:
   > *"I'm sorry, but I do not have this information in my documents. I have logged your question for our team to assist you."*
 - **Outcome**: **0 tokens consumed, 0ms queue time, 100% defense against hallucinated policies**.
 
