@@ -4,6 +4,7 @@ from typing import Dict, Any
 from urllib.parse import quote
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import desc
 from sqlalchemy.future import select
 from app.database import get_db
 from app.models.business import Business
@@ -127,6 +128,17 @@ async def receive_whatsapp_message(
     session.primary_topic = topic_category
     await db.flush()
 
+    # 5.5. Retrieve Prior Conversation History for Multi-Turn Continuity
+    hist_query = select(ChatMessage).where(
+        ChatMessage.session_id == session.id,
+        ChatMessage.id != user_msg.id
+    ).order_by(desc(ChatMessage.created_at)).limit(6)
+    hist_results = (await db.execute(hist_query)).scalars().all()
+    rolling_history = [
+        {"role": m.sender, "content": m.content}
+        for m in reversed(hist_results)
+    ]
+
     # 6. Execute Hybrid RAG Pipeline
     biz_settings = {
         "name": business.name,
@@ -137,7 +149,8 @@ async def receive_whatsapp_message(
     rag_result = await rag_engine.query(
         business_id=business.id,
         user_query=clean_query,
-        business_settings=biz_settings
+        business_settings=biz_settings,
+        chat_history=rolling_history
     )
 
     # 7. Record Assistant Message
