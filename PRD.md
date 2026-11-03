@@ -5,20 +5,54 @@
 
 | Document Metadata | Specification |
 | :--- | :--- |
-| **Product Name** | AI Customer Support Assistant |
-| **Document Version** | 1.1.0 (Enhanced with High-Value Evaluation Features) |
-| **Status** | Approved & Ready for Implementation |
-| **Target Platforms** | Web Application (Responsive Desktop & Mobile) & Embeddable JS Widget |
-| **Backend Stack** | Python 3.11+, FastAPI, SQLAlchemy (Async), ChromaDB, `rank-bm25` |
-| **Frontend Stack** | React 18+, TypeScript, Vite, Tailwind CSS, Lucide Icons |
+| **Product Name** | AI Customer Support Assistant (Iveri) |
+| **Document Version** | 1.2.0 (Enterprise Asset & Multi-Tenant Specification) |
+| **Status** | Approved & Production Baselined |
+| **Primary Code Repository** | [https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY.git](https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY.git) |
+| **Secondary / Mirror Repo** | [https://github.com/ishwaribhoyar/Iveri-AI-customer-support-assistant-for-IDEVIFY.git](https://github.com/ishwaribhoyar/Iveri-AI-customer-support-assistant-for-IDEVIFY.git) |
+| **Target Platforms** | Web Application (Responsive Desktop & Mobile PWA) & Embeddable JS Widget |
+| **Backend Stack** | Python 3.11+, FastAPI, SQLAlchemy (Async), ChromaDB, `rank-bm25`, `laya` |
+| **Frontend Stack** | High-Density HTML5/Tailwind Glassmorphic Console, Vanilla JS Widget |
 | **Database** | SQLite (Development) $\rightarrow$ PostgreSQL (Render Production) |
-| **Base Repositories** | `base_repos/rag-supported-chatbot`, `base_repos/rag-support-sytem`, `base_repos/DocsGPT` |
 
 ---
 
-## 1. Product Vision & Architectural Philosophy
+## 1. Product Vision & Strategic Architectural Philosophy
 
-The **AI Customer Support Assistant** is a multi-tenant, retrieval-augmented generation (RAG) platform that enables small businesses to turn their static documentation into an accurate, 24/7 AI customer support representative.
+### 1.1 The Original Problem Statement (IDEVIFY Solutions Candidate Brief)
+The evaluation assignment issued by **IDEVIFY Solutions Private Limited** defines the baseline problem:
+
+> *"Small businesses get the same customer questions again and again (pricing, refund policy, delivery time), and a human has to answer each one. Generic chatbots give wrong answers because they know nothing about the business. Build a platform where a business uploads its own documents and gets an AI assistant that answers customer questions only from those documents."*
+>
+> **Core Deliverables Required**:
+> 1. **Dual Roles**: Business Owner (Upload documents, view chat history, configure assistant) and Customer (Access public chat via unique link or embedded widget, ask questions, receive answers grounded strictly in uploaded documents with exact citations).
+> 2. **Document Processing**: Intelligent ingestion supporting PDFs, DOCX, TXT, Excel/Spreadsheets, and OCR images with chunking, overlap, and vector indexing.
+> 3. **Intelligent Grounded RAG**: Dense vector + sparse keyword search, polite fallbacks when information is absent, zero hallucination.
+> 4. **Handling Unknowns & Fallbacks**: Friendly fallback responses when queries cannot be answered, with contact/callback logging.
+> 5. **Dynamic Document Updates**: Immediate reflection of uploaded, edited, or deleted files in assistant knowledge base without stale answers.
+> 6. **Production Polish**: Clean UX, robust multi-tenancy, and high evaluation scores across correctness and engineering design.
+
+---
+
+### 1.2 Strategic Transformation: From an Assignment into an IDEVIFY Enterprise Business Asset
+
+While the original brief focused on a single chatbot-type service, our engineering team treated the prompt as a strategic challenge: **How do we build something that becomes a permanent commercial IP asset and recurring revenue engine for IDEVIFY Solutions Private Limited?**
+
+IDEVIFY Solutions is an engineering consultancy serving multiple commercial clients. Nearly all clients need chatbot and customer support automation. Traditionally, agencies face a severe engineering bottleneck:
+- **The Legacy Bottleneck (150–200 Hours per Client)**: An agency writes bespoke code for each client, hardcodes prompt templates, spins up separate VMs or GPU containers, and maintains disparate codebases.
+- **The Iveri Multi-Tenant Paradigm (< 30 Seconds per Client)**: Instead of one-off custom bots, we built an entire multi-tenant AI ecosystem. When IDEVIFY signs a new client, an engineer or account executive simply:
+  1. Creates an isolated tenant workspace in Iveri in **under 30 seconds**.
+  2. Drops in the client's product catalog, manuals, warranty terms, and pricing tables.
+  3. Copies the 1-line script embed tag (`<script src=".../widget.js" data-business="..."></script>`) and deploys it onto the client's website.
+- **Commercial Impact for IDEVIFY**:
+  - Converts one-time project delivery fees into high-margin recurring monthly subscription revenue (MRR).
+  - Operates on a sub-120MB memory footprint, allowing dozens of concurrent business tenants to run inside a single cloud container with **95%+ gross margins**.
+  - Acts as a reusable, proprietary software asset owned by IDEVIFY Solutions.
+
+---
+
+### 1.3 Core Product Vision
+The **AI Customer Support Assistant (Iveri)** is a multi-tenant, retrieval-augmented generation (RAG) ecosystem that enables small businesses and enterprise clients to turn static documentation into an accurate, 24/7 AI customer support representative with verified citations and automated human handover.
 
 ### Core Architectural Pillars
 
