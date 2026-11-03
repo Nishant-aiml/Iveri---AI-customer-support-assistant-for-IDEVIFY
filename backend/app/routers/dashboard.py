@@ -1,6 +1,7 @@
 import csv
 import io
 import time
+import logging
 from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -13,7 +14,10 @@ from app.models.business import Business
 from app.models.document import Document, DocumentChunk
 from app.models.chat import ChatSession, ChatMessage
 from app.models.unanswered import UnansweredQuestion
+from app.models.ticket import Ticket
 from app.utils.security import get_current_owner, decode_access_token, security_scheme
+
+logger = logging.getLogger("idevify-dashboard-router")
 from fastapi.security import HTTPAuthorizationCredentials
 from app.schemas.chat import ChatMessageResponse, SourceCitation
 from app.schemas.dashboard import (
@@ -63,10 +67,45 @@ async def get_dashboard_stats(
 
     questions_count = msg_stats.questions_count or 0
     answered_count = msg_stats.answered_count or 0
-    unanswered_count = msg_stats.unanswered_count or 0
+    raw_unanswered_count = msg_stats.unanswered_count or 0
     avg_latency = msg_stats.avg_latency or 0.0
     thumbs_up = msg_stats.thumbs_up or 0
     thumbs_down = msg_stats.thumbs_down or 0
+
+    # 2b. Synchronize with live active support tickets & pending unanswered gaps
+    open_tickets_count = (await db.execute(
+        select(func.count(Ticket.id)).where(Ticket.business_id == biz_id, Ticket.status == "open")
+    )).scalar() or 0
+
+    if open_tickets_count == 0 and raw_unanswered_count > 0:
+        # Self-heal orphaned unanswered messages from tickets that were resolved or deleted by owner
+        try:
+            await db.execute(
+                update(ChatMessage)
+                .where(
+                    ChatMessage.session_id.in_(
+                        select(ChatSession.id).where(ChatSession.business_id == biz_id)
+                    ),
+                    ChatMessage.is_answered.is_(False)
+                )
+                .values(is_answered=True)
+            )
+            await db.execute(
+                update(UnansweredQuestion)
+                .where(
+                    UnansweredQuestion.business_id == biz_id,
+                    UnansweredQuestion.is_resolved.is_(False)
+                )
+                .values(is_resolved=True, resolved_at=datetime.utcnow())
+            )
+            await db.commit()
+        except Exception as heal_err:
+            logger.warning(f"Self-healing orphaned unanswered gaps note: {heal_err}")
+
+        answered_count += raw_unanswered_count
+        unanswered_count = 0
+    else:
+        unanswered_count = open_tickets_count if open_tickets_count > 0 else raw_unanswered_count
 
     # 3. Resolution rate %
     total_assistant_replies = answered_count + unanswered_count
@@ -206,6 +245,41 @@ async def resolve_unanswered_question(
     unanswered.is_resolved = True
     unanswered.resolved_answer = req.answer_text.strip()
     unanswered.resolved_at = datetime.utcnow()
+
+    # 4b. Reconcile corresponding ChatMessage and Ticket
+    try:
+        if unanswered.message_id:
+            await db.execute(
+                update(ChatMessage)
+                .where(ChatMessage.id == unanswered.message_id)
+                .values(is_answered=True)
+            )
+        elif unanswered.session_id:
+            await db.execute(
+                update(ChatMessage)
+                .where(
+                    ChatMessage.session_id == unanswered.session_id,
+                    ChatMessage.is_answered.is_(False)
+                )
+                .values(is_answered=True)
+            )
+
+        ticket_q = select(Ticket).where(
+            Ticket.business_id == biz_id,
+            Ticket.status == "open",
+            (
+                (Ticket.message_id == unanswered.message_id) |
+                (Ticket.description == unanswered.question_text) |
+                (Ticket.session_id == unanswered.session_id)
+            )
+        )
+        matched_tickets = (await db.execute(ticket_q)).scalars().all()
+        for t in matched_tickets:
+            t.status = "resolved"
+            t.resolved_answer = req.answer_text.strip()
+            t.resolved_at = datetime.utcnow()
+    except Exception as sync_err:
+        logger.warning(f"Note syncing Ticket/ChatMessage from resolve_unanswered_question: {sync_err}")
 
     await db.commit()
 

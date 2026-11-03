@@ -296,5 +296,39 @@ class TestTicketsNotificationsTwilio(unittest.IsolatedAsyncioTestCase):
         self.assertIn(res_cust.get("status"), ["success", "mocked", "failed"])
         print("[PASS] 09: Twilio outbound WhatsApp service methods verified.")
 
+    async def test_10_delete_ticket_synchronizes_dashboard_stats(self):
+        """Verifies that deleting support tickets synchronizes dashboard unanswered count live."""
+        sess_res = await self.client.post("/api/chat/session", json={
+            "business_slug_or_token": self.biz_slug,
+            "channel": "widget"
+        })
+        self.assertEqual(sess_res.status_code, 201)
+        session_id = sess_res.json()["id"]
+
+        msg_res = await self.client.post("/api/chat/message", json={
+            "session_id": session_id,
+            "message": "Do you offer scuba diving tours in the Himalayas?"
+        })
+        self.assertEqual(msg_res.status_code, 200)
+        self.assertFalse(msg_res.json()["is_answered"])
+
+        stats1 = await self.client.get("/api/dashboard/stats", headers=self.auth_headers)
+        self.assertEqual(stats1.status_code, 200)
+        self.assertGreaterEqual(stats1.json()["unanswered_count"], 1)
+
+        tickets_res = await self.client.get("/api/tickets?status=open", headers=self.auth_headers)
+        self.assertEqual(tickets_res.status_code, 200)
+        tickets = tickets_res.json()
+        target_ticket = next((t for t in tickets if "scuba" in (t.get("description") or "").lower()), tickets[0])
+
+        del_res = await self.client.delete(f"/api/tickets/{target_ticket['id']}", headers=self.auth_headers)
+        self.assertEqual(del_res.status_code, 200)
+
+        stats2 = await self.client.get("/api/dashboard/stats", headers=self.auth_headers)
+        self.assertEqual(stats2.status_code, 200)
+        self.assertEqual(stats2.json()["unanswered_count"], 0)
+        self.assertEqual(stats2.json()["resolution_rate"], 100.0)
+        print("[PASS] 10: Delete ticket live synchronization with dashboard stats verified.")
+
 if __name__ == "__main__":
     unittest.main()

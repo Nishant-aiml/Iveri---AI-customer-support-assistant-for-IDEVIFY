@@ -564,7 +564,7 @@
             <span class="material-symbols-outlined text-[16px] text-emerald-600">link</span>
             <span>Power BI URL</span>
           </button>
-          <button onclick="loadDashboardData()" class="px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 text-xs font-mono font-semibold rounded-lg text-slate-700 transition flex items-center justify-center gap-1.5 shadow-xs">
+          <button onclick="tabLastFetched['overview']=0; loadDashboardData(); if(typeof loadAnalyticsCharts==='function') loadAnalyticsCharts();" class="px-3 py-2 bg-white border border-slate-200 hover:border-slate-300 text-xs font-mono font-semibold rounded-lg text-slate-700 transition flex items-center justify-center gap-1.5 shadow-xs" title="Refresh live telemetry">
             <span class="material-symbols-outlined text-[15px] text-primary">sync</span>
             <span class="hidden sm:inline">Refresh</span>
           </button>
@@ -2576,16 +2576,18 @@
           document.getElementById('stat-chunks').innerText = `${stats.indexed_chunks} chunks`;
           document.getElementById('stat-latency').innerText = `${stats.avg_latency_ms} ms`;
 
+          const unansweredBadge = document.getElementById('unanswered-badge-count');
+          const ticketsBadge = document.getElementById('tickets-badge-count');
+          const mobileDot = document.getElementById('mobile-tickets-badge');
+
           if (stats.unanswered_count > 0) {
-            const badge = document.getElementById('unanswered-badge-count');
-            if (badge) {
-              badge.innerText = stats.unanswered_count;
-              badge.classList.remove('hidden');
+            if (unansweredBadge) {
+              unansweredBadge.innerText = stats.unanswered_count;
+              unansweredBadge.classList.remove('hidden');
             }
           } else {
-            const badge = document.getElementById('unanswered-badge-count');
-            if (badge) badge.classList.add('hidden');
-            const mobileDot = document.getElementById('mobile-tickets-badge');
+            if (unansweredBadge) unansweredBadge.classList.add('hidden');
+            if (ticketsBadge) ticketsBadge.classList.add('hidden');
             if (mobileDot) mobileDot.classList.add('hidden');
           }
         }
@@ -4940,6 +4942,7 @@
         showToast("Network error deleting ticket", "error");
       } finally {
         markTicketsAsSeen();
+        tabLastFetched['overview'] = 0;
         await loadTickets();
         if (typeof loadDashboardData === 'function') loadDashboardData();
         if (typeof loadNotifications === 'function') loadNotifications();
@@ -5998,7 +6001,9 @@
             ? '✅ Ticket ' + activeResolvingTicket + ' resolved and authoritative rule permanently indexed into AI knowledge base!'
             : '✅ Ticket ' + activeResolvingTicket + ' successfully resolved and sent to customer!';
           alert(successMsg);
+          tabLastFetched['overview'] = 0;
           loadTickets();
+          if (typeof loadDashboardData === 'function') loadDashboardData();
           if (typeof loadUnansweredQuestions === 'function') loadUnansweredQuestions();
           if (typeof loadDocuments === 'function') loadDocuments();
         } else {

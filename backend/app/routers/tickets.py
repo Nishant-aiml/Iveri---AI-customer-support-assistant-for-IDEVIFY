@@ -7,7 +7,7 @@ logger = logging.getLogger("idevify-tickets-router")
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import desc, delete
+from sqlalchemy import desc, delete, update
 from app.database import get_db
 from app.models.user import User
 from app.models.business import Business
@@ -402,6 +402,27 @@ async def resolve_ticket(
         except Exception as e:
             logger.warning(f"Note appending resolution to session {ticket.session_id}: {e}")
 
+    # 4d. Mark corresponding assistant message as answered
+    try:
+        from app.models.chat import ChatMessage
+        if ticket.message_id:
+            await db.execute(
+                update(ChatMessage)
+                .where(ChatMessage.id == ticket.message_id)
+                .values(is_answered=True)
+            )
+        elif ticket.session_id:
+            await db.execute(
+                update(ChatMessage)
+                .where(
+                    ChatMessage.session_id == ticket.session_id,
+                    ChatMessage.is_answered.is_(False)
+                )
+                .values(is_answered=True)
+            )
+    except Exception as e:
+        logger.warning(f"Note reconciling ChatMessage on ticket resolve: {e}")
+
     # 5. Outbound WhatsApp Notification to Customer (if contact phone exists and WhatsApp is enabled)
     biz_record = (await db.execute(select(Business).where(Business.id == biz_id))).scalar_one_or_none()
     is_whatsapp_enabled = getattr(biz_record, "enable_whatsapp", True) is not False if biz_record else True
@@ -518,6 +539,45 @@ async def delete_ticket(
             Notification.ticket_id == ticket.id
         )
     )
+
+    # 1. Clean up or resolve any linked UnansweredQuestion
+    try:
+        from app.models.unanswered import UnansweredQuestion
+        unans_q = select(UnansweredQuestion).where(
+            UnansweredQuestion.business_id == biz_id,
+            (
+                (UnansweredQuestion.question_text == ticket.description) |
+                (UnansweredQuestion.session_id == ticket.session_id) |
+                (UnansweredQuestion.message_id == ticket.message_id)
+            )
+        )
+        unans_items = (await db.execute(unans_q)).scalars().all()
+        for u in unans_items:
+            await db.delete(u)
+    except Exception as e:
+        logger.warning(f"Note deleting linked UnansweredQuestion on ticket delete: {e}")
+
+    # 2. Mark corresponding assistant message as answered/dismissed so it no longer counts as a pending gap
+    try:
+        from app.models.chat import ChatMessage
+        if ticket.message_id:
+            await db.execute(
+                update(ChatMessage)
+                .where(ChatMessage.id == ticket.message_id)
+                .values(is_answered=True)
+            )
+        elif ticket.session_id:
+            await db.execute(
+                update(ChatMessage)
+                .where(
+                    ChatMessage.session_id == ticket.session_id,
+                    ChatMessage.is_answered.is_(False)
+                )
+                .values(is_answered=True)
+            )
+    except Exception as e:
+        logger.warning(f"Note reconciling ChatMessage on ticket delete: {e}")
+
     await db.delete(ticket)
     await db.commit()
     return {"status": "success", "message": f"Ticket #{ticket.ticket_number} deleted successfully."}
