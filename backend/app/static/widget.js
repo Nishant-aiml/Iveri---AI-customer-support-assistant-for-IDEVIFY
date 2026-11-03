@@ -508,9 +508,20 @@ window.submitWidgetCallbackRequest = function() {
       }
 
       if (data.avatar_url) {
-        bubble.innerHTML = `<img src="${data.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="Avatar">`;
-        const avatarEl = document.getElementById('iveri-header-avatar');
-        if (avatarEl) avatarEl.innerHTML = `<img src="${data.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="Avatar">`;
+        const resolvedAvatar = (data.avatar_url.startsWith('http://') || data.avatar_url.startsWith('https://'))
+          ? data.avatar_url
+          : `${apiBaseUrl.replace(/\/+$/, '')}/${data.avatar_url.replace(/^\/+/, '')}`;
+
+        const img = new Image();
+        img.onload = function() {
+          bubble.innerHTML = `<img src="${resolvedAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="">`;
+          const avatarEl = document.getElementById('iveri-header-avatar');
+          if (avatarEl) avatarEl.innerHTML = `<img src="${resolvedAvatar}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="">`;
+        };
+        img.onerror = function() {
+          console.warn('[Iveri Widget] Custom avatar failed to load:', resolvedAvatar);
+        };
+        img.src = resolvedAvatar;
       }
 
       if (data.welcome_message) {

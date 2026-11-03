@@ -208,27 +208,55 @@
   <style>
     body {
       background-color: #F8FAFC;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.06) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.05) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.04) 0px, transparent 50%);
+      background-attachment: fixed;
       color: #0F172A;
       font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    .animate-gradient-x {
+      background-size: 200% 200%;
+      animation: gradientShift 6s ease infinite;
+    }
+    .tab-pane-transition {
+      animation: fadeInTab 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+    @keyframes fadeInTab {
+      from { opacity: 0.6; transform: translateY(3px); }
+      to { opacity: 1; transform: translateY(0); }
     }
     .lumina-card {
       background: #FFFFFF;
       border: 1px solid #E2E8F0;
       box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .lumina-card:hover {
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+      box-shadow: 0 10px 22px -5px rgba(79, 70, 229, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03);
+    }
+    button:active:not(:disabled), a:active:not(:disabled) {
+      transform: scale(0.975);
+      transition: transform 0.08s ease;
     }
     .tab-active {
       color: #4F46E5 !important;
       border-bottom: 2px solid #4F46E5 !important;
       font-weight: 700;
+      background: linear-gradient(180deg, rgba(79, 70, 229, 0.03) 0%, rgba(79, 70, 229, 0.08) 100%);
+      border-radius: 8px 8px 0 0;
     }
-    .pill-positive { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
-    .pill-negative { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
-    .pill-neutral { background: #F1F5F9; color: #475569; border: 1px solid #E2E8F0; }
-    .pill-topic { background: #EEF2FF; color: #4F46E5; border: 1px solid #C7D2FE; }
+    .pill-positive { background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%); color: #15803D; border: 1px solid #86EFAC; font-weight: 600; }
+    .pill-negative { background: linear-gradient(135deg, #FEF2F2 0%, #FEE2E2 100%); color: #B91C1C; border: 1px solid #FCA5A5; font-weight: 600; }
+    .pill-neutral { background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%); color: #475569; border: 1px solid #CBD5E1; font-weight: 600; }
+    .pill-topic { background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); color: #4338CA; border: 1px solid #C7D2FE; font-weight: 600; }
 
     @keyframes stageGlow {
       0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4); }
@@ -309,9 +337,11 @@
 
     .mobile-nav-active {
       color: #4F46E5 !important;
+      font-weight: 700;
     }
     .mobile-nav-active span.nav-icon {
-      transform: translateY(-1px);
+      transform: translateY(-2px) scale(1.1);
+      transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
   </style>
@@ -319,31 +349,32 @@
 <body class="bg-background min-h-screen text-on-surface antialiased">
 
   <!-- Top Navigation Bar -->
-  <header class="bg-white border-b border-slate-200 sticky top-0 z-40">
+  <header class="bg-white/90 backdrop-blur-md border-b border-slate-200/80 sticky top-0 z-40 shadow-2xs">
+    <div class="h-[3px] w-full bg-gradient-to-r from-indigo-500 via-purple-500 via-pink-500 via-amber-400 to-emerald-400 animate-gradient-x"></div>
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2">
       
       <!-- Brand & Mobile Status -->
       <div class="flex items-center space-x-2.5 sm:space-x-3 min-w-0 shrink">
-        <img src="/static/icons/iveri-avatar.svg" alt="Iveri AI" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-sm shrink-0 object-cover border border-indigo-200">
+        <img src="/static/icons/iveri-avatar.svg" alt="Iveri AI" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl shadow-xs shrink-0 object-cover border border-indigo-200">
         <div class="min-w-0">
           <div class="flex items-center gap-1.5 sm:gap-2">
-            <span class="text-sm sm:text-base font-bold text-slate-900 tracking-tight truncate">Iveri Console</span>
-            <span class="hidden sm:inline-flex px-1.5 sm:px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 text-[9px] sm:text-[10px] font-mono font-medium whitespace-nowrap">Owner Portal</span>
+            <span class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight truncate">Iveri Console</span>
+            <span class="hidden sm:inline-flex px-1.5 sm:px-2 py-0.5 rounded-full bg-gradient-to-r from-indigo-50 to-purple-50 text-primary border border-indigo-200 text-[9px] sm:text-[10px] font-mono font-bold whitespace-nowrap shadow-2xs">Owner Portal</span>
           </div>
           <span class="text-[10px] sm:text-[11px] text-slate-500 font-mono hidden xs:inline">Grounded Support Engine</span>
         </div>
       </div>
 
       <!-- Business Status Pill (Desktop Only: >= 1280px to prevent any mobile/tablet navbar crowding) -->
-      <div id="biz-header-badge" class="hidden xl:flex items-center flex-nowrap space-x-2 text-xs font-mono text-slate-600 bg-slate-50 px-3.5 py-1.5 rounded-full border border-slate-200 shrink-0 whitespace-nowrap">
+      <div id="biz-header-badge" class="hidden xl:flex items-center flex-nowrap space-x-2 text-xs font-mono text-slate-700 bg-gradient-to-r from-emerald-50/80 to-teal-50/80 px-3.5 py-1.5 rounded-full border border-emerald-200/80 shrink-0 whitespace-nowrap shadow-2xs">
         <span class="relative flex h-2 w-2 shrink-0">
           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
           <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
         </span>
-        <span class="text-slate-400 shrink-0 text-[11px]">BUSINESS:</span>
-        <span id="biz-header-name" class="text-slate-900 font-semibold truncate max-w-[140px] shrink-0">Loading...</span>
-        <span class="text-slate-300 shrink-0">•</span>
-        <span class="text-emerald-600 font-medium shrink-0 text-[11px]">Verified RAG</span>
+        <span class="text-emerald-700 shrink-0 text-[11px] font-bold">WORKSPACE:</span>
+        <span id="biz-header-name" class="text-slate-900 font-bold truncate max-w-[140px] shrink-0">Loading...</span>
+        <span class="text-emerald-300 shrink-0">•</span>
+        <span class="text-emerald-700 font-bold shrink-0 text-[11px] flex items-center gap-0.5">Verified RAG</span>
       </div>
 
       <!-- Action Buttons -->
@@ -531,33 +562,33 @@
       <!-- Metric Cards Grid (Business Console Executive Accents) -->
       <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <!-- 1. Customer Chats -->
-        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-white border border-slate-200/90 border-t-2 border-t-indigo-500 shadow-xs hover:shadow-md transition space-y-2">
-          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 border border-indigo-100/90 hover:border-indigo-300 shadow-xs hover:shadow-indigo-500/10 hover:shadow-md transition space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
             <span>Customer Chats</span>
-            <div class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100">
-              <span class="material-symbols-outlined text-[16px]">forum</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-xs shadow-indigo-200">
+              <span class="material-symbols-outlined text-[16px] sm:text-[17px]">forum</span>
             </div>
           </div>
           <div class="flex items-baseline justify-between pt-0.5">
             <span id="stat-total-chats" class="text-xl sm:text-2xl font-extrabold font-mono text-slate-900 tracking-tight">0</span>
-            <span class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 bg-indigo-50/80 text-indigo-700 border border-indigo-200/80 rounded-full font-bold">Sessions</span>
+            <span class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-full font-bold">Sessions</span>
           </div>
           <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono flex items-center gap-1">
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Live customer telemetry
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span> Live customer telemetry
           </p>
         </div>
 
         <!-- 2. Total Questions -->
-        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-white border border-slate-200/90 border-t-2 border-t-purple-500 shadow-xs hover:shadow-md transition space-y-2">
-          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-purple-50/20 to-pink-50/20 border border-purple-100/90 hover:border-purple-300 shadow-xs hover:shadow-purple-500/10 hover:shadow-md transition space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
             <span>Total Questions</span>
-            <div class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center border border-purple-100">
-              <span class="material-symbols-outlined text-[16px]">help</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-purple-500 to-pink-600 text-white flex items-center justify-center shadow-xs shadow-purple-200">
+              <span class="material-symbols-outlined text-[16px] sm:text-[17px]">help</span>
             </div>
           </div>
           <div class="flex items-baseline justify-between pt-0.5">
             <span id="stat-total-questions" class="text-xl sm:text-2xl font-extrabold font-mono text-slate-900 tracking-tight">0</span>
-            <span class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 bg-purple-50/80 text-purple-700 border border-purple-200/80 rounded-full font-bold">Queries</span>
+            <span class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 bg-purple-100 text-purple-700 border border-purple-200 rounded-full font-bold">Queries</span>
           </div>
           <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono flex items-center gap-1">
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-purple-500"></span> Customer inquiries
@@ -565,16 +596,16 @@
         </div>
 
         <!-- 3. Resolution Rate -->
-        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-white border border-slate-200/90 border-t-2 border-t-emerald-500 shadow-xs hover:shadow-md transition space-y-2">
-          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20 border border-emerald-100/90 hover:border-emerald-300 shadow-xs hover:shadow-emerald-500/10 hover:shadow-md transition space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
             <span>Resolution Rate</span>
-            <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100">
-              <span class="material-symbols-outlined text-[16px]">check_circle</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs shadow-emerald-200">
+              <span class="material-symbols-outlined text-[16px] sm:text-[17px]">check_circle</span>
             </div>
           </div>
           <div class="flex items-baseline justify-between pt-0.5">
             <span id="stat-resolution-rate" class="text-xl sm:text-2xl font-extrabold font-mono text-emerald-600 tracking-tight">100%</span>
-            <span id="stat-answered-ratio" class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 bg-emerald-50/80 text-emerald-700 border border-emerald-200/80 rounded-full font-bold">0 answered</span>
+            <span id="stat-answered-ratio" class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full font-bold">0 answered</span>
           </div>
           <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono flex items-center gap-1">
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Zero hallucination guard
@@ -582,16 +613,16 @@
         </div>
 
         <!-- 4. Unanswered Gaps -->
-        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-white border border-slate-200/90 border-t-2 border-t-amber-500 shadow-xs hover:shadow-md transition space-y-2">
-          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-amber-50/20 to-orange-50/20 border border-amber-100/90 hover:border-amber-300 shadow-xs hover:shadow-amber-500/10 hover:shadow-md transition space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
             <span>Unanswered Gaps</span>
-            <div class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center border border-amber-100">
-              <span class="material-symbols-outlined text-[16px]">warning</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-xs shadow-amber-200">
+              <span class="material-symbols-outlined text-[16px] sm:text-[17px]">warning</span>
             </div>
           </div>
           <div class="flex items-baseline justify-between pt-0.5">
             <span id="stat-unanswered" class="text-xl sm:text-2xl font-extrabold font-mono text-amber-600 tracking-tight">0</span>
-            <span class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 bg-amber-50/80 text-amber-700 border border-amber-200/80 rounded-full font-bold">Pending</span>
+            <span class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 rounded-full font-bold">Pending</span>
           </div>
           <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono flex items-center gap-1">
             <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span> Requires owner training
@@ -599,16 +630,16 @@
         </div>
 
         <!-- 5. Avg Latency & Scale -->
-        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-white border border-slate-200/90 border-t-2 border-t-sky-500 shadow-xs hover:shadow-md transition space-y-2 col-span-2 lg:col-span-1">
-          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-medium">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-sky-50/20 to-blue-50/20 border border-sky-100/90 hover:border-sky-300 shadow-xs hover:shadow-sky-500/10 hover:shadow-md transition space-y-2 col-span-2 lg:col-span-1">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
             <span>Avg Latency & Scale</span>
-            <div class="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center border border-sky-100">
-              <span class="material-symbols-outlined text-[16px]">speed</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-xs shadow-sky-200">
+              <span class="material-symbols-outlined text-[16px] sm:text-[17px]">speed</span>
             </div>
           </div>
           <div class="flex items-baseline justify-between pt-0.5">
             <span id="stat-latency" class="text-lg sm:text-xl font-extrabold font-mono text-slate-900 tracking-tight">0 ms</span>
-            <span id="stat-chunks" class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 bg-sky-50/80 text-sky-700 border border-sky-200/80 rounded-full font-bold">0 chunks</span>
+            <span id="stat-chunks" class="text-[9px] sm:text-[10px] font-mono px-2 py-0.5 bg-sky-100 text-sky-800 border border-sky-200 rounded-full font-bold">0 chunks</span>
           </div>
           <div class="flex items-center justify-between text-[9px] sm:text-[10px] font-mono text-slate-400 pt-0.5">
             <span id="stat-documents">0 docs</span>
@@ -731,33 +762,40 @@
            ondragover="handleDocDragOver(event)" 
            ondragleave="handleDocDragLeave(event)" 
            ondrop="handleDocDrop(event)"
-           class="lumina-card p-6 rounded-2xl border-2 border-dashed border-slate-200 hover:border-primary/60 transition-all text-center bg-slate-50/50">
-        <div class="max-w-lg mx-auto space-y-3">
-          <div class="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 text-primary mx-auto flex items-center justify-center">
-            <span class="material-symbols-outlined text-[24px]">cloud_upload</span>
+           class="lumina-card p-6 sm:p-8 rounded-2xl border-2 border-dashed border-indigo-200/90 hover:border-indigo-500 hover:shadow-indigo-500/10 hover:shadow-lg transition-all text-center bg-gradient-to-b from-indigo-50/40 via-white to-purple-50/30">
+        <div class="max-w-xl mx-auto space-y-3.5">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white mx-auto flex items-center justify-center shadow-md shadow-indigo-300/40">
+            <span class="material-symbols-outlined text-[28px]">cloud_upload</span>
           </div>
           <div>
-            <h3 class="text-sm font-bold text-slate-900">Multi-File Batch Knowledge Ingestion</h3>
-            <p class="text-xs text-slate-500 mt-0.5">Supports PDF (up to 1,000 pages), DOCX, TXT, Excel (.xlsx, .xls), and Images (.png, .jpg, .webp). Powered by Docling & Tesseract OCR.</p>
+            <h3 class="text-base font-extrabold text-slate-900 tracking-tight">Multi-File Batch Knowledge Ingestion</h3>
+            <p class="text-xs text-slate-500 mt-1">Supports PDF (up to 1,000 pages), DOCX, TXT, Excel (.xlsx, .xls), and Images (.png, .jpg, .webp). Powered by Docling &amp; Tesseract OCR.</p>
+            <div class="flex flex-wrap items-center justify-center gap-1.5 pt-2">
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-rose-50 text-rose-700 border border-rose-200">PDF</span>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">DOCX</span>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-slate-100 text-slate-700 border border-slate-200">TXT/MD</span>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">EXCEL</span>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200">OCR IMAGES</span>
+            </div>
           </div>
           <div class="pt-2">
-            <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white text-xs font-semibold rounded-xl transition shadow-xs">
-              <span class="material-symbols-outlined text-[16px]">upload_file</span>
+            <label class="cursor-pointer inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 via-indigo-700 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-bold rounded-xl transition shadow-md shadow-indigo-500/20 active:scale-95">
+              <span class="material-symbols-outlined text-[17px]">upload_file</span>
               <span>Select Documents (Multi-Upload)</span>
               <input type="file" id="doc-file-input" class="hidden" multiple accept=".pdf,.docx,.txt,.md,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.bmp,.tiff" onchange="uploadDocumentFiles(event)" />
             </label>
-            <p class="text-[11px] text-slate-400 mt-1.5 font-mono">or drag & drop multiple files anywhere inside this box</p>
+            <p class="text-[11px] text-slate-400 mt-2 font-mono">or drag &amp; drop multiple files anywhere inside this box</p>
           </div>
         </div>
 
         <!-- Uploading Queue Banner -->
-        <div id="doc-upload-progress" class="hidden mt-4 p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-left max-w-lg mx-auto">
+        <div id="doc-upload-progress" class="hidden mt-4 p-3.5 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl text-left max-w-lg mx-auto shadow-xs">
           <div class="flex items-center justify-between text-xs font-semibold text-primary mb-1">
             <span class="flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
+              <span class="w-2.5 h-2.5 rounded-full bg-primary animate-ping"></span>
               <span id="doc-upload-progress-title">Uploading & Queuing Documents...</span>
             </span>
-            <span id="doc-upload-progress-pct" class="font-mono">Processing</span>
+            <span id="doc-upload-progress-pct" class="font-mono text-indigo-700 font-bold">Processing</span>
           </div>
           <div class="text-[11px] text-slate-600 truncate font-mono" id="doc-upload-progress-detail">Preparing batch files...</div>
         </div>
@@ -840,37 +878,53 @@
 
       <!-- Tickets Metric Summary Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div class="lumina-card p-4 rounded-2xl space-y-1">
-          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-amber-50/20 to-orange-50/30 border border-amber-100/90 hover:border-amber-300 shadow-xs hover:shadow-amber-500/10 hover:shadow-md transition space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
             <span>Open Tickets</span>
-            <span class="material-symbols-outlined text-[18px] text-amber-500">pending_actions</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-xs shadow-amber-200">
+              <span class="material-symbols-outlined text-[16px] sm:text-[17px]">pending_actions</span>
+            </div>
           </div>
-          <div class="text-2xl font-bold font-mono text-slate-900" id="stat-open-tickets">0</div>
-          <p class="text-[10px] text-slate-400 font-mono">Awaiting owner response</p>
+          <div class="text-xl sm:text-2xl font-extrabold font-mono text-amber-600 tracking-tight" id="stat-open-tickets">0</div>
+          <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono flex items-center gap-1">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500"></span> Awaiting owner response
+          </p>
         </div>
-        <div class="lumina-card p-4 rounded-2xl space-y-1">
-          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-rose-50/20 to-pink-50/30 border border-rose-100/90 hover:border-rose-300 shadow-xs hover:shadow-rose-500/10 hover:shadow-md transition space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
             <span>Urgent Callbacks</span>
-            <span class="material-symbols-outlined text-[18px] text-rose-500">priority_high</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-rose-500 to-pink-600 text-white flex items-center justify-center shadow-xs shadow-rose-200">
+              <span class="material-symbols-outlined text-[16px] sm:text-[17px]">priority_high</span>
+            </div>
           </div>
-          <div class="text-2xl font-bold font-mono text-rose-600" id="stat-urgent-tickets">0</div>
-          <p class="text-[10px] text-slate-400 font-mono">Direct human contact requests</p>
+          <div class="text-xl sm:text-2xl font-extrabold font-mono text-rose-600 tracking-tight" id="stat-urgent-tickets">0</div>
+          <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono flex items-center gap-1">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-rose-500"></span> Direct human contact requests
+          </p>
         </div>
-        <div class="lumina-card p-4 rounded-2xl space-y-1">
-          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/30 border border-emerald-100/90 hover:border-emerald-300 shadow-xs hover:shadow-emerald-500/10 hover:shadow-md transition space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
             <span>WhatsApp Tickets</span>
-            <span class="material-symbols-outlined text-[18px] text-emerald-500">chat</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs shadow-emerald-200">
+              <span class="material-symbols-outlined text-[16px] sm:text-[17px]">chat</span>
+            </div>
           </div>
-          <div class="text-2xl font-bold font-mono text-emerald-600" id="stat-whatsapp-tickets">0</div>
-          <p class="text-[10px] text-slate-400 font-mono">From Twilio WhatsApp channel</p>
+          <div class="text-xl sm:text-2xl font-extrabold font-mono text-emerald-600 tracking-tight" id="stat-whatsapp-tickets">0</div>
+          <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono flex items-center gap-1">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500"></span> From Twilio WhatsApp channel
+          </p>
         </div>
-        <div class="lumina-card p-4 rounded-2xl space-y-1">
-          <div class="flex justify-between items-center text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/30 border border-indigo-100/90 hover:border-indigo-300 shadow-xs hover:shadow-indigo-500/10 hover:shadow-md transition space-y-2">
+          <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
             <span>Resolved & Trained</span>
-            <span class="material-symbols-outlined text-[18px] text-primary">psychology</span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-xs shadow-indigo-200">
+              <span class="material-symbols-outlined text-[16px] sm:text-[17px]">psychology</span>
+            </div>
           </div>
-          <div class="text-2xl font-bold font-mono text-primary" id="stat-resolved-tickets">0</div>
-          <p class="text-[10px] text-slate-400 font-mono">Permanently indexed into RAG</p>
+          <div class="text-xl sm:text-2xl font-extrabold font-mono text-indigo-600 tracking-tight" id="stat-resolved-tickets">0</div>
+          <p class="text-[9px] sm:text-[10px] text-slate-400 font-mono flex items-center gap-1">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-indigo-500"></span> Permanently indexed into RAG
+          </p>
         </div>
       </div>
 
@@ -903,6 +957,93 @@
         </div>
       </div>
     </section>
+
+    <!-- Dedicated Callback & Handover Form Inspector Modal (Centered) -->
+    <div id="inspect-callback-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
+      <div class="bg-white rounded-2xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-2xl border border-slate-100 max-h-[92vh] overflow-y-auto animate-in zoom-in-95 duration-150 text-slate-800">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary text-xl" id="inspect-modal-header-icon">phone_callback</span>
+            <div>
+              <h3 class="font-bold text-slate-900 text-sm leading-tight">Visitor Form Inspector</h3>
+              <p class="text-[11px] text-slate-500 font-mono">Live customer handover preview</p>
+            </div>
+          </div>
+          <span id="inspect-modal-badge" class="px-2 py-0.5 rounded-full bg-indigo-50 text-primary border border-indigo-200 text-[10px] font-mono font-bold">Dual Channel</span>
+          <button type="button" onclick="closeInspectFormModal()" class="text-slate-400 hover:text-slate-700 p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer">
+            <span class="material-symbols-outlined text-base">close</span>
+          </button>
+        </div>
+
+        <!-- Simulated Visitor Card -->
+        <div class="p-3.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3 font-sans">
+          <div class="flex items-center gap-1.5 font-bold text-xs text-slate-900" id="inspect-modal-card-heading">
+            <span id="inspect-modal-card-icon">📞</span>
+            <span id="inspect-modal-card-title">Request Human Callback</span>
+          </div>
+          <p id="inspect-modal-card-sub" class="text-[11px] text-slate-500 leading-snug">
+            Leave your contact details and our team will get in touch promptly.
+          </p>
+
+          <!-- Direct WhatsApp Action Banner (for WhatsApp channel) -->
+          <div id="inspect-modal-wa-box" class="hidden p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl text-center space-y-1.5">
+            <button type="button" onclick="alert('Simulation: In production, clicking this opens your official WhatsApp chat (wa.me) directly with the customer!');" class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer">
+              <span class="material-symbols-outlined text-sm">chat</span>
+              <span>Open Direct WhatsApp Chat</span>
+            </button>
+            <div class="text-[9px] text-emerald-800 font-mono uppercase tracking-wider">— OR REQUEST OUR TEAM TO MESSAGE YOU —</div>
+          </div>
+
+          <!-- Form Body -->
+          <div id="inspect-modal-form-body" class="space-y-2.5 text-xs">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-700 mb-1">Your Full Name</label>
+              <input type="text" id="inspect-modal-name" placeholder="e.g. Alex Johnson" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-primary shadow-2xs" />
+            </div>
+            <div>
+              <label id="inspect-modal-contact-label" class="block text-[11px] font-semibold text-slate-700 mb-1">Phone Number or Email Address *</label>
+              <input type="text" id="inspect-modal-contact-input" placeholder="+91 98765 43210 or name@example.com" class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-primary shadow-2xs" />
+            </div>
+            <div>
+              <label id="inspect-modal-note-label" class="block text-[11px] font-semibold text-slate-700 mb-1">How can we help? (Optional)</label>
+              <textarea id="inspect-modal-note" rows="2" placeholder="Briefly describe what you need assistance with..." class="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-primary shadow-2xs"></textarea>
+            </div>
+            <button type="button" id="inspect-modal-submit-btn" onclick="submitInspectModalTest()" class="w-full py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-semibold text-xs transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5">
+              <span class="material-symbols-outlined text-sm">send</span>
+              <span id="inspect-modal-submit-text">Request Callback</span>
+            </button>
+          </div>
+
+          <!-- Simulation Success Alert -->
+          <div id="inspect-modal-success" class="hidden p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-center space-y-1.5">
+            <div class="font-bold text-xs text-emerald-700 flex items-center justify-center gap-1">
+              <span class="material-symbols-outlined text-sm">check_circle</span>
+              <span>Test Callback Simulated Successfully!</span>
+            </div>
+            <div class="text-[11px] leading-tight text-emerald-800" id="inspect-modal-success-msg">
+              Simulated Ticket #TICK-PREVIEW logged with high priority in the Dashboard Tickets tab.
+            </div>
+            <button type="button" onclick="resetInspectModalTest()" class="text-[10px] text-emerald-700 font-semibold underline hover:text-emerald-900 cursor-pointer pt-0.5">
+              Reset & Test Again
+            </button>
+          </div>
+        </div>
+
+        <!-- Footer Actions -->
+        <div class="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-slate-100 text-xs font-mono">
+          <button type="button" onclick="closeInspectFormModal(); scrollToWidgetPreview();" class="w-full sm:w-auto px-3 py-1.5 text-primary hover:bg-indigo-50 border border-indigo-200 rounded-lg font-semibold text-[11px] transition flex items-center justify-center gap-1 cursor-pointer">
+            <span class="material-symbols-outlined text-[14px]">open_in_new</span>
+            <span>View Inside Simulated Widget Preview</span>
+          </button>
+          <button type="button" onclick="closeInspectFormModal()" class="w-full sm:w-auto px-4 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-[11px] rounded-lg transition cursor-pointer">
+            Close Inspector
+          </button>
+        </div>
+
+      </div>
+    </div>
 
     <!-- Dedicated Unanswered Chat Inspector Modal with Targeted Question Highlighting -->
     <div id="unanswered-chat-modal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
@@ -1371,7 +1512,7 @@
                 </div>
                 <div class="pt-1 flex items-center justify-between">
                   <span class="text-[10px] text-slate-400">Updates live in the simulated widget preview</span>
-                  <button type="button" onclick="togglePreviewCallbackModal(true)" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-primary font-semibold rounded text-[10px] transition flex items-center gap-1 border border-indigo-200 cursor-pointer">
+                  <button type="button" id="btn-inspect-callback-modal" onclick="openInspectFormModal()" class="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-primary font-semibold rounded text-[10px] transition flex items-center gap-1 border border-indigo-200 cursor-pointer shadow-2xs active:scale-95">
                     <span class="material-symbols-outlined text-[12px]">visibility</span>
                     <span>Inspect Form Modal</span>
                   </button>
@@ -1930,7 +2071,7 @@
   <!-- In-Console Business Owner Navigation Copilot (Draggable & Non-Blocking) -->
   <div id="copilot-container" class="fixed bottom-24 sm:bottom-24 md:bottom-8 right-3 sm:right-6 z-40 flex items-center gap-1.5 select-none touch-none transition-transform" style="touch-action:none;">
     <!-- Collapsible Full Pill -->
-    <div id="copilot-pill" class="flex items-center bg-gradient-to-r from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white rounded-full shadow-lg shadow-indigo-500/25 transition-all transform hover:scale-102 cursor-grab active:cursor-grabbing">
+    <div id="copilot-pill" class="flex items-center bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:to-pink-500 text-white rounded-full shadow-xl shadow-indigo-500/30 transition-all transform hover:scale-102 cursor-grab active:cursor-grabbing border border-white/20">
       <button id="copilot-btn" onclick="toggleCopilot()" class="px-3.5 sm:px-4 py-2 sm:py-2.5 flex items-center gap-1.5 sm:gap-2 font-semibold text-xs font-mono text-white focus:outline-none cursor-pointer">
         <span class="material-symbols-outlined text-[17px] sm:text-[18px]">assistant</span>
         <span>Console Copilot</span>
@@ -1944,7 +2085,7 @@
     </div>
 
     <!-- Minimized Floating Action Circle (FAB) -->
-    <button id="copilot-fab" onclick="restoreCopilot(true)" title="Expand Console Copilot (drag anywhere)" class="hidden w-10 h-10 rounded-full bg-gradient-to-tr from-primary to-indigo-600 hover:from-primary-hover hover:to-indigo-700 text-white shadow-lg shadow-indigo-500/30 flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 border border-white/40 group cursor-grab active:cursor-grabbing">
+    <button id="copilot-fab" onclick="restoreCopilot(true)" title="Expand Console Copilot (drag anywhere)" class="hidden w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 hover:from-indigo-500 hover:to-pink-400 text-white shadow-xl shadow-purple-500/35 flex items-center justify-center transition-all transform hover:scale-110 active:scale-95 border border-white/40 group cursor-grab active:cursor-grabbing">
       <span class="material-symbols-outlined text-[19px] group-hover:rotate-12 transition-transform">assistant</span>
     </button>
 
@@ -2576,7 +2717,7 @@
               labels: ['Positive', 'Neutral', 'Frustrated/Negative'],
               datasets: [{
                 data: [sb.positive || 0, sb.neutral || 0, sb.negative || 0],
-                backgroundColor: ['#16A34A', '#94A3B8', '#DC2626'],
+                backgroundColor: ['#10B981', '#94A3B8', '#F43F5E'],
                 borderWidth: 2,
                 borderColor: '#FFFFFF'
               }]
@@ -2614,8 +2755,8 @@
               labels: topics.map(t => t.topic.toUpperCase()),
               datasets: [{
                 data: topics.map(t => t.count),
-                backgroundColor: '#8B5CF6',
-                borderRadius: 4
+                backgroundColor: ['#6366F1', '#8B5CF6', '#EC4899', '#06B6D4', '#F59E0B'],
+                borderRadius: 6
               }]
             },
             options: {
@@ -3357,11 +3498,24 @@
       const avBox = document.getElementById('preview-avatar-box');
       const avBubble = document.getElementById('preview-bubble-avatar');
       if (avatarUrl) {
-        avBox.innerHTML = `<img src="${avatarUrl}" class="w-full h-full object-cover">`;
-        avBubble.innerHTML = `<img src="${avatarUrl}" class="w-full h-full rounded-full object-cover">`;
+        const fullAvatar = (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://'))
+          ? avatarUrl
+          : `${window.location.origin.replace(/\/+$/, '')}/${avatarUrl.replace(/^\/+/, '')}`;
+        if (avBox) {
+          avBox.innerHTML = `<img src="${fullAvatar}" class="w-full h-full object-cover" onerror="this.onerror=null; this.parentElement.innerHTML='<span>${escapeHtml(name.charAt(0).toUpperCase())}</span>'">`;
+        }
+        if (avBubble) {
+          avBubble.className = "w-full h-full rounded-full overflow-hidden flex items-center justify-center";
+          avBubble.innerHTML = `<img src="${fullAvatar}" class="w-full h-full object-cover" onerror="this.onerror=null; this.parentElement.className='material-symbols-outlined text-[20px]'; this.parentElement.innerHTML='chat'">`;
+        }
       } else {
-        avBox.innerHTML = `<span>${name.charAt(0).toUpperCase()}</span>`;
-        avBubble.innerHTML = `<span class="material-symbols-outlined text-[20px]">chat</span>`;
+        if (avBox) {
+          avBox.innerHTML = `<span>${escapeHtml(name.charAt(0).toUpperCase())}</span>`;
+        }
+        if (avBubble) {
+          avBubble.className = "material-symbols-outlined text-[20px]";
+          avBubble.innerHTML = "chat";
+        }
       }
 
       // Starter Chips in preview
@@ -3572,6 +3726,114 @@
       }
     }
 
+    // --- Dedicated Full-Screen Callback Form Inspector ---
+    function openInspectFormModal() {
+      const modal = document.getElementById('inspect-callback-modal');
+      if (!modal) return;
+
+      const ch = document.getElementById('setting-callback-channel')?.value || 'phone_and_email';
+      const cfg = CALLBACK_CHANNEL_CONFIGS[ch] || CALLBACK_CHANNEL_CONFIGS.phone_and_email;
+      const btnText = document.getElementById('setting-callback-btn-text')?.value || cfg.defaultBtnLabel;
+      const color = document.getElementById('setting-color')?.value || '#4F46E5';
+
+      // Update badge
+      const badge = document.getElementById('inspect-modal-badge');
+      if (badge) {
+        badge.innerText = cfg.badgeText;
+        badge.className = `px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${cfg.tagClass}`;
+      }
+
+      // Card Header
+      const cardIcon = document.getElementById('inspect-modal-card-icon');
+      if (cardIcon) cardIcon.innerText = cfg.icon;
+      const cardTitle = document.getElementById('inspect-modal-card-title');
+      if (cardTitle) cardTitle.innerText = cfg.modalHeading;
+      const cardSub = document.getElementById('inspect-modal-card-sub');
+      if (cardSub) cardSub.innerText = cfg.modalSub;
+
+      // Contact Input
+      const contactLabel = document.getElementById('inspect-modal-contact-label');
+      if (contactLabel) contactLabel.innerText = cfg.inputLabel;
+      const contactInput = document.getElementById('inspect-modal-contact-input');
+      if (contactInput) {
+        contactInput.placeholder = cfg.placeholder;
+        contactInput.type = cfg.inputType;
+        contactInput.value = '';
+      }
+
+      // Note Field
+      const noteLabel = document.getElementById('inspect-modal-note-label');
+      if (noteLabel) noteLabel.innerText = cfg.noteLabel;
+      const noteInput = document.getElementById('inspect-modal-note');
+      if (noteInput) {
+        noteInput.placeholder = cfg.notePlaceholder;
+        noteInput.value = '';
+      }
+      const nameInput = document.getElementById('inspect-modal-name');
+      if (nameInput) nameInput.value = '';
+
+      // Submit Button
+      const submitBtn = document.getElementById('inspect-modal-submit-btn');
+      if (submitBtn) {
+        submitBtn.style.backgroundColor = color;
+      }
+      const submitText = document.getElementById('inspect-modal-submit-text');
+      if (submitText) submitText.innerText = cfg.submitBtnText || btnText;
+
+      // WhatsApp Direct
+      const waBox = document.getElementById('inspect-modal-wa-box');
+      if (waBox) {
+        if (cfg.hasWaDirect) {
+          waBox.classList.remove('hidden');
+        } else {
+          waBox.classList.add('hidden');
+        }
+      }
+
+      // Reset state
+      resetInspectModalTest();
+
+      // Show modal
+      modal.classList.remove('hidden');
+
+      // Also trigger the preview window on the right so both stay in sync
+      togglePreviewCallbackModal(true);
+    }
+
+    function closeInspectFormModal() {
+      const modal = document.getElementById('inspect-callback-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    function resetInspectModalTest() {
+      const formBody = document.getElementById('inspect-modal-form-body');
+      const successBox = document.getElementById('inspect-modal-success');
+      if (formBody) formBody.classList.remove('hidden');
+      if (successBox) successBox.classList.add('hidden');
+    }
+
+    function submitInspectModalTest() {
+      const contactInput = document.getElementById('inspect-modal-contact-input');
+      const contact = contactInput ? contactInput.value.trim() : '';
+      if (!contact) {
+        alert("Please enter a phone number or email address to test the form.");
+        if (contactInput) contactInput.focus();
+        return;
+      }
+      const formBody = document.getElementById('inspect-modal-form-body');
+      const successBox = document.getElementById('inspect-modal-success');
+      if (formBody) formBody.classList.add('hidden');
+      if (successBox) successBox.classList.remove('hidden');
+    }
+
+    function scrollToWidgetPreview() {
+      const preview = document.getElementById('preview-chat-window');
+      if (preview) {
+        preview.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        togglePreviewCallbackModal(true);
+      }
+    }
+
     function togglePreviewCallbackModal(forceOpen) {
       const modal = document.getElementById('preview-cb-modal');
       if (!modal) return;
@@ -3745,11 +4007,17 @@
         if (res.ok) {
           const data = await res.json();
           document.getElementById('setting-avatar-url').value = data.avatar_url;
+          if (typeof currentBusiness !== 'undefined' && currentBusiness) {
+            currentBusiness.avatar_url = data.avatar_url;
+          }
           if (statusEl) {
             statusEl.innerText = "✓ Uploaded!";
             statusEl.className = "text-[10px] font-mono text-emerald-600 font-bold";
           }
           updateWidgetPreview();
+          if (typeof saveAssistantSettings === 'function') {
+            await saveAssistantSettings(true);
+          }
         } else {
           const err = await res.json();
           if (statusEl) {
@@ -3776,7 +4044,7 @@
       alert(`Public Standalone Chatbot link copied:\n${url}`);
     }
 
-    async function saveAssistantSettings() {
+    async function saveAssistantSettings(silent = false) {
       if (!authToken) return;
       const rawStarters = document.getElementById('setting-starters').value;
       const startersList = rawStarters.split('\n').map(s => s.trim()).filter(Boolean);
@@ -3807,10 +4075,14 @@
           body: JSON.stringify(body)
         });
         if (res.ok) {
-          alert("Widget customizations saved & published live!");
+          if (!silent) {
+            alert("Widget customizations saved & published live!");
+          }
           loadBusinessProfile();
         } else {
-          alert("Failed to save settings.");
+          if (!silent) {
+            alert("Failed to save settings.");
+          }
         }
       } catch (e) {
         console.error("Settings save error:", e);
@@ -4620,7 +4892,12 @@
       });
       const activeEl = document.getElementById(`view-${tabId}`);
       const activeTabEl = document.getElementById(`tab-${tabId}`);
-      if (activeEl) activeEl.classList.remove('hidden');
+      if (activeEl) {
+        activeEl.classList.remove('hidden');
+        activeEl.classList.remove('tab-pane-transition');
+        void activeEl.offsetWidth;
+        activeEl.classList.add('tab-pane-transition');
+      }
       if (activeTabEl) activeTabEl.classList.add('tab-active');
 
       if (tabId === 'playground') {

@@ -339,7 +339,10 @@
             
             const avatar = document.getElementById('bizAvatar');
             if (data.avatar_url) {
-                avatar.innerHTML = `<img src="${data.avatar_url}" alt="Avatar">`;
+                const resolvedAvatar = (data.avatar_url.startsWith('http://') || data.avatar_url.startsWith('https://'))
+                    ? data.avatar_url
+                    : `${window.location.origin.replace(/\/+$/, '')}/${data.avatar_url.replace(/^\/+/, '')}`;
+                avatar.innerHTML = `<img src="${resolvedAvatar}" alt="" onerror="this.onerror=null; this.parentElement.innerText='${(data.business_name || 'I').charAt(0).toUpperCase()}';">`;
             } else {
                 avatar.innerText = (data.business_name || "I").charAt(0).toUpperCase();
             }

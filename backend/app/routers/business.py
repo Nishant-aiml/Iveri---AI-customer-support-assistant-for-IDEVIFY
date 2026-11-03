@@ -184,7 +184,16 @@ async def get_business_avatar(filename: str):
         ".gif": "image/gif"
     }
     media_type = media_types.get(ext, "application/octet-stream")
-    return FileResponse(file_path, media_type=media_type, headers={"Cache-Control": "public, max-age=86400"})
+    return FileResponse(
+        file_path,
+        media_type=media_type,
+        headers={
+            "Cache-Control": "public, max-age=86400",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET, OPTIONS",
+            "Access-Control-Allow-Headers": "*"
+        }
+    )
 
 @router.get("/api/public/business/{slug_or_token}", response_model=PublicBusinessInfoResponse)
 async def get_public_business_info(slug_or_token: str, db: AsyncSession = Depends(get_db)):
