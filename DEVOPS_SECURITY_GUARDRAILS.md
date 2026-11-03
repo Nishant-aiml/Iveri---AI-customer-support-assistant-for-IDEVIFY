@@ -146,6 +146,20 @@ Protects against remote code execution, ZIP bombs, and file upload vulnerabiliti
 - Every database query strictly scopes tenant access by binding `where(Model.business_id == owner.business_id)`.
 - ChromaDB vector store collections are strictly partitioned per business identifier (`f"biz_{business_id}"`).
 
+### 3.7 Hardened Multi-Tenant CSV & Power BI Export (BOLA / Zero-Trust Defense)
+Implemented in [`backend/app/routers/dashboard.py`](file:///c:/Users/datta.000/Desktop/IDEVIFY/backend/app/routers/dashboard.py):
+Protects against unauthorized data exfiltration, broken object level authorization (BOLA/IDOR), and unauthenticated data leaks:
+- **Zero Anonymous Fallback**: Completely eliminated unauthenticated or development fallback. Any unauthenticated GET request to `/api/dashboard/export/powerbi` immediately returns `HTTP 401 Unauthorized`.
+- **Dual Authentication Vectors**: Accepts cryptographic JWT credentials via standard `Authorization: Bearer <JWT>` headers or URL query parameter `?token=<JWT>` (tailored for Power BI Desktop Web Connector and Excel scheduled refreshes).
+- **Strict Tenant Data Scoping**: Derives `business_id` exclusively from the verified token payload. All customer chat sessions, transcripts, emails, sentiment scores, and feedback telemetry are filtered with `where(ChatSession.business_id == user.business_id)`.
+- **Query Parameter Bypass Neutralization**: Disallows client-supplied query parameter overrides (`?business_id=...`), guaranteeing that an authenticated user from Business A can never access or scrape Business B's telemetry.
+
+### 3.8 Zero-Trust Client Tab Gating & Privilege Separation
+Implemented in [`backend/app/static/index.html`](file:///c:/Users/datta.000/Desktop/IDEVIFY/backend/app/static/index.html):
+- **Overview-Only Public Surface**: Unauthenticated visitors are restricted exclusively to the public Overview tab.
+- **Client Route Interception**: Attempts to switch to protected tabs (`Documents`, `Unanswered / Support Tickets`, `Customer Chats`, and `Settings & Studio`) are halted immediately at the navigation dispatcher.
+- **Auto-Prompt Authentication Modal**: When an unauthenticated click is detected on a protected tab or export button ("Download CSV" / "Power BI URL"), the UI displays an alert toast and triggers `openAuthModal()`, ensuring sensitive business dashboards and customer conversations are never exposed to casual visitors.
+
 ---
 
 ## 4. Real-Time Safety Guardrails Suite
@@ -201,12 +215,16 @@ Implemented in [`backend/tests/test_guardrails_evals.py`](file:///c:/Users/datta
 | **EVAL-07: Password Complexity Policy** | **100.0% Enforcement** | Rejects passwords < 8 chars or missing numbers; validates valid alphanumeric credentials. | **PASS** |
 | **EVAL-08: Sliding-Window Rate Limiting** | **100.0% Protection** | Rapid automated requests trigger `HTTP 429 Too Many Requests` with attached `Retry-After`. | **PASS** |
 
-### Complete Test Suite Summary (28 Tests Total)
-1. `backend/tests/test_guardrails_evals.py` (8 Tests) — Security & Evals
+### Complete Test Suite Summary (Comprehensive Multi-Phase & Evals Verification)
+1. `backend/tests/test_guardrails_evals.py` (8 Tests) — Security, Injection, PII Redaction & Evals
 2. `backend/tests/test_phase1_phase2.py` (6 Tests) — Auth, Multi-Tenancy, Document Upload & Ingestion
 3. `backend/tests/test_phase3_rag.py` (4 Tests) — Hybrid Search, Greeting Interceptor, Grounding, Circuit Breaker
 4. `backend/tests/test_phase4_chat.py` (5 Tests) — Sessions, Citations, Unknown Lead Capture, Feedback
 5. `backend/tests/test_phase5_dashboard.py` (5 Tests) — Analytics, Closed-Loop Q&A Resolution, Studio Playground
+6. `backend/tests/test_tickets_notifications_twilio.py` (8 Tests) — Support Tickets, In-App Notifications, Twilio WhatsApp
+7. `backend/tests/test_notifications_and_ui_enhancements.py` (14 Tests) — VAPID Web Push, Header Avatar DP Badge, Notification Filter & Lifecycle
+8. `backend/tests/test_ui_tab_contracts.py` (3 Tests) — Zero-Trust Tab Gating, Auth Modal Auto-Prompt, Overview Public Isolation
+9. `backend/tests/test_phase6_features.py` (5 Tests) — Power BI Strict Authenticated Export (Zero Anonymous Fallback), Local Avatar Upload, Sentiment Classification Hierarchy
 
 ---
 

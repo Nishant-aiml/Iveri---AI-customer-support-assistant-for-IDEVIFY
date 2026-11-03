@@ -11,10 +11,16 @@ Iveri provides high-speed, flattened tabular export designed specifically for Po
 
 - **Endpoint**: `/api/dashboard/export/powerbi`
 - **Supported Formats**: `csv` (default), `json`
+- **Zero-Trust Multi-Tenant Security**:
+  1. **Strict Authentication Enforced**: All requests to this endpoint strictly require a valid, non-expired JWT authentication token. Unauthenticated requests strictly receive `401 Unauthorized` (no anonymous or unauthenticated fallback).
+  2. **Multi-Tenant Data Scoping**: Datasets are strictly isolated by `business_id` derived directly from the verified cryptographic JWT payload. Business owners can only access conversation telemetry for their own registered store.
 - **Authentication Methods**:
   1. **Authorization Header**: `Bearer <JWT_TOKEN>` (for programmatic SDK callers).
-  2. **URL Query Parameter**: `?token=<JWT_TOKEN>` (for Power BI Desktop Web Connector, Excel Web Queries, and direct browser bookmarks).
-  3. **Development Mode Fallback**: When `ENVIRONMENT=development`, local GET requests default to the active store owner, preventing `401 Unauthorized` errors when opening links directly in a browser bar.
+  2. **URL Query Parameter**: `?token=<JWT_TOKEN>` (for Power BI Desktop Web Connector, Excel Web Queries, and automated scheduled refreshes).
+- **Frontend Dashboard Controls**:
+  - The **Download CSV** and **Power BI URL** buttons in the Executive Telemetry header are strictly gated behind authentication.
+  - If an unauthenticated visitor attempts to click either action, the system automatically interrupts execution, issues a security guidance notice, and opens the **Sign In** authentication modal.
+  - When authenticated, "Download CSV" performs a secure blob download using the active session token, and "Power BI URL" copies the token-parameterized link to the clipboard.
 
 ### Connecting Power BI Desktop to Live Iveri Telemetry
 1. Open **Power BI Desktop**.
