@@ -160,32 +160,39 @@ class BM25StoreService:
         """Hydrates in-memory BM25Plus models from relational database on server startup."""
         try:
             from app.database import AsyncSessionLocal
-            from app.models.document import DocumentChunk
+            from app.models.document import DocumentChunk, Document
             from sqlalchemy.future import select
 
             async with AsyncSessionLocal() as db:
-                result = await db.execute(select(DocumentChunk))
-                chunks = result.scalars().all()
+                result = await db.execute(
+                    select(DocumentChunk, Document)
+                    .join(Document, Document.id == DocumentChunk.document_id)
+                )
+                rows = result.all()
 
             biz_map: Dict[str, List[Dict[str, Any]]] = {}
-            for c in chunks:
-                bid = c.business_id
+            for chunk, doc in rows:
+                bid = chunk.business_id
                 if bid not in biz_map:
                     biz_map[bid] = []
+                
+                meta = dict(chunk.payload) if chunk.payload else {}
+                meta["document_id"] = chunk.document_id
+                meta["document_name"] = doc.file_name or meta.get("document_name", "Document")
+                meta["chunk_index"] = chunk.chunk_index
+                meta["page_number"] = chunk.page_number
+                meta["business_id"] = chunk.business_id
+
                 biz_map[bid].append({
-                    "id": c.id,
-                    "content": c.content,
-                    "metadata": {
-                        "document_id": c.document_id,
-                        "chunk_index": c.chunk_index,
-                        "page_number": c.page_number
-                    }
+                    "id": chunk.id,
+                    "content": chunk.content,
+                    "metadata": meta
                 })
 
             for bid, c_list in biz_map.items():
                 self.add_chunks(bid, c_list)
 
-            logger.info(f"BM25StoreService warmed up {len(chunks)} chunks across {len(biz_map)} businesses from database.")
+            logger.info(f"BM25StoreService warmed up {len(rows)} chunks across {len(biz_map)} businesses from database.")
         except Exception as e:
             logger.warning(f"BM25StoreService warmup failed: {str(e)}")
 

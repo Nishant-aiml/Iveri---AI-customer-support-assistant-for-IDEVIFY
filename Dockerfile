@@ -45,6 +45,8 @@ COPY --from=builder /root/.local /root/.local
 
 # Copy application source code
 COPY backend /app/backend
+COPY ["Test pdfs", "/app/Test pdfs/"]
+COPY ["Test pdfs", "/app/backend/Test pdfs/"]
 
 # Create storage directory for uploads and vector embeddings
 RUN mkdir -p /app/backend/data /app/backend/data/chroma_db /app/backend/data/uploads

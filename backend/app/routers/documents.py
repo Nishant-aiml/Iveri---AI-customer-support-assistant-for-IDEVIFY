@@ -251,6 +251,22 @@ async def list_documents(owner: User = Depends(get_current_owner), db: AsyncSess
     docs = result.scalars().all()
     return docs
 
+@router.get("/{document_id}", response_model=DocumentResponse)
+async def get_document(
+    document_id: str,
+    owner: User = Depends(get_current_owner),
+    db: AsyncSession = Depends(get_db)
+):
+    """Retrieves document details strictly scoped to the authenticated business owner."""
+    query = select(Document).where(
+        Document.id == document_id,
+        Document.business_id == owner.business_id
+    )
+    doc = (await db.execute(query)).scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+    return doc
+
 @router.delete("/{document_id}", status_code=status.HTTP_200_OK)
 async def delete_document(
     document_id: str,
