@@ -5078,6 +5078,9 @@
 
     function openPublicChat() {
       if (currentBusiness && currentBusiness.slug) {
+        try {
+          localStorage.setItem('iveri_biz_' + currentBusiness.slug, JSON.stringify(currentBusiness));
+        } catch(e) {}
         window.open(`/chat/${currentBusiness.slug}`, '_blank');
       } else {
         alert("Please sign in first.");

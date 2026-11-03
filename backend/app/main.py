@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
@@ -175,8 +175,112 @@ async def serve_dashboard_ui():
 
 @app.get("/chat/{slug}", tags=["UI"])
 async def serve_customer_chat_ui(slug: str):
-    """Serves the Customer Support Chat Web Application."""
-    return FileResponse(os.path.join(_static_dir, "chat.html"), media_type="text/html")
+    """Serves the Customer Support Chat Web Application with zero-flicker SSR hydration."""
+    html_path = os.path.join(_static_dir, "chat.html")
+    if not os.path.exists(html_path):
+        return FileResponse(html_path, media_type="text/html")
+
+    try:
+        from app.database import AsyncSessionLocal
+        from app.models.business import Business
+        from sqlalchemy import select
+        async with AsyncSessionLocal() as db_session:
+            stmt = select(Business).where(
+                (Business.slug == slug) | (Business.share_token == slug)
+            )
+            biz = (await db_session.execute(stmt)).scalar_one_or_none()
+            if biz:
+                with open(html_path, "r", encoding="utf-8") as f:
+                    html_content = f.read()
+
+                import json
+                import html
+
+                brand_color = biz.brand_color or "#4F46E5"
+                c = brand_color.lstrip('#')
+                if len(c) == 3:
+                    c = ''.join([x * 2 for x in c])
+                try:
+                    r, g, b = int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16)
+                except Exception:
+                    r, g, b = 79, 70, 229
+
+                theme_css = f"""
+<style id="chat-dynamic-theme-styles">
+  .bg-primary {{ background-color: {brand_color} !important; }}
+  .hover\\:bg-primary-hover:hover {{ filter: brightness(0.92); }}
+  .text-primary {{ color: {brand_color} !important; }}
+  .border-primary {{ border-color: {brand_color} !important; }}
+  .chat-bubble-user {{ background-color: {brand_color} !important; color: #FFFFFF !important; box-shadow: 0 2px 6px rgba({r}, {g}, {b}, 0.35) !important; }}
+  .focus\\:border-primary:focus {{ border-color: {brand_color} !important; }}
+  .focus\\:ring-primary\\/20:focus {{ --tw-ring-color: rgba({r}, {g}, {b}, 0.25) !important; }}
+</style>
+"""
+                biz_payload = {
+                    "id": biz.id,
+                    "name": biz.name,
+                    "slug": biz.slug,
+                    "brand_color": brand_color,
+                    "avatar_url": biz.avatar_url or "",
+                    "welcome_message": biz.welcome_message or "",
+                    "starter_questions": biz.starter_questions or [],
+                    "enable_callback": bool(biz.enable_callback),
+                    "callback_button_text": biz.callback_button_text or "Request Callback",
+                    "whatsapp_number": biz.whatsapp_number or ""
+                }
+                bootstrap_script = f"""
+<script id="__IVERI_BIZ_BOOTSTRAP__">
+  window.__INITIAL_BIZ__ = {json.dumps(biz_payload)};
+</script>
+"""
+                html_content = html_content.replace(
+                    "<title>Iveri - Verified AI Customer Support Assistant</title>",
+                    f"<title>{html.escape(biz.name)} - Verified AI Customer Support Assistant</title>"
+                )
+                html_content = html_content.replace("</head>", f"{theme_css}\n{bootstrap_script}\n</head>")
+
+                html_content = html_content.replace(
+                    'id="biz-name" class="font-bold text-sm sm:text-base tracking-tight text-on-surface leading-snug truncate max-w-[150px] sm:max-w-xs">Iveri Assistant</h1>',
+                    f'id="biz-name" class="font-bold text-sm sm:text-base tracking-tight text-on-surface leading-snug truncate max-w-[150px] sm:max-w-xs">{html.escape(biz.name)}</h1>'
+                )
+
+                if biz.enable_callback:
+                    cb_label = html.escape(biz.callback_button_text or "Request Callback")
+                    html_content = html_content.replace(
+                        '<button id="btn-request-callback" onclick="openCallbackModal()" class="hidden inline-flex',
+                        '<button id="btn-request-callback" onclick="openCallbackModal()" class="inline-flex'
+                    )
+                    html_content = html_content.replace(
+                        '<span id="label-request-callback">Request Callback</span>',
+                        f'<span id="label-request-callback">{cb_label}</span>'
+                    )
+
+                if biz.welcome_message:
+                    escaped_welcome = html.escape(biz.welcome_message)
+                    html_content = html_content.replace(
+                        'Hello! I am your AI Support Assistant, indexed directly from store policies, product catalogs, and operating manuals. What questions can I answer for you today?',
+                        escaped_welcome
+                    )
+
+                if biz.avatar_url:
+                    escaped_avatar = html.escape(biz.avatar_url)
+                    escaped_name = html.escape(biz.name)
+                    html_content = html_content.replace(
+                        '<span class="material-symbols-outlined text-[20px] sm:text-[22px]">support_agent</span>',
+                        f'<img src="{escaped_avatar}" alt="{escaped_name}" class="w-full h-full object-cover rounded-xl" onerror="this.onerror=null; this.parentElement.innerHTML=\'<span class=\\\'material-symbols-outlined text-[20px] sm:text-[22px]\\\'>support_agent</span>\';">'
+                    )
+
+                if not biz.starter_questions:
+                    html_content = html_content.replace(
+                        'id="starter-container" class="pl-0 sm:pl-11 space-y-2 pt-1"',
+                        'id="starter-container" class="hidden pl-0 sm:pl-11 space-y-2 pt-1"'
+                    )
+
+                return HTMLResponse(content=html_content, media_type="text/html")
+    except Exception as e:
+        logger.warning(f"SSR chat hydration fallback for {slug}: {e}")
+
+    return FileResponse(html_path, media_type="text/html")
 
 @app.get("/share/{session_id}", tags=["UI"])
 @app.get("/share/unanswered/{unanswered_id}", tags=["UI"])

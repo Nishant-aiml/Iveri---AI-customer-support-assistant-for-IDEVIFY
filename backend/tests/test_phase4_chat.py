@@ -319,5 +319,27 @@ class TestPhase4Chat(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(len(m2_data["citations"]) > 0)
         print("[PASS] CHAT-07: Business privacy toggle (show_sources) properly hides citations and blocks raw document inspection.")
 
+    async def test_08_ssr_chat_pre_hydration_eliminates_fouc(self):
+        # Verify GET /chat/{slug} returns pre-hydrated HTML directly to eliminate client-side hydration flash
+        res = await self.client.get(f"/chat/{self.slug}")
+        self.assertEqual(res.status_code, 200)
+        self.assertIn("text/html", res.headers.get("content-type", ""))
+        html = res.text
+
+        # 1. Business title is pre-hydrated
+        self.assertIn("Zenith Cloud Hosting - Verified AI Customer Support Assistant", html)
+        self.assertIn('>Zenith Cloud Hosting</h1>', html)
+
+        # 2. Dynamic theme styling is pre-injected into <head>
+        self.assertIn('id="chat-dynamic-theme-styles"', html)
+        self.assertIn('id="__IVERI_BIZ_BOOTSTRAP__"', html)
+        self.assertIn('window.__INITIAL_BIZ__ =', html)
+
+        # 3. Callback button is visible directly in initial HTML (not hidden)
+        self.assertIn('id="btn-request-callback"', html)
+        self.assertIn('class="inline-flex', html)
+
+        print("[PASS] CHAT-08: Server-side pre-hydration verified: zero-flash instantaneous public chat rendering.")
+
 if __name__ == "__main__":
     unittest.main()

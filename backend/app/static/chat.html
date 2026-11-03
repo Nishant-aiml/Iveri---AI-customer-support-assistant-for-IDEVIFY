@@ -89,7 +89,7 @@
     <!-- Header -->
     <header id="header" class="px-3.5 py-3 sm:px-6 sm:py-4 border-b border-outline-variant flex items-center justify-between bg-surface/95 backdrop-blur-md sticky top-0 z-20">
       <div class="flex items-center space-x-2.5 sm:space-x-3.5">
-        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs shrink-0">
+        <div id="header-avatar" class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-xs shrink-0 overflow-hidden">
           <span class="material-symbols-outlined text-[20px] sm:text-[22px]">support_agent</span>
         </div>
         <div>
@@ -348,49 +348,100 @@
     }
 
 
+    function applyBusinessData(data) {
+      if (!data) return;
+      publicBizData = data;
+      const bizNameEl = document.getElementById('biz-name');
+      if (bizNameEl && data.name) bizNameEl.innerText = data.name;
+      document.title = `${data.name || 'Iveri'} - Verified AI Customer Support Assistant`;
+
+      if (data.brand_color) {
+        applyBrandTheme(data.brand_color);
+      }
+
+      const modalBizTitle = document.getElementById('modal-biz-title');
+      if (modalBizTitle && data.name) modalBizTitle.innerText = `Request Callback from ${data.name}`;
+
+      // Avatar DP
+      const avatarContainer = document.getElementById('header-avatar');
+      if (avatarContainer && data.avatar_url) {
+        const resolvedAvatar = (data.avatar_url.startsWith('http://') || data.avatar_url.startsWith('https://'))
+          ? data.avatar_url
+          : `${window.location.origin.replace(/\/+$/, '')}/${data.avatar_url.replace(/^\/+/, '')}`;
+        avatarContainer.innerHTML = `<img src="${resolvedAvatar}" alt="${(data.name || '').replace(/"/g, '&quot;')}" class="w-full h-full object-cover rounded-xl" onerror="this.onerror=null; this.parentElement.innerHTML='<span class=\\'material-symbols-outlined text-[20px] sm:text-[22px]\\'>support_agent</span>';">`;
+      }
+
+      // Configure Callback Button
+      if (data.enable_callback !== false) {
+        const cbBtn = document.getElementById('btn-request-callback');
+        if (cbBtn) cbBtn.classList.remove('hidden');
+        const cbLabel = document.getElementById('label-request-callback');
+        if (cbLabel && data.callback_button_text) cbLabel.innerText = data.callback_button_text;
+        const handoffBtnLabel = document.getElementById('handoff-cb-btn-label');
+        if (handoffBtnLabel && data.callback_button_text) handoffBtnLabel.innerText = data.callback_button_text;
+      } else {
+        const cbBtn = document.getElementById('btn-request-callback');
+        if (cbBtn) cbBtn.classList.add('hidden');
+      }
+
+      // Configure WhatsApp Direct Button
+      if (data.whatsapp_number) {
+        const cleanWa = data.whatsapp_number.replace(/[^0-9]/g, '');
+        const waUrl = `https://wa.me/${cleanWa}?text=Hi%2C%20I%20have%20an%20inquiry%20regarding%20${encodeURIComponent(data.name || 'services')}`;
+        const waBtn = document.getElementById('btn-whatsapp-direct');
+        if (waBtn) {
+          waBtn.href = waUrl;
+          waBtn.classList.remove('hidden');
+        }
+        const handoffWa = document.getElementById('handoff-wa-link');
+        if (handoffWa) {
+          handoffWa.href = waUrl;
+          handoffWa.classList.remove('hidden');
+        }
+      }
+
+      // Welcome message
+      if (data.welcome_message) {
+        const welcomeEl = document.getElementById('welcome-text');
+        if (welcomeEl) welcomeEl.innerText = data.welcome_message;
+      }
+
+      // Starter questions
+      if (data.starter_questions && data.starter_questions.length > 0) {
+        renderStarters(data.starter_questions);
+        document.getElementById('starter-container')?.classList.remove('hidden');
+      } else {
+        document.getElementById('starter-container')?.classList.add('hidden');
+      }
+    }
+
+    // Immediate synchronous hydration from server bootstrap or local cache to eliminate FOUC
+    (function hydrateImmediately() {
+      const initial = (typeof window.__INITIAL_BIZ__ !== 'undefined' && window.__INITIAL_BIZ__) ? window.__INITIAL_BIZ__ : (function() {
+        try {
+          const raw = localStorage.getItem('iveri_biz_' + businessSlug);
+          return raw ? JSON.parse(raw) : null;
+        } catch(e) { return null; }
+      })();
+      if (initial) {
+        if (initial.brand_color) applyBrandTheme(initial.brand_color);
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => applyBusinessData(initial));
+        } else {
+          applyBusinessData(initial);
+        }
+      }
+    })();
+
     async function init() {
       try {
         const res = await fetch(`/api/public/business/${businessSlug}`);
         if (res.ok) {
           const data = await res.json();
-          publicBizData = data;
-          document.getElementById('biz-name').innerText = data.name;
-          if (data.brand_color) {
-            applyBrandTheme(data.brand_color);
-          }
-          const modalBizTitle = document.getElementById('modal-biz-title');
-          if (modalBizTitle) modalBizTitle.innerText = `Request Callback from ${data.name}`;
-
-          // Configure Callback Button
-          if (data.enable_callback !== false) {
-            const cbBtn = document.getElementById('btn-request-callback');
-            if (cbBtn) cbBtn.classList.remove('hidden');
-            const cbLabel = document.getElementById('label-request-callback');
-            if (cbLabel && data.callback_button_text) cbLabel.innerText = data.callback_button_text;
-            const handoffBtnLabel = document.getElementById('handoff-cb-btn-label');
-            if (handoffBtnLabel && data.callback_button_text) handoffBtnLabel.innerText = data.callback_button_text;
-          }
-
-          // Configure WhatsApp Direct Button
-          if (data.whatsapp_number) {
-            const cleanWa = data.whatsapp_number.replace(/[^0-9]/g, '');
-            const waUrl = `https://wa.me/${cleanWa}?text=Hi%2C%20I%20have%20an%20inquiry%20regarding%20${encodeURIComponent(data.name)}`;
-            const waBtn = document.getElementById('btn-whatsapp-direct');
-            if (waBtn) {
-              waBtn.href = waUrl;
-              waBtn.classList.remove('hidden');
-            }
-            const handoffWa = document.getElementById('handoff-wa-link');
-            if (handoffWa) {
-              handoffWa.href = waUrl;
-              handoffWa.classList.remove('hidden');
-            }
-          }
-          if (data.starter_questions && data.starter_questions.length > 0) {
-            renderStarters(data.starter_questions);
-          } else {
-            document.getElementById('starter-container').classList.add('hidden');
-          }
+          applyBusinessData(data);
+          try {
+            localStorage.setItem('iveri_biz_' + businessSlug, JSON.stringify(data));
+          } catch(e) {}
         }
       } catch (e) {
         console.error("Failed to load business profile:", e);
