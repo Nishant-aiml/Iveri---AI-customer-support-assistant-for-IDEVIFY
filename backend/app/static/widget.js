@@ -338,13 +338,17 @@ function escapeHtml(str) {
     chatWindow.style.display = chatWindow.style.display === 'flex' ? 'none' : 'flex';
     if (chatWindow.style.display === 'flex') {
       initSession();
-      document.getElementById('iveri-input').focus();
+      const inputEl = document.getElementById('iveri-input');
+      if (inputEl) inputEl.focus();
     }
   };
 
-  document.getElementById('iveri-close').onclick = () => {
-    chatWindow.style.display = 'none';
-  };
+  const closeBtn = document.getElementById('iveri-close');
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      chatWindow.style.display = 'none';
+    };
+  }
 
   function hexToRgba(hex, alpha) {
     if (!hex) return `rgba(79, 70, 229, ${alpha})`;
@@ -485,7 +489,8 @@ function escapeHtml(str) {
 
       if (data.avatar_url) {
         bubble.innerHTML = `<img src="${data.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="Avatar">`;
-        document.getElementById('iveri-header-avatar').innerHTML = `<img src="${data.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="Avatar">`;
+        const avatarEl = document.getElementById('iveri-header-avatar');
+        if (avatarEl) avatarEl.innerHTML = `<img src="${data.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" alt="Avatar">`;
       }
 
       if (data.welcome_message) {
@@ -495,7 +500,8 @@ function escapeHtml(str) {
         }
       }
 
-      document.getElementById('iveri-biz-name').innerText = data.name || 'Support Assistant';
+      const bizNameEl = document.getElementById('iveri-biz-name');
+      if (bizNameEl) bizNameEl.innerText = data.name || 'Support Assistant';
 
       // Callback Button (channel-aware icon and label)
       if (data.enable_callback !== false) {
@@ -519,7 +525,14 @@ function escapeHtml(str) {
           const labelEl = document.getElementById('iveri-cb-label');
           if (iconEl) iconEl.innerText = icon;
           if (labelEl) labelEl.innerText = data.callback_button_text || defLabel;
-          cbBtn.onclick = () => openWidgetCallbackModal();
+          cbBtn.onclick = function(e) {
+            if (e && e.preventDefault) e.preventDefault();
+            if (typeof openWidgetCallbackModal === 'function') {
+              openWidgetCallbackModal();
+            } else if (typeof window.openWidgetCallbackModal === 'function') {
+              window.openWidgetCallbackModal();
+            }
+          };
         }
       } else {
         const cbBtn = document.getElementById('iveri-cb-btn');
@@ -555,15 +568,18 @@ function escapeHtml(str) {
     })
     .catch(err => console.warn('[Iveri Widget] Failed to load business branding:', err));
 
-  document.getElementById('iveri-share-btn').onclick = () => {
-    if (!sessionId) {
-      alert("Please send a question before sharing this conversation.");
-      return;
-    }
-    const shareUrl = `${apiBaseUrl}/share/${sessionId}`;
-    navigator.clipboard.writeText(shareUrl);
-    alert(`Conversation link copied to clipboard!\n${shareUrl}`);
-  };
+  const shareBtn = document.getElementById('iveri-share-btn');
+  if (shareBtn) {
+    shareBtn.onclick = () => {
+      if (!sessionId) {
+        alert("Please send a question before sharing this conversation.");
+        return;
+      }
+      const shareUrl = `${apiBaseUrl}/share/${sessionId}`;
+      navigator.clipboard.writeText(shareUrl);
+      alert(`Conversation link copied to clipboard!\n${shareUrl}`);
+    };
+  }
 
   // Initialize Session (returns Promise)
   function initSession() {
@@ -692,7 +708,14 @@ function escapeHtml(str) {
           
           const cbBtn = leadBox.querySelector('.iveri-cb-handoff-btn');
           if (cbBtn) {
-            cbBtn.onclick = () => openWidgetCallbackModal();
+            cbBtn.onclick = function(e) {
+              if (e && e.preventDefault) e.preventDefault();
+              if (typeof openWidgetCallbackModal === 'function') {
+                openWidgetCallbackModal();
+              } else if (typeof window.openWidgetCallbackModal === 'function') {
+                window.openWidgetCallbackModal();
+              }
+            };
           }
           botBubble.appendChild(leadBox);
         }
@@ -716,19 +739,26 @@ function escapeHtml(str) {
 
   // Bind Enter key
   const inputEl = document.getElementById('iveri-input');
-  inputEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      const val = inputEl.value;
-      inputEl.value = '';
-      sendMessage(val);
-    }
-  });
+  if (inputEl) {
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const val = inputEl.value;
+        inputEl.value = '';
+        sendMessage(val);
+      }
+    });
+  }
 
-  document.getElementById('iveri-send').onclick = () => {
-    const val = inputEl.value;
-    inputEl.value = '';
-    sendMessage(val);
-  };
+  const sendBtn = document.getElementById('iveri-send');
+  if (sendBtn) {
+    sendBtn.onclick = () => {
+      if (inputEl) {
+        const val = inputEl.value;
+        inputEl.value = '';
+        sendMessage(val);
+      }
+    };
+  }
 
   // ==========================================
   // Dynamic Channel Handover & Callback Logic
