@@ -94,83 +94,95 @@ class NotificationService:
         except Exception as owner_err:
             logger.warning(f"Could not retrieve owner email: {owner_err}")
 
-        # 4. Asynchronously Dispatch Email Alert
-        contact_info = customer_phone or customer_email or "In-Chat Customer"
-        if owner_email:
-            try:
-                await email_service.send_ticket_alert(
-                    to_email=owner_email,
-                    business_name=business.name,
-                    ticket_number=ticket_num,
-                    customer_contact=contact_info,
-                    channel=channel,
-                    question_text=description,
-                    priority=priority
-                )
-            except Exception as e:
-                logger.warning(f"Email dispatch error: {e}")
-
-        # 5. Asynchronously Dispatch Web Push to Registered Devices
+        # Pre-fetch Push Subscriptions while DB session is open
+        push_subs_data = []
         try:
             push_query = select(PushSubscription).where(PushSubscription.business_id == business.id)
             subs = (await db.execute(push_query)).scalars().all()
-            for sub in subs:
-                sub_dict = {
-                    "endpoint": sub.endpoint,
-                    "keys": {
-                        "p256dh": sub.p256dh,
-                        "auth": sub.auth
+            push_subs_data = [
+                {"endpoint": sub.endpoint, "keys": {"p256dh": sub.p256dh, "auth": sub.auth}}
+                for sub in subs
+            ]
+        except Exception as p_err:
+            logger.warning(f"Push subscriptions query notice: {p_err}")
+
+        # 4. Asynchronously Dispatch Omnichannel Alerts in Background (Zero-Latency for Chat API)
+        contact_info = customer_phone or customer_email or "In-Chat Customer"
+        biz_name = business.name
+        biz_wa_num = business.whatsapp_number
+        is_wa_enabled = getattr(business, "enable_whatsapp", True) is not False
+
+        async def _dispatch_external_alerts():
+            # 4a. Owner Email Alert
+            if owner_email:
+                try:
+                    await email_service.send_ticket_alert(
+                        to_email=owner_email,
+                        business_name=biz_name,
+                        ticket_number=ticket_num,
+                        customer_contact=contact_info,
+                        channel=channel,
+                        question_text=description,
+                        priority=priority
+                    )
+                except Exception as e:
+                    logger.warning(f"Email dispatch error: {e}")
+
+            # 4b. Web Push
+            for sub_dict in push_subs_data:
+                try:
+                    push_payload = {
+                        "title": f"🚨 {notif_title}",
+                        "body": f"{contact_info}: {description[:120]}",
+                        "url": "/dashboard#tickets"
                     }
-                }
-                push_payload = {
-                    "title": f"🚨 {notif_title}",
-                    "body": f"{contact_info}: {description[:120]}",
-                    "url": "/dashboard#tickets"
-                }
-                await push_service.send_web_push(sub_dict, push_payload)
-        except Exception as e:
-            logger.warning(f"Push dispatch note: {e}")
+                    await push_service.send_web_push(sub_dict, push_payload)
+                except Exception as e:
+                    logger.warning(f"Push dispatch note: {e}")
 
-        # 6. Dispatch WhatsApp Alert to Business Owner (if owner whatsapp_number is configured and enable_whatsapp is ON)
-        is_whatsapp_enabled = getattr(business, "enable_whatsapp", True) is not False
-        if business.whatsapp_number and is_whatsapp_enabled:
-            try:
-                from app.services.twilio_service import twilio_service
-                await twilio_service.notify_owner_whatsapp(
-                    owner_phone=business.whatsapp_number,
-                    ticket_number=ticket_num,
-                    priority=priority,
-                    summary=f"{contact_info}: {description[:140]}"
-                )
-            except Exception as e:
-                logger.warning(f"Twilio WhatsApp owner notification notice: {e}")
+            # 4c. Twilio WhatsApp Alerts
+            if biz_wa_num and is_wa_enabled:
+                try:
+                    from app.services.twilio_service import twilio_service
+                    await twilio_service.notify_owner_whatsapp(
+                        owner_phone=biz_wa_num,
+                        ticket_number=ticket_num,
+                        priority=priority,
+                        summary=f"{contact_info}: {description[:140]}"
+                    )
+                except Exception as e:
+                    logger.warning(f"Twilio WhatsApp owner notification notice: {e}")
 
-        # 7. Dispatches Instant Confirmation / Acknowledgment to the CUSTOMER
-        # 7a. Customer WhatsApp Confirmation
-        if customer_phone and is_whatsapp_enabled:
-            try:
-                from app.services.twilio_service import twilio_service
-                await twilio_service.notify_customer_ticket_created(
-                    customer_phone=customer_phone,
-                    ticket_number=ticket_num,
-                    business_name=business.name,
-                    customer_name=customer_name
-                )
-            except Exception as e:
-                logger.warning(f"Twilio WhatsApp customer confirmation notice: {e}")
+            # 4d. Customer Confirmations
+            if customer_phone and is_wa_enabled:
+                try:
+                    from app.services.twilio_service import twilio_service
+                    await twilio_service.notify_customer_ticket_created(
+                        customer_phone=customer_phone,
+                        ticket_number=ticket_num,
+                        business_name=biz_name,
+                        customer_name=customer_name
+                    )
+                except Exception as e:
+                    logger.warning(f"Twilio WhatsApp customer confirmation notice: {e}")
 
-        # 7b. Customer Email Confirmation
-        if customer_email:
-            try:
-                await email_service.send_customer_ticket_acknowledgment(
-                    to_email=customer_email,
-                    business_name=business.name,
-                    ticket_number=ticket_num,
-                    customer_name=customer_name,
-                    question_text=description
-                )
-            except Exception as e:
-                logger.warning(f"Customer email confirmation notice: {e}")
+            if customer_email:
+                try:
+                    await email_service.send_customer_ticket_acknowledgment(
+                        to_email=customer_email,
+                        business_name=biz_name,
+                        ticket_number=ticket_num,
+                        customer_name=customer_name,
+                        question_text=description
+                    )
+                except Exception as e:
+                    logger.warning(f"Customer email confirmation notice: {e}")
+
+        import asyncio
+        try:
+            asyncio.create_task(_dispatch_external_alerts())
+        except Exception as bg_err:
+            logger.warning(f"Background alert task scheduling notice: {bg_err}")
 
         logger.info(f"Ticket {ticket_num} created successfully for business {business.name}")
         return ticket

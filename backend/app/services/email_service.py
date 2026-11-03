@@ -22,26 +22,34 @@ class EmailService:
             return False
 
         # In testing or unconfigured mode, safely mock output
-        if settings.ENVIRONMENT == "testing" or (not self.smtp_user and not self.resend_api_key):
+        if settings.ENVIRONMENT == "testing" or (not self.smtp_host or not self.smtp_user or not self.smtp_password):
             logger.info(f"[EMAIL_DISPATCH_MOCK] To: {to_email} | Subject: {subject} | Ticket: {ticket_number}")
             return True
 
-        # Send via SMTP
-        try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = self.from_email
-            msg["To"] = to_email
-            msg.attach(MIMEText(html_body, "html"))
+        # Send via SMTP in non-blocking worker thread
+        import asyncio
+        def _send_sync():
+            try:
+                msg = MIMEMultipart("alternative")
+                msg["Subject"] = subject
+                msg["From"] = self.from_email
+                msg["To"] = to_email
+                msg.attach(MIMEText(html_body, "html"))
 
-            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=10) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.sendmail(self.from_email, [to_email], msg.as_string())
-            logger.info(f"Successfully dispatched email for ticket {ticket_number} to {to_email}")
-            return True
-        except Exception as e:
-            logger.warning(f"Failed to deliver SMTP email: {e}. Target: {to_email}")
+                with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=3) as server:
+                    server.starttls()
+                    server.login(self.smtp_user, self.smtp_password)
+                    server.sendmail(self.from_email, [to_email], msg.as_string())
+                logger.info(f"Successfully dispatched email for ticket {ticket_number} to {to_email}")
+                return True
+            except Exception as e:
+                logger.warning(f"Failed to deliver SMTP email: {e}. Target: {to_email}")
+                return False
+
+        try:
+            return await asyncio.wait_for(asyncio.to_thread(_send_sync), timeout=4.0)
+        except Exception as te:
+            logger.warning(f"SMTP dispatch timeout/note: {te}")
             return False
 
     async def send_ticket_alert(
