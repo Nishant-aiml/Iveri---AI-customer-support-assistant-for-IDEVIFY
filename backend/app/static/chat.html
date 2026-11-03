@@ -303,6 +303,51 @@
     let businessSlug = window.location.pathname.split('/').filter(Boolean).pop() || "demo";
     let sessionId = null;
 
+    function hexToRgba(hex, alpha) {
+      if (!hex) return `rgba(79, 70, 229, ${alpha})`;
+      let c = String(hex).replace('#', '').trim();
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      if (c.length !== 6) return `rgba(79, 70, 229, ${alpha})`;
+      const num = parseInt(c, 16);
+      return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+    }
+
+    function applyBrandTheme(color) {
+      if (!color) return;
+      let styleTag = document.getElementById('chat-dynamic-theme-styles');
+      if (!styleTag) {
+        styleTag = document.createElement('style');
+        styleTag.id = 'chat-dynamic-theme-styles';
+        document.head.appendChild(styleTag);
+      }
+      styleTag.innerHTML = `
+        .bg-primary {
+          background-color: ${color} !important;
+        }
+        .hover\\:bg-primary-hover:hover {
+          filter: brightness(0.92);
+        }
+        .text-primary {
+          color: ${color} !important;
+        }
+        .border-primary {
+          border-color: ${color} !important;
+        }
+        .chat-bubble-user {
+          background-color: ${color} !important;
+          color: #FFFFFF !important;
+          box-shadow: 0 2px 6px ${hexToRgba(color, 0.35)} !important;
+        }
+        .focus\\:border-primary:focus {
+          border-color: ${color} !important;
+        }
+        .focus\\:ring-primary\\/20:focus {
+          --tw-ring-color: ${hexToRgba(color, 0.25)} !important;
+        }
+      `;
+    }
+
+
     async function init() {
       try {
         const res = await fetch(`/api/public/business/${businessSlug}`);
@@ -310,6 +355,9 @@
           const data = await res.json();
           publicBizData = data;
           document.getElementById('biz-name').innerText = data.name;
+          if (data.brand_color) {
+            applyBrandTheme(data.brand_color);
+          }
           const modalBizTitle = document.getElementById('modal-biz-title');
           if (modalBizTitle) modalBizTitle.innerText = `Request Callback from ${data.name}`;
 

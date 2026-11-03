@@ -3170,6 +3170,8 @@
       document.getElementById('preview-welcome-msg').innerText = welcome;
       document.getElementById('preview-header').style.backgroundColor = color;
       document.getElementById('preview-bubble').style.backgroundColor = color;
+      const modalSubmit = document.getElementById('preview-modal-submit-btn');
+      if (modalSubmit) modalSubmit.style.backgroundColor = color;
 
       // Position
       const bubble = document.getElementById('preview-bubble');

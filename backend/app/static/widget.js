@@ -270,7 +270,7 @@ function escapeHtml(str) {
         </div>
         <div>
           <div style="font-weight: 600; font-size: 14px; color: #0F172A;" id="iveri-biz-name">Support Assistant</div>
-          <div style="font-size: 11px; font-family:'JetBrains Mono', monospace; color: #64748B;">Grounded RAG • Verified</div>
+          <div id="iveri-header-subtitle" style="font-size: 11px; font-family:'JetBrains Mono', monospace; color: #64748B;">Grounded RAG • Verified</div>
         </div>
       </div>
       <div style="display:flex; align-items:center; gap:6px;">
@@ -346,15 +346,135 @@ function escapeHtml(str) {
     chatWindow.style.display = 'none';
   };
 
+  function hexToRgba(hex, alpha) {
+    if (!hex) return `rgba(79, 70, 229, ${alpha})`;
+    let c = String(hex).replace('#', '').trim();
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    if (c.length !== 6) return `rgba(79, 70, 229, ${alpha})`;
+    const num = parseInt(c, 16);
+    return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+  }
+
+  function getContrastColor(hex) {
+    if (!hex) return '#FFFFFF';
+    let c = String(hex).replace('#', '').trim();
+    if (c.length === 3) c = c.split('').map(x => x + x).join('');
+    if (c.length !== 6) return '#FFFFFF';
+    const r = parseInt(c.substr(0, 2), 16);
+    const g = parseInt(c.substr(2, 2), 16);
+    const b = parseInt(c.substr(4, 2), 16);
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    return (yiq >= 170) ? '#0F172A' : '#FFFFFF';
+  }
+
+  function applyBrandTheme(color) {
+    if (!color) return;
+    businessData.brand_color = color;
+    const textColor = getContrastColor(color);
+    const isDark = (textColor === '#FFFFFF');
+
+    // 1. Header Styling — Matches the Studio Real-Time Preview
+    const header = document.getElementById('iveri-header');
+    if (header) {
+      header.style.backgroundColor = color;
+      header.style.color = textColor;
+      header.style.borderBottom = 'none';
+    }
+    const bizName = document.getElementById('iveri-biz-name');
+    if (bizName) bizName.style.color = textColor;
+
+    const subTitle = document.getElementById('iveri-header-subtitle');
+    if (subTitle) subTitle.style.color = isDark ? 'rgba(255, 255, 255, 0.85)' : 'rgba(15, 23, 42, 0.75)';
+
+    const closeBtn = document.getElementById('iveri-close');
+    if (closeBtn) {
+      closeBtn.style.color = textColor;
+      closeBtn.style.opacity = '0.9';
+    }
+
+    const shareBtn = document.getElementById('iveri-share-btn');
+    if (shareBtn) {
+      shareBtn.style.color = textColor;
+      shareBtn.style.opacity = '0.9';
+    }
+
+    // Header Callback Button (translucent frosted pill like in Studio Preview)
+    const cbBtn = document.getElementById('iveri-cb-btn');
+    if (cbBtn) {
+      cbBtn.style.background = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(15, 23, 42, 0.08)';
+      cbBtn.style.border = isDark ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid rgba(15, 23, 42, 0.2)';
+      cbBtn.style.color = textColor;
+    }
+
+    // Header WhatsApp Button
+    const waBtn = document.getElementById('iveri-wa-btn');
+    if (waBtn) {
+      waBtn.style.background = isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(15, 23, 42, 0.08)';
+      waBtn.style.border = isDark ? '1px solid rgba(255, 255, 255, 0.35)' : '1px solid rgba(15, 23, 42, 0.2)';
+      waBtn.style.color = textColor;
+    }
+
+    // Header Avatar fallback bg
+    const headerAvatar = document.getElementById('iveri-header-avatar');
+    if (headerAvatar && !headerAvatar.querySelector('img')) {
+      headerAvatar.style.background = isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(15, 23, 42, 0.12)';
+      headerAvatar.style.color = textColor;
+    }
+
+    // 2. Bubble Launcher
+    if (bubble) {
+      bubble.style.backgroundColor = color;
+      bubble.style.boxShadow = `0 10px 25px -5px ${hexToRgba(color, 0.45)}, 0 4px 6px -2px ${hexToRgba(color, 0.25)}`;
+    }
+
+    // 3. Send Button
+    const sendBtn = document.getElementById('iveri-send');
+    if (sendBtn) {
+      sendBtn.style.backgroundColor = color;
+      sendBtn.style.color = textColor;
+      sendBtn.style.boxShadow = `0 2px 6px ${hexToRgba(color, 0.35)}`;
+    }
+
+    // 4. Callback Submit Button
+    const cbSubmit = document.getElementById('iveri-cb-submit');
+    if (cbSubmit) {
+      cbSubmit.style.backgroundColor = color;
+      cbSubmit.style.color = textColor;
+    }
+
+    // 5. Dynamic CSS rules for user messages, input focus, hover states
+    let themeStyle = document.getElementById('iveri-dynamic-theme-styles');
+    if (!themeStyle) {
+      themeStyle = document.createElement('style');
+      themeStyle.id = 'iveri-dynamic-theme-styles';
+      document.head.appendChild(themeStyle);
+    }
+    themeStyle.innerHTML = `
+      .iveri-msg-user {
+        background: ${color} !important;
+        color: ${textColor} !important;
+        box-shadow: 0 2px 6px ${hexToRgba(color, 0.3)} !important;
+      }
+      .iveri-input:focus {
+        border-color: ${color} !important;
+        box-shadow: 0 0 0 2px ${hexToRgba(color, 0.2)} !important;
+      }
+      .iveri-send-btn:hover {
+        filter: brightness(0.92);
+      }
+      .iveri-starter-pill:hover {
+        border-color: ${color} !important;
+        color: ${color} !important;
+      }
+    `;
+  }
+
   // Fetch Public Business Profile
   fetch(`${apiBaseUrl}/api/public/business/${businessSlug}`)
     .then(r => r.json())
     .then(data => {
       businessData = data;
-      if (data.brand_color && data.brand_color !== '#2563eb' && data.brand_color !== '#6366F1') {
-        bubble.style.backgroundColor = data.brand_color;
-        document.getElementById('iveri-send').style.backgroundColor = data.brand_color;
-      }
+      applyBrandTheme(data.brand_color || '#4F46E5');
 
       if (data.widget_position === 'bottom-left') {
         bubble.style.left = '24px';
