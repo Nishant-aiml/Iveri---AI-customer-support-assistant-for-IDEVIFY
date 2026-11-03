@@ -238,5 +238,4 @@ class TestNotificationsAndUiEnhancements(unittest.IsolatedAsyncioTestCase):
         self.assertIn("syncPushSubscription", html_code)
         self.assertIn("setAppBadge", html_code)
         self.assertIn("clearAppBadge", html_code)
-        self.assertIn("triggerTestPushAlert", html_code)
         self.assertIn("avatar-unread-badge", html_code)

@@ -429,13 +429,9 @@
                 <span id="push-status-label" class="text-amber-700 font-bold">Needs Permission</span>
               </div>
               <div class="flex items-center gap-1.5 shrink-0">
-                <button onclick="requestPushPermission()" id="push-toggle-btn" class="px-2 py-1 bg-primary hover:bg-primary-hover text-white rounded-lg text-[10.5px] font-bold flex items-center gap-1 shadow-2xs transition">
+                <button onclick="requestPushPermission()" id="push-toggle-btn" class="px-2.5 py-1 bg-primary hover:bg-primary-hover text-white rounded-lg text-[10.5px] font-bold flex items-center gap-1 shadow-2xs transition">
                   <span class="material-symbols-outlined text-[13px]">notifications_active</span>
                   <span>Enable Push</span>
-                </button>
-                <button onclick="triggerTestPushAlert()" id="push-test-btn" class="hidden px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10.5px] font-bold flex items-center gap-1 shadow-2xs transition" title="Dispatches live test vibration and app badge to this phone">
-                  <span class="material-symbols-outlined text-[13px]">send_to_mobile</span>
-                  <span>Test Alert</span>
                 </button>
               </div>
             </div>
@@ -6541,7 +6537,6 @@
       const dot = document.getElementById('push-dot');
       const label = document.getElementById('push-status-label');
       const toggleBtn = document.getElementById('push-toggle-btn');
-      const testBtn = document.getElementById('push-test-btn');
       const banner = document.getElementById('desktop-notif-prompt');
 
       if (isActive) {
@@ -6554,9 +6549,6 @@
         }
         if (toggleBtn) {
           toggleBtn.classList.add('hidden');
-        }
-        if (testBtn) {
-          testBtn.classList.remove('hidden');
         }
         if (banner) {
           banner.classList.add('hidden');
@@ -6571,9 +6563,6 @@
         }
         if (toggleBtn) {
           toggleBtn.classList.remove('hidden');
-        }
-        if (testBtn) {
-          testBtn.classList.add('hidden');
         }
       }
     }
@@ -6679,42 +6668,14 @@
           await syncPushSubscription();
 
           if (typeof showToast === 'function') {
-            showToast("🔔 Phone push alerts activated! Sending live test to this device...", "success");
+            showToast("🔔 Phone alerts activated! You will receive alerts when the app is closed.", "success");
           }
-          // Automatically trigger live test push so phone immediately vibrates and badges!
-          setTimeout(triggerTestPushAlert, 800);
         } else {
           alert("Notification permission was denied. To receive alerts when the app is closed, please enable notifications for this site in your phone's browser settings (tap the 🔒 lock icon next to the address bar ➔ Permissions ➔ Notifications ➔ Allow).");
           updatePushStatusUI(false);
         }
       } catch (err) {
         console.error("requestPushPermission error:", err);
-      }
-    }
-
-    async function triggerTestPushAlert() {
-      if (!authToken) {
-        alert("Please sign in to test notifications.");
-        return;
-      }
-      try {
-        const res = await fetch('/api/notifications/push/test', {
-          method: 'POST',
-          headers: { 'Authorization': 'Bearer ' + authToken }
-        });
-        const data = await res.json();
-        if (data.status === 'success') {
-          if (typeof showToast === 'function') {
-            showToast(`🎉 Test alert sent to ${data.sent_count} device(s)! Lock or switch apps to see it ring & badge your app icon.`, "success");
-          } else {
-            alert(`🎉 Test alert sent to ${data.sent_count} device(s)! Check your notification drawer and home screen app icon.`);
-          }
-        } else {
-          alert(data.message || "Failed to dispatch test alert.");
-        }
-      } catch (e) {
-        console.error("triggerTestPushAlert error:", e);
-        alert("Network error triggering test alert.");
       }
     }
 
