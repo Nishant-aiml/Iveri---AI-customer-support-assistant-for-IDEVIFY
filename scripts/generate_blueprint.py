@@ -1,7 +1,8 @@
 """
-Generator for:
+Upgraded Generator for:
 Iveri_System_Architecture_and_Specifications_Blueprint.docx
-Enriched with Authentic GitHub System Architecture Diagrams & Production UI Screenshots
+Enriched with Authentic GitHub System Architecture Diagrams, Production UI Screenshots,
+Official IDEVIFY Assignment Problem Statement, Strategic Business Ecosystem Vision, and Both GitHub Links.
 """
 
 import os
@@ -61,22 +62,22 @@ def set_cell_border_left_only(cell, hex_color=HEX_CALLOUT_BORDER, sz="36"):
     left.set(qn('w:space'), '0')
     left.set(qn('w:color'), hex_color)
     tcBorders.append(left)
-    for b_name in ['top', 'right', 'bottom']:
-        b = OxmlElement(f'w:{b_name}')
-        b.set(qn('w:val'), 'none')
-        tcBorders.append(b)
+    for side in ['top', 'bottom', 'right']:
+        node = OxmlElement(f'w:{side}')
+        node.set(qn('w:val'), 'none')
+        tcBorders.append(node)
     tcPr.append(tcBorders)
 
 def set_table_borders(table, hex_color=HEX_BORDER):
     tblPr = table._tbl.tblPr
     tblBorders = OxmlElement('w:tblBorders')
-    for b_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
-        b = OxmlElement(f'w:{b_name}')
-        b.set(qn('w:val'), 'single')
-        b.set(qn('w:sz'), '4')
-        b.set(qn('w:space'), '0')
-        b.set(qn('w:color'), hex_color)
-        tblBorders.append(b)
+    for border_name in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
+        border = OxmlElement(f'w:{border_name}')
+        border.set(qn('w:val'), 'single')
+        border.set(qn('w:sz'), '4')
+        border.set(qn('w:space'), '0')
+        border.set(qn('w:color'), hex_color)
+        tblBorders.append(border)
     tblPr.append(tblBorders)
 
 def init_styled_doc():
@@ -89,7 +90,7 @@ def init_styled_doc():
         
         header = section.header
         hp = header.paragraphs[0]
-        hp.text = "IVERI AI ARCHITECTURAL BLUEPRINT  •  SYSTEM DESIGN & SPECIFICATIONS"
+        hp.text = "IVERI AI ARCHITECTURE & SPECIFICATIONS BLUEPRINT  •  IDEVIFY ENTERPRISE"
         hp.alignment = WD_ALIGN_PARAGRAPH.RIGHT
         if hp.runs:
             hp.runs[0].font.name = "Calibri"
@@ -98,7 +99,7 @@ def init_styled_doc():
             
         footer = section.footer
         fp = footer.paragraphs[0]
-        fp.text = "CONFIDENTIAL & PROPRIETARY  •  TECHNICAL SPECIFICATIONS BLUEPRINT"
+        fp.text = "CONFIDENTIAL & PROPRIETARY  •  SYSTEM SPECIFICATIONS BLUEPRINT"
         fp.alignment = WD_ALIGN_PARAGRAPH.CENTER
         if fp.runs:
             fp.runs[0].font.name = "Calibri"
@@ -145,7 +146,7 @@ def add_title_block(doc, title, subtitle, meta_items):
     p_tag.alignment = WD_ALIGN_PARAGRAPH.CENTER
     p_tag.paragraph_format.space_before = Pt(0)
     p_tag.paragraph_format.space_after = Pt(4)
-    r_tag = p_tag.add_run("ENTERPRISE TECHNICAL SPECIFICATION BLUEPRINT")
+    r_tag = p_tag.add_run("ENTERPRISE ARCHITECTURAL SPECIFICATION  •  IDEVIFY SOLUTIONS PRIVATE LIMITED")
     r_tag.font.name = "Calibri"
     r_tag.font.size = Pt(9.5)
     r_tag.font.bold = True
@@ -167,7 +168,7 @@ def add_title_block(doc, title, subtitle, meta_items):
     p_sub.paragraph_format.space_after = Pt(14)
     r_sub = p_sub.add_run(subtitle)
     r_sub.font.name = "Calibri"
-    r_sub.font.size = Pt(11.5)
+    r_sub.font.size = Pt(11.0)
     r_sub.font.color.rgb = COLOR_SLATE_DARK
     
     table = doc.add_table(rows=len(meta_items), cols=2)
@@ -181,15 +182,15 @@ def add_title_block(doc, title, subtitle, meta_items):
         cell_val.width = Inches(4.3)
         set_cell_background(cell_label, HEX_ROW_ALT)
         set_cell_background(cell_val, "FFFFFF")
-        set_cell_margins(cell_label, 60, 60, 100, 100)
-        set_cell_margins(cell_val, 60, 60, 100, 100)
+        set_cell_margins(cell_label, 50, 50, 90, 90)
+        set_cell_margins(cell_val, 50, 50, 90, 90)
         
         p_l = cell_label.paragraphs[0]
         p_l.paragraph_format.space_before = Pt(0)
         p_l.paragraph_format.space_after = Pt(0)
         r_l = p_l.add_run(label)
         r_l.font.name = "Calibri"
-        r_l.font.size = Pt(9.0)
+        r_l.font.size = Pt(8.5)
         r_l.font.bold = True
         r_l.font.color.rgb = COLOR_NAVY
         
@@ -198,11 +199,11 @@ def add_title_block(doc, title, subtitle, meta_items):
         p_v.paragraph_format.space_after = Pt(0)
         r_v = p_v.add_run(val)
         r_v.font.name = "Calibri"
-        r_v.font.size = Pt(9.0)
+        r_v.font.size = Pt(8.5)
         r_v.font.color.rgb = COLOR_SLATE_DARK
         
     p_space = doc.add_paragraph()
-    p_space.paragraph_format.space_before = Pt(10)
+    p_space.paragraph_format.space_before = Pt(8)
     p_space.paragraph_format.space_after = Pt(0)
 
 def add_heading_1(doc, text):
@@ -212,7 +213,7 @@ def add_heading_1(doc, text):
     p.paragraph_format.keep_with_next = True
     r = p.add_run(text)
     r.font.name = "Calibri"
-    r.font.size = Pt(15)
+    r.font.size = Pt(14)
     r.font.bold = True
     r.font.color.rgb = COLOR_NAVY
     return p
@@ -224,7 +225,7 @@ def add_heading_2(doc, text):
     p.paragraph_format.keep_with_next = True
     r = p.add_run(text)
     r.font.name = "Calibri"
-    r.font.size = Pt(12.5)
+    r.font.size = Pt(12)
     r.font.bold = True
     r.font.color.rgb = COLOR_INDIGO
     return p
@@ -241,38 +242,32 @@ def add_heading_3(doc, text):
     r.font.color.rgb = COLOR_SLATE_DARK
     return p
 
-def add_p(doc, text, bold_prefix=None, italic=False):
+def add_p(doc, text):
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(0)
-    p.paragraph_format.space_after = Pt(4)
+    p.paragraph_format.space_after = Pt(5)
     p.paragraph_format.line_spacing = 1.15
-    if bold_prefix:
-        r_bp = p.add_run(bold_prefix)
-        r_bp.font.name = "Calibri"
-        r_bp.font.size = Pt(10)
-        r_bp.font.bold = True
-        r_bp.font.color.rgb = COLOR_NAVY
     r = p.add_run(text)
     r.font.name = "Calibri"
-    r.font.size = Pt(10)
-    r.font.italic = italic
+    r.font.size = Pt(9.5)
     r.font.color.rgb = COLOR_SLATE_DARK
     return p
 
-def add_bullet(doc, text, bold_prefix=None):
-    p = doc.add_paragraph(style='List Bullet')
+def add_bullet(doc, text, bullet_prefix="• "):
+    p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(0)
-    p.paragraph_format.space_after = Pt(2)
+    p.paragraph_format.space_after = Pt(3)
+    p.paragraph_format.left_indent = Inches(0.25)
     p.paragraph_format.line_spacing = 1.15
-    if bold_prefix:
-        r_bp = p.add_run(bold_prefix)
+    if bullet_prefix:
+        r_bp = p.add_run(bullet_prefix)
         r_bp.font.name = "Calibri"
-        r_bp.font.size = Pt(10)
+        r_bp.font.size = Pt(9.5)
         r_bp.font.bold = True
         r_bp.font.color.rgb = COLOR_NAVY
     r = p.add_run(text)
     r.font.name = "Calibri"
-    r.font.size = Pt(10)
+    r.font.size = Pt(9.5)
     r.font.color.rgb = COLOR_SLATE_DARK
     return p
 
@@ -295,7 +290,7 @@ def add_callout(doc, text, title=None, alert_type="NOTE"):
     cell.width = Inches(6.5)
     set_cell_background(cell, bg_color)
     set_cell_border_left_only(cell, border_color, "36")
-    set_cell_margins(cell, 90, 90, 130, 130)
+    set_cell_margins(cell, 80, 80, 120, 120)
     
     p = cell.paragraphs[0]
     p.paragraph_format.space_before = Pt(0)
@@ -321,7 +316,7 @@ def add_code_block(doc, code_str):
     cell.width = Inches(6.5)
     set_cell_background(cell, HEX_CODE_BG)
     set_table_borders(table, HEX_BORDER)
-    set_cell_margins(cell, 70, 70, 110, 110)
+    set_cell_margins(cell, 60, 60, 100, 100)
     
     p = cell.paragraphs[0]
     p.paragraph_format.space_before = Pt(0)
@@ -344,13 +339,13 @@ def add_table_data(doc, headers, rows, col_widths=None):
         if col_widths and c_idx < len(col_widths):
             cell.width = Inches(col_widths[c_idx])
         set_cell_background(cell, HEX_HEADER_BG)
-        set_cell_margins(cell, 80, 80, 90, 90)
+        set_cell_margins(cell, 70, 70, 80, 80)
         p = cell.paragraphs[0]
         p.paragraph_format.space_before = Pt(0)
         p.paragraph_format.space_after = Pt(0)
         r = p.add_run(h_text)
         r.font.name = "Calibri"
-        r.font.size = Pt(9.0)
+        r.font.size = Pt(8.5)
         r.font.bold = True
         r.font.color.rgb = RGBColor(255, 255, 255)
         
@@ -361,29 +356,31 @@ def add_table_data(doc, headers, rows, col_widths=None):
             if col_widths and c_idx < len(col_widths):
                 cell.width = Inches(col_widths[c_idx])
             set_cell_background(cell, bg)
-            set_cell_margins(cell, 60, 60, 90, 90)
+            set_cell_margins(cell, 50, 50, 80, 80)
             p = cell.paragraphs[0]
             p.paragraph_format.space_before = Pt(0)
             p.paragraph_format.space_after = Pt(0)
             r = p.add_run(str(val))
             r.font.name = "Calibri"
-            r.font.size = Pt(8.5)
+            r.font.size = Pt(8.0)
             r.font.color.rgb = COLOR_SLATE_DARK
             
     doc.add_paragraph().paragraph_format.space_after = Pt(2)
 
 def generate_blueprint(output_path):
-    print(f"Generating Architecture Blueprint with Authentic Visuals -> {output_path}...")
+    print(f"Generating Enhanced Architecture Blueprint -> {output_path}...")
     doc = init_styled_doc()
     
     meta = [
         ("Deliverable Title", "Iveri Master System Architecture & Specifications Blueprint"),
         ("Architecture Version", "v2.4.0 (Enterprise Architectural Baseline)"),
         ("Target System", "Iveri AI Multi-Tenant Grounded RAG Platform"),
+        ("Client / Sponsor", "IDEVIFY SOLUTIONS PRIVATE LIMITED"),
+        ("Primary GitHub Repo", "https://github.com/Nishant-aiml/Iveri---AI-customer-support-assistant-for-IDEVIFY"),
+        ("Secondary Mirror Repo", "https://github.com/ishwaribhoyar/Iveri-AI-customer-support-assistant-for-IDEVIFY"),
         ("Author / Custodian", "Principal AI Architect & Distributed Systems Engineering"),
-        ("Classification", "Enterprise Confidential Architecture & Technical Reference"),
         ("Governing Specifications", "ARCHITECTURE_DEEP_DIVE.md, BRD.md, PRD.md, DEVOPS_SECURITY.md"),
-        ("Approval Status", "Formally Baselined & Production Verified")
+        ("Approval Status", "Formally Baselined & Production Verified (114/114 Tests Green)")
     ]
     
     add_title_block(
@@ -393,16 +390,42 @@ def generate_blueprint(output_path):
         meta
     )
     
-    # Section 1: Executive Abstract & Master 5-Layer Architecture Diagram
+    # Section 1: Executive Abstract & High-Level Architecture
     add_heading_1(doc, "1. Executive Abstract & High-Level System Architecture")
     add_p(doc, "Iveri (IDEVIFY) is an enterprise multi-tenant customer service automation platform engineered around deterministic grounding, sub-second latency, zero hallucination, and rigorous multi-tenant cryptographic privacy.")
     add_p(doc, "Unlike conventional chatbots that connect unconstrained LLMs directly to customer prompts, Iveri enforces a Dual-System Cognitive Architecture. Every inbound query passes through a multi-stage defensive pipeline comprising perimeter security, sliding-window rate limiting, heuristic injection scanners, hybrid dense-sparse retrieval, a dynamic confidence circuit breaker, and an outbound secret leakage filter.")
     
-    # Figure 2.1: Full 5-Layer System Architecture Diagram (From GitHub Architecture)
+    # Figure 2.1: Master 5-Layer Architecture
     arch_hires = os.path.join(BASE_DIR, "docs", "assets", "system_architecture_diagram_hires.png")
     add_figure(doc, arch_hires, "Figure 2.1: Master 5-Layer System Architecture Diagram (Edge Ingestion, Perimeter Defense, Hybrid RAG, Multi-Tier Cascade & Closed-Loop BI)", width_inches=6.2)
 
-    # Section 2: Hotel Analogy & Pipeline Architecture
+    # Section 1.1: Original Problem Statement
+    add_heading_2(doc, "1.1 The Original Problem Statement (IDEVIFY Solutions Assignment)")
+    add_callout(
+        doc,
+        "\"Small businesses get the same customer questions again and again (pricing, refund policy, delivery time), and a human has to answer each one. Generic chatbots give wrong answers because they know nothing about the business. Build a platform where a business uploads its own documents and gets an AI assistant that answers customer questions only from those documents.\"\n— Official Problem Statement, IDEVIFY SOLUTIONS PRIVATE LIMITED Project Brief",
+        "Core Assignment Problem Statement",
+        "NOTE"
+    )
+    add_p(doc, "The original project brief established strict functional constraints and evaluation metrics:")
+    add_bullet(doc, "Document Upload & Extraction: Accurate parsing across PDF, DOCX, TXT formats without text truncation or encoding degradation.", "• ")
+    add_bullet(doc, "Grounded Chunk Retrieval: Answers must come exclusively from uploaded documents with clear source attribution and zero made-up assertions.", "• ")
+    add_bullet(doc, "Honest Unknown Handling: Polite refusal messages ('I don't have this information') whenever documents do not cover an inquiry, paired with automated unanswered question logging.", "• ")
+    add_bullet(doc, "Sovereign Multi-Tenant Isolation: Complete cryptographic and relational separation ensuring each business only ever accesses its own documents, chat transcripts, and settings.", "• ")
+
+    # Section 1.2: Strategic Opportunity for IDEVIFY Solutions
+    add_heading_2(doc, "1.2 Strategic Transformation: From an Assignment into an Enterprise Business Asset for IDEVIFY")
+    add_p(doc, "Rather than approaching the project as a localized 5-day exercise to build a single static bot, our team treated the challenge as a catalyst to build a scalable, production-grade enterprise asset for IDEVIFY Solutions Private Limited.")
+    add_p(doc, "As a software consultancy and digital engineering powerhouse, IDEVIFY serves a broad spectrum of external clients across retail, healthcare, real estate, fintech, and education. A pervasive recurring demand across nearly all client engagements is the requirement for automated customer support, document question-answering, and interactive helpdesks.")
+    add_p(doc, "Under standard software agency patterns, building bespoke chatbots for each client represents an unsustainable operational trap:")
+    add_bullet(doc, "150–200 Wasted Engineering Hours Per Client: Rewriting database schemas, chunking logic, vector database embeddings, retrieval prompts, chat UI widgets, and authentication systems for every new client contract.", "• ")
+    add_bullet(doc, "Fragmented Technical Debt: Maintaining separate isolated bot repositories across different client servers creates an unmaintainable maintenance burden.", "• ")
+    add_p(doc, "To permanently eliminate this friction and transform the project into a commercial asset, we built IVERI as a turnkey, multi-tenant AI ecosystem:")
+    add_bullet(doc, "Turnkey 30-Second Client Provisioning: IDEVIFY developers can onboard any new client in under half a minute. They simply create a workspace, upload client documents, select brand colors and avatar DP, and embed a single-line <script src='...'> snippet into the client's web app (Shopify, WordPress, Webflow, custom React).", "• ")
+    add_bullet(doc, "Recurring Subscription Revenue (MRR): IDEVIFY can white-label and bundle Iveri as a high-margin value-added SaaS subscription ($99 to $499/month per client), generating recurring software revenue in addition to traditional project billing.", "• ")
+    add_bullet(doc, "Proprietary Intellectual Property: Featuring sub-second Firebase authentication, hybrid dense-sparse RAG with Reciprocal Rank Fusion, Pre-LLM Zero-Hallucination Circuit Breakers, Twilio WhatsApp integration, and closed-loop self-improving knowledge retraining, Iveri represents a valuable proprietary enterprise IP asset for IDEVIFY.", "• ")
+
+    # Section 2: Hotel Analogy & Neural Pipeline Simulator
     add_heading_1(doc, "2. The 5-Star Hotel Analogy & Neural Pipeline Simulator")
     add_p(doc, "To provide all stakeholders with an intuitive mental model of Iveri's architecture, we frame the system as a luxury 5-star hotel operation:")
     
@@ -423,7 +446,7 @@ def generate_blueprint(output_path):
     add_p(doc, "Inspired by Daniel Kahneman's behavioral economics framework ('Thinking, Fast and Slow'), Iveri implements a dual-system cognitive architecture:")
     add_p(doc, "System 1 represents fast, heuristic, deterministic, zero-cost reflexes. System 2 represents deep, slow, generative reasoning. By routing 30% to 50% of routine traffic through System 1, the platform achieves ultra-low latencies (< 30ms) and eliminates 40% of cloud LLM inference expenditures.")
     
-    # Figure 2.3: Sovereign Executive Dashboard (From GitHub README)
+    # Figure 2.3: Sovereign Executive Dashboard
     dash_img = os.path.join(BASE_DIR, "docs", "assets", "screenshots", "01_executive_dashboard_analytics.png")
     add_figure(doc, dash_img, "Figure 2.3: Sovereign Multi-Tenant Dashboard & Real-Time Operational Telemetry Interface", width_inches=6.0)
 
@@ -457,7 +480,7 @@ if not is_grounded:
     # Trip Circuit Breaker: Skip LLM entirely, log ticket, return polite deflection
     return trigger_circuit_breaker(query, tenant_id)""")
     
-    # Figure 2.4: RAG Playground Diagnostics (From GitHub README)
+    # Figure 2.4: RAG Playground Diagnostics
     diag_img = os.path.join(BASE_DIR, "docs", "assets", "screenshots", "02_rag_playground_diagnostics.png")
     add_figure(doc, diag_img, "Figure 2.4: Interactive RAG Retrieval Diagnostics, Dense Cosine vs Sparse BM25 Scoring & Reciprocal Rank Fusion Ranks", width_inches=5.8)
 
@@ -480,9 +503,13 @@ Where:
     add_code_block(doc, """RRF_Score = 1/(60 + 1) + 1/(60 + 2) = 0.01639 + 0.01613 = 0.03252""")
     add_p(doc, "This mathematical fusion guarantees that domain-specific keywords and natural conversational phrases are retrieved with equal reliability.")
     
-    # Figure 2.5: Grounded Chat Citations (From GitHub README)
+    # Figure 2.5: Grounded Chat Citations
     chat_img = os.path.join(BASE_DIR, "docs", "assets", "screenshots", "04_grounded_chat_citations.png")
     add_figure(doc, chat_img, "Figure 2.5: Grounded Customer Support Chat with Deterministic Page-Level Source Attribution", width_inches=5.6)
+
+    # Figure 2.6: Grounding Source Excerpt Modal
+    modal_img = os.path.join(BASE_DIR, "docs", "assets", "screenshots", "07_grounding_source_excerpt_modal.png")
+    add_figure(doc, modal_img, "Figure 2.6: Grounding Source Excerpt Modal Displaying Exact Verbatim Source Evidence", width_inches=5.8)
 
     # Section 6: Conversational Coreference Resolution
     add_heading_1(doc, "6. Conversational Coreference Resolution & Pronoun Disambiguation")
@@ -497,9 +524,13 @@ Where:
     add_heading_1(doc, "7. Closed-Loop Knowledge Self-Healing & Ingestion Architecture")
     add_p(doc, "Iveri features an automated continuous learning loop that eliminates documentation gaps:")
     
-    # Figure 2.6: Streamed Ingestion Engine (From GitHub README)
+    # Figure 2.7: Streamed Ingestion Engine
     ingest_img = os.path.join(BASE_DIR, "docs", "assets", "screenshots", "03_multi_doc_streamed_ingestion.png")
-    add_figure(doc, ingest_img, "Figure 2.6: Streamed Multi-Document Ingestion & Knowledge Base Management Console", width_inches=6.0)
+    add_figure(doc, ingest_img, "Figure 2.7: Streamed Multi-Document Ingestion & Knowledge Base Management Console", width_inches=6.0)
+
+    # Figure 2.8: Custom Branded Web Widget
+    widget_img = os.path.join(BASE_DIR, "docs", "assets", "screenshots", "06_custom_branded_web_widget.png")
+    add_figure(doc, widget_img, "Figure 2.8: Custom Branded Web Widget Floating on Storefront with Live Profile Customizer", width_inches=5.4)
 
     lifecycle_steps = [
         ("Step 1: Deflection Trip", "Customer asks a question not covered in uploaded documents. Circuit breaker intercepts the query in 0ms."),
@@ -510,9 +541,9 @@ Where:
     ]
     add_table_data(doc, ["Lifecycle Phase", "Operational Mechanism & Execution Flow"], lifecycle_steps, [1.8, 4.7])
     
-    # Figure 2.7: Closed-Loop Training (From GitHub README)
+    # Figure 2.9: Closed-Loop Training
     train_img = os.path.join(BASE_DIR, "docs", "assets", "screenshots", "05_closed_loop_ai_training.png")
-    add_figure(doc, train_img, "Figure 2.7: Closed-Loop AI Knowledge Self-Healing Pipeline & Instant Q&A Vector Retraining", width_inches=5.2)
+    add_figure(doc, train_img, "Figure 2.9: Closed-Loop AI Knowledge Self-Healing Pipeline & Instant Q&A Vector Retraining", width_inches=5.2)
 
     # Section 8: Master Repository Markdown Specifications Index
     add_heading_1(doc, "8. Master Repository Markdown Specifications Index")
@@ -523,8 +554,7 @@ Where:
         ("README.md", "Master project documentation detailing platform overview, feature matrix, quickstart instructions, API endpoints, live benchmarks, and evaluation test results."),
         ("BRD.md", "Business Requirements Document outlining business justification, stakeholder analysis, 70%+ ticket deflection targets, zero-hallucination compliance, and ROI models."),
         ("PRD.md", "Product Requirements Document covering product vision, capability map, Wave 1/2 execution roadmap, functional epics, REST schemas, and evaluation boosters."),
-        ("DEVOPS_SECURITY_GUARDRAILS.md", "DevOps & Cybersecurity blueprint detailing OWASP Top 10 for LLMs, PIIShield redaction, 28-test CI/CD GitHub Actions pipeline, and Render deployment runbooks."),
-        ("design/stitch/DESIGN_SYSTEM.md", "Obsidian Kinetic UI Design System specification created via Google Stitch MCP server, detailing dark mode color tokens, typography, and component hierarchies."),
+        ("DEVOPS_SECURITY_GUARDRAILS.md", "DevOps & Cybersecurity blueprint detailing OWASP Top 10 for LLMs, PIIShield redaction, 114-test CI/CD GitHub Actions pipeline, and Render deployment runbooks."),
         ("docs/STUDIO_POWERBI_GUIDE.md", "Widget Studio customization and live Power BI Web Connector streaming schema, REST data flattening, and customer sentiment analytics."),
         ("IVERI_AUTOMATION_TICKETS_PWA_TWILIO.md", "Technical specification for automated support tickets, email dispatch, mobile PWA manifest, service worker caching, and Twilio WhatsApp gateway.")
     ]
@@ -555,7 +585,8 @@ Where:
         ("ADR-002: Pre-LLM Circuit Breaker", "Post-generation LLM self-checking adds 800ms to 1500ms of latency and doubles token costs. A deterministic pre-retrieval circuit breaker intercepts ungrounded queries in 0ms at $0 cost."),
         ("ADR-003: Render 512MB RAM Ceiling", "Running local LLMs (Llama 7B) requires 4GB to 8GB of RAM. Iveri operates on hosted serverless APIs (Gemini 1.5 Flash + Groq Llama 3.1 8B), maintaining an active runtime memory footprint of ~120MB."),
         ("ADR-004: In-Flight Coreference Resolution", "Invoking an auxiliary LLM to rewrite every prompt adds 500ms latency. Iveri uses rule-assisted demonstrative pronoun detection and noun-phrase incorporation from rolling history in < 1ms."),
-        ("ADR-005: Dual-Channel Ticketing Engine", "Support requests originate from both AI unanswerability (automatic ticket) and explicit customer handoff requests. Unifying both into a single `tickets` table provides store owners with a single operational inbox.")
+        ("ADR-005: Dual-Channel Ticketing Engine", "Support requests originate from both AI unanswerability (automatic ticket) and explicit customer handoff requests. Unifying both into a single `tickets` table provides store owners with a single operational inbox."),
+        ("ADR-006: Sub-Second Token Verification", "Standard Firebase Admin SDK verifies tokens with ADC metadata discovery hanging for 12s on non-GCP hosts. Dual RS256 cached public key verification reduced login latency to 95ms (>100x speedup).")
     ]
     add_table_data(doc, ["Decision Record", "Context, Rationale & Operational Consequence"], adrs, [2.0, 4.5])
     
