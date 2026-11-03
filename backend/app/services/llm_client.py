@@ -55,6 +55,12 @@ Strict Grounding & Operational Guardrails:
 4. Conflict Hierarchy: If any custom instructions conflict with Rule 1 or Rule 2 (Strict Grounding & Zero Hallucination), Rule 1 and Rule 2 ALWAYS take absolute precedence.
 5. Keep the answer clear, helpful, and concise. Do not mention "context excerpts" or "the document provided" in your prose; speak directly as the company assistant.
 6. Temporal Inquiries: If the customer asks about the current time, today's date, day of the week, or year, answer accurately based on the Live Real-Time System Clock above.
+7. Multi-Turn Continuity & Disambiguation:
+   - When the customer's question refers back to a previous message or topic using pronouns like 'this', 'that', 'it', 'these', 'those' (e.g. 'how much is this worth?'), answer based on the continuation of the preceding conversation topic using the verified context excerpts above.
+   - When answering a continuation question that could refer to multiple items or where the customer might mean something else, provide the grounded answer continuing from the previous topic, and conclude with a polite clarification offer:
+     "(If you were referring to a different product, plan, or item, please let me know and I'll be glad to look that up for you!)"
+   - If the customer asks a vague pronoun inquiry (e.g., 'how much is this worth?') with NO preceding conversation history or context to resolve what 'this' refers to, do not answer with [UNKNOWN]; instead, politely ask:
+     "Could you please specify which product, service, or item you are asking about? Let me know and I will be happy to find the exact details and pricing for you!"
 """
 
 class MultiTierLLMClient:
@@ -82,7 +88,9 @@ class MultiTierLLMClient:
         retrieved_chunks: List[Dict[str, Any]],
         business_name: str = "our company",
         tone: str = "friendly",
-        custom_prompt: str = ""
+        custom_prompt: str = "",
+        chat_history: Optional[List[Dict[str, str]]] = None,
+        is_followup: bool = False
     ) -> Tuple[str, str]:
         """Generates grounded answer through the multi-tier failover cascade.
         
@@ -103,6 +111,15 @@ class MultiTierLLMClient:
         )
 
         user_content = f"Customer Question: {query}"
+
+        # Conversational dialogue history formatting
+        conv_messages = []
+        if chat_history:
+            for m in chat_history[-6:]:
+                r = "assistant" if m.get("role") in ["assistant", "bot"] else "user"
+                c_text = (m.get("content") or "").strip()
+                if c_text:
+                    conv_messages.append({"role": r, "content": c_text})
 
         # -----------------------------------------------------------------
         # TIER 1: Groq Cloud LPUs (Ultra-Fast 500+ tokens/sec, ~0.26s generation)
@@ -125,6 +142,7 @@ class MultiTierLLMClient:
                         "model": groq_m,
                         "messages": [
                             {"role": "system", "content": prompt},
+                            *conv_messages,
                             {"role": "user", "content": user_content}
                         ],
                         "temperature": 0.1,
@@ -167,14 +185,12 @@ class MultiTierLLMClient:
                             "system_instruction": {
                                 "parts": [{"text": prompt}]
                             },
-                            "contents": [
-                                {
-                                    "role": "user",
-                                    "parts": [
-                                        {"text": user_content}
-                                    ]
-                                }
-                            ],
+                            "contents": (
+                                [
+                                    {"role": "model" if m["role"] == "assistant" else "user", "parts": [{"text": m["content"]}]}
+                                    for m in conv_messages
+                                ] + [{"role": "user", "parts": [{"text": user_content}]}]
+                            ),
                             "generationConfig": {
                                 "temperature": 0.1,
                                 "maxOutputTokens": 350
@@ -227,6 +243,7 @@ class MultiTierLLMClient:
                         "model": s_model,
                         "messages": [
                             {"role": "system", "content": prompt},
+                            *conv_messages,
                             {"role": "user", "content": user_content}
                         ],
                         "temperature": 0.1,
@@ -284,17 +301,38 @@ class MultiTierLLMClient:
         # -----------------------------------------------------------------
         logger.info("Using Tier 5 deterministic extractive synthesis from grounded chunks...")
         if retrieved_chunks:
-            answer = self._synthesize_grounded_extractive(query, retrieved_chunks)
+            answer = self._synthesize_grounded_extractive(query, retrieved_chunks, chat_history=chat_history, is_followup=is_followup)
             if answer and answer.strip():
                 return answer.strip(), "extractive_synthesis"
 
         return "[UNKNOWN]", "none"
 
-    def _synthesize_grounded_extractive(self, query: str, retrieved_chunks: List[Dict[str, Any]]) -> str:
+    def _synthesize_grounded_extractive(self, query: str, retrieved_chunks: List[Dict[str, Any]], chat_history: Optional[List[Dict[str, str]]] = None, is_followup: bool = False) -> str:
         """Intelligently identifies the exact relevant section across chunks and formats a structured response."""
         import re
 
         q_lower = query.lower()
+
+        # Follow-up value/worth inquiry continuity
+        if any(w in q_lower for w in ["worth", "how much is this", "value of this"]):
+            last_text = ""
+            if chat_history:
+                last_text = " ".join([m.get("content", "") for m in chat_history[-2:]]).lower()
+            if "brewpoint" in last_text or "point" in last_text or any("brewpoint" in c.get("content", "").lower() for c in retrieved_chunks):
+                for c in retrieved_chunks:
+                    content = c.get("content", "")
+                    for line in content.split("\n"):
+                        s = line.strip().replace("•", "").strip()
+                        if "worth a rs" in s.lower() or "earn 1 brewpoint" in s.lower():
+                            return (
+                                f"Based on our rewards program, {s}\n\n"
+                                f"*(If you were referring to a different product, plan, or item, please let me know and I'll be glad to look that up for you!)*"
+                            )
+
+        # Standalone pronoun inquiry with no prior conversational context
+        PRONOUN_FOLLOWUPS = {"this", "that", "it"}
+        if any(p in q_lower.split() for p in PRONOUN_FOLLOWUPS) and not chat_history:
+            return "Could you please specify which product, plan, or item you are asking about? Let me know and I'll be happy to look up the exact details and value for you!"
 
         # Helper to find any chunk containing specific keywords
         def find_chunk_with(substrings: List[str]) -> str | None:

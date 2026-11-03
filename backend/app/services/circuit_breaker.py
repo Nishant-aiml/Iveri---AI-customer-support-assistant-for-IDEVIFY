@@ -149,9 +149,13 @@ class PreLLMCircuitBreaker:
             "query_terms": {"product", "products", "item", "items", "sell", "goods", "offering", "offerings", "service", "services", "catalog", "pricing", "price", "cost", "plan", "plans", "rate", "rates", "fee", "fees", "worth", "value", "discount", "discounts", "point", "points", "reward", "rewards", "loyalty", "redeem", "redemption", "charge", "charges", "package", "tier", "subscription", "menu"},
             "context_patterns": [r"\b(product|products|item|items|goods|service|services|catalog|pricing|price|cost|rate|rates|fee|fees|plan|plans|charge|charges|worth|value|point|points|reward|rewards|discount|discounts|offer|sale|package|tier|per|month|annual|total|save|redeem|subscription)\b", r"[\$€£₹]|rs\.?|inr"]
         },
-        "policies_delivery": {
-            "query_terms": {"return", "returns", "refund", "refunds", "cancel", "cancellation", "warranty", "exchange", "moneyback", "ship", "shipping", "delivery", "deliver", "transit", "dispatch", "arrive", "courier", "postage", "freight", "policy", "guarantee"},
-            "context_patterns": [r"\b(return|returns|refund|refunds|cancel|cancellation|warranty|replacement|defect|exchange|ship|shipping|delivery|deliver|transit|dispatch|courier|postage|freight|policy|order|days|hours)\b"]
+        "shipping_delivery": {
+            "query_terms": {"ship", "shipping", "delivery", "deliver", "transit", "dispatch", "arrive", "courier", "postage", "freight"},
+            "context_patterns": [r"\b(ship|shipping|delivery|deliver|transit|dispatch|courier|postage|freight)\b"]
+        },
+        "returns_refunds": {
+            "query_terms": {"return", "returns", "refund", "refunds", "cancel", "cancellation", "warranty", "exchange", "moneyback"},
+            "context_patterns": [r"\b(return|returns|refund|refunds|cancel|cancellation|warranty|replacement|defect)\b"]
         }
     }
 
@@ -233,12 +237,10 @@ class PreLLMCircuitBreaker:
                             grounded_hits.append(f"{t}:{group_name}")
                             break
 
-            # If no literal tokens matched, check for valid multi-turn conversational coreference or high neural similarity
+            # If no literal tokens matched, check for valid multi-turn conversational coreference
             if not grounded_hits:
                 if has_pronoun_ref and (dense_sim >= 0.38 or sparse_score > 0.0):
                     grounded_hits.append("followup_context_grounded")
-                elif dense_sim >= 0.48:
-                    grounded_hits.append("semantic_dense_grounded")
 
             if not grounded_hits:
                 logger.info(f"Circuit breaker tripped: Query entities {tokens} missing from retrieved content (Dense={dense_sim:.3f}).")
