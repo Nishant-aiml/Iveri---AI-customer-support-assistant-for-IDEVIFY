@@ -2478,22 +2478,38 @@
       }
       closeAuthModal();
 
-      await loadBusinessProfile();
-      loadDashboardData();
-      initCopilotState();
-      loadAnalyticsCharts();
-      if (typeof loadDocuments === 'function') loadDocuments();
-      if (typeof loadNotifications === 'function') {
-        loadNotifications();
-        if (!window._notifTimer) {
-          window._notifTimer = setInterval(loadNotifications, 15000);
+      // SWR Instant Local Cache Render (0ms initial paint on refresh)
+      try {
+        const cachedBizStr = localStorage.getItem('iveri_cached_biz');
+        if (cachedBizStr) {
+          const cachedBiz = JSON.parse(cachedBizStr);
+          if (cachedBiz && cachedBiz.name) {
+            currentBusiness = cachedBiz;
+            const hdr = document.getElementById('biz-header-name');
+            if (hdr) hdr.innerText = cachedBiz.name;
+            const sub = document.getElementById('biz-header-name-sub');
+            if (sub) sub.innerText = cachedBiz.name;
+          }
         }
+      } catch (e) {}
+
+      // Fast parallel fetch across HTTP/2
+      Promise.allSettled([
+        loadBusinessProfile(),
+        loadDashboardData(),
+        typeof loadDocuments === 'function' ? loadDocuments() : Promise.resolve(),
+        typeof loadNotifications === 'function' ? loadNotifications() : Promise.resolve(),
+        typeof loadTickets === 'function' ? loadTickets() : Promise.resolve()
+      ]).then(() => {
+        initCopilotState();
+        loadAnalyticsCharts();
+      });
+
+      if (typeof loadNotifications === 'function' && !window._notifTimer) {
+        window._notifTimer = setInterval(loadNotifications, 15000);
       }
-      if (typeof loadTickets === 'function') {
-        loadTickets();
-        if (!window._ticketTimer) {
-          window._ticketTimer = setInterval(loadTickets, 20000);
-        }
+      if (typeof loadTickets === 'function' && !window._ticketTimer) {
+        window._ticketTimer = setInterval(loadTickets, 20000);
       }
       if ('Notification' in window && Notification.permission === 'default') {
         const banner = document.getElementById('desktop-notif-prompt');
@@ -2519,6 +2535,7 @@
         }
         if (res.ok) {
           currentBusiness = await res.json();
+          try { localStorage.setItem('iveri_cached_biz', JSON.stringify(currentBusiness)); } catch(e){}
           document.getElementById('biz-header-name').innerText = currentBusiness.name;
           const mobileSub = document.getElementById('biz-header-name-sub');
           if (mobileSub) mobileSub.innerText = currentBusiness.name;
@@ -6788,7 +6805,11 @@
       });
     }
 
-    window.onload = init;
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
   </script>
 
   <!-- Mobile Native Bottom Navigation Bar (iOS / Android PWA) -->
