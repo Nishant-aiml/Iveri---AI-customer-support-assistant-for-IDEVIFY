@@ -126,9 +126,17 @@ async def health_check():
         "fallback_parser": "PyMuPDF (fitz)"
     }
 
-# Static Asset Directory
+# Static Asset Directory with High-Speed HTTP Browser Caching
 _static_dir = os.path.join(os.path.dirname(__file__), "static")
-app.mount("/static", StaticFiles(directory=_static_dir), name="static")
+
+class CachedStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        response = await super().get_response(path, scope)
+        if response.status_code == 200 and not path.endswith("widget.js"):
+            response.headers["Cache-Control"] = "public, max-age=86400, stale-while-revalidate=604800"
+        return response
+
+app.mount("/static", CachedStaticFiles(directory=_static_dir), name="static")
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def serve_favicon():
