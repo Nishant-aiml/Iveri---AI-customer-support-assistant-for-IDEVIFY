@@ -590,10 +590,10 @@
       <!-- Metric Cards Grid (Business Console Executive Accents) -->
       <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
         <!-- 1. Customer Chats -->
-        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 border border-indigo-100/90 hover:border-indigo-300 shadow-xs hover:shadow-indigo-500/10 hover:shadow-md transition space-y-2">
+        <div onclick="switchTab('chats')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); switchTab('chats');}" title="Click to view Customer Chats &amp; History" class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-indigo-50/20 to-purple-50/20 border border-indigo-100/90 hover:border-indigo-300 shadow-xs hover:shadow-indigo-500/10 hover:shadow-md hover:scale-[1.02] active:scale-[0.99] transition cursor-pointer space-y-2 group select-none">
           <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
-            <span>Customer Chats</span>
-            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-xs shadow-indigo-200">
+            <span class="flex items-center gap-1 group-hover:text-indigo-600 transition-colors">Customer Chats <span class="material-symbols-outlined text-[13px] opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span></span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-xs shadow-indigo-200 group-hover:rotate-6 transition-transform">
               <span class="material-symbols-outlined text-[16px] sm:text-[17px]">forum</span>
             </div>
           </div>
@@ -607,10 +607,10 @@
         </div>
 
         <!-- 2. Total Questions -->
-        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-purple-50/20 to-pink-50/20 border border-purple-100/90 hover:border-purple-300 shadow-xs hover:shadow-purple-500/10 hover:shadow-md transition space-y-2">
+        <div onclick="switchTab('chats')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); switchTab('chats');}" title="Click to inspect Customer Inquiries" class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-purple-50/20 to-pink-50/20 border border-purple-100/90 hover:border-purple-300 shadow-xs hover:shadow-purple-500/10 hover:shadow-md hover:scale-[1.02] active:scale-[0.99] transition cursor-pointer space-y-2 group select-none">
           <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
-            <span>Total Questions</span>
-            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-purple-500 to-pink-600 text-white flex items-center justify-center shadow-xs shadow-purple-200">
+            <span class="flex items-center gap-1 group-hover:text-purple-600 transition-colors">Total Questions <span class="material-symbols-outlined text-[13px] opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span></span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-purple-500 to-pink-600 text-white flex items-center justify-center shadow-xs shadow-purple-200 group-hover:rotate-6 transition-transform">
               <span class="material-symbols-outlined text-[16px] sm:text-[17px]">help</span>
             </div>
           </div>
@@ -624,10 +624,10 @@
         </div>
 
         <!-- 3. Resolution Rate -->
-        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20 border border-emerald-100/90 hover:border-emerald-300 shadow-xs hover:shadow-emerald-500/10 hover:shadow-md transition space-y-2">
+        <div onclick="scrollToAnalytics()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); scrollToAnalytics();}" title="Click to view Resolution &amp; Traffic Analytics" class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-emerald-50/20 to-teal-50/20 border border-emerald-100/90 hover:border-emerald-300 shadow-xs hover:shadow-emerald-500/10 hover:shadow-md hover:scale-[1.02] active:scale-[0.99] transition cursor-pointer space-y-2 group select-none">
           <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
-            <span>Resolution Rate</span>
-            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs shadow-emerald-200">
+            <span class="flex items-center gap-1 group-hover:text-emerald-600 transition-colors">Resolution Rate <span class="material-symbols-outlined text-[13px] opacity-0 group-hover:opacity-100 transition-opacity">south</span></span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-xs shadow-emerald-200 group-hover:rotate-6 transition-transform">
               <span class="material-symbols-outlined text-[16px] sm:text-[17px]">check_circle</span>
             </div>
           </div>
@@ -641,10 +641,10 @@
         </div>
 
         <!-- 4. Unanswered Gaps -->
-        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-amber-50/20 to-orange-50/20 border border-amber-100/90 hover:border-amber-300 shadow-xs hover:shadow-amber-500/10 hover:shadow-md transition space-y-2">
+        <div onclick="switchTab('tickets')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); switchTab('tickets');}" title="Click to view Unanswered Gaps &amp; Train System" class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-amber-50/20 to-orange-50/20 border border-amber-100/90 hover:border-amber-300 shadow-xs hover:shadow-amber-500/10 hover:shadow-md hover:scale-[1.02] active:scale-[0.99] transition cursor-pointer space-y-2 group select-none">
           <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
-            <span>Unanswered Gaps</span>
-            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-xs shadow-amber-200">
+            <span class="flex items-center gap-1 group-hover:text-amber-600 transition-colors">Unanswered Gaps <span class="material-symbols-outlined text-[13px] opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span></span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-xs shadow-amber-200 group-hover:rotate-6 transition-transform">
               <span class="material-symbols-outlined text-[16px] sm:text-[17px]">warning</span>
             </div>
           </div>
@@ -658,10 +658,10 @@
         </div>
 
         <!-- 5. Avg Latency & Scale -->
-        <div class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-sky-50/20 to-blue-50/20 border border-sky-100/90 hover:border-sky-300 shadow-xs hover:shadow-sky-500/10 hover:shadow-md transition space-y-2 col-span-2 lg:col-span-1">
+        <div onclick="switchTab('documents')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault(); switchTab('documents');}" title="Click to view Documents &amp; Knowledge Base" class="lumina-card p-3.5 sm:p-5 rounded-2xl bg-gradient-to-br from-white via-sky-50/20 to-blue-50/20 border border-sky-100/90 hover:border-sky-300 shadow-xs hover:shadow-sky-500/10 hover:shadow-md hover:scale-[1.02] active:scale-[0.99] transition cursor-pointer space-y-2 col-span-2 lg:col-span-1 group select-none">
           <div class="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-slate-500 uppercase tracking-wider font-semibold">
-            <span>Avg Latency & Scale</span>
-            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-xs shadow-sky-200">
+            <span class="flex items-center gap-1 group-hover:text-sky-600 transition-colors">Avg Latency &amp; Scale <span class="material-symbols-outlined text-[13px] opacity-0 group-hover:opacity-100 transition-opacity">arrow_forward</span></span>
+            <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-xs shadow-sky-200 group-hover:rotate-6 transition-transform">
               <span class="material-symbols-outlined text-[16px] sm:text-[17px]">speed</span>
             </div>
           </div>
