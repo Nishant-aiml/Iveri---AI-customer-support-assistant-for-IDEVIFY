@@ -677,7 +677,7 @@
       </div>
 
       <!-- YouTube Analytics-Style Customer Inquiry & Resolution Engine -->
-      <div class="lumina-card p-6 rounded-2xl space-y-5">
+      <div id="analytics-section" class="lumina-card p-6 rounded-2xl space-y-5">
         
         <!-- Header & Time Grain Switcher Pills -->
         <div class="flex flex-col md:flex-row md:items-center md:justify-between pb-4 border-b border-slate-100 gap-3">
@@ -5175,6 +5175,17 @@
         if (tabId === 'tickets') loadTickets();
         if (tabId === 'chats') loadChatHistory();
         if (tabId === 'settings') { updateWidgetPreview(); loadTwilioConfig(); }
+      }
+    }
+
+    function scrollToAnalytics() {
+      if (document.getElementById('view-overview')?.classList.contains('hidden')) {
+        switchTab('overview');
+        setTimeout(() => {
+          document.getElementById('analytics-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 120);
+      } else {
+        document.getElementById('analytics-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
 
